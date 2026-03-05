@@ -1,8 +1,10 @@
+#数据库配置
 zhuanzhuan:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     host: localhost
     port: 3306
-    database: sky_take_out
+    database: zhuanzhuanCampus
     username: root
     password: 20041021
+#3233233223
