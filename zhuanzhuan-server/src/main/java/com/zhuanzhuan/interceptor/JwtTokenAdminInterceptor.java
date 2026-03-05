@@ -51,10 +51,10 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
         try {
             log.info("jwt校验:{}", token);
             Claims claims = JwtUtil.parseJWT(jwtProperties.getAdminSecretKey(), token);
-            Long empId = Long.valueOf(claims.get(JwtClaimsConstant.EMP_ID).toString());
+            Long empId = Long.valueOf(claims.get(JwtClaimsConstant.ADMIN_ID).toString());
             log.info("当前员工id: {}", empId);
 
-            //把empid存到threadlocal里面，threadlocal为每个线程分配了独立的存储空间，相互独立
+            //把adminId存到threadlocal里面，threadlocal为每个线程分配了独立的存储空间，相互独立
             //使用自定义threadlocal包装类BaseContext
             BaseContext.setCurrentId(empId);
 
