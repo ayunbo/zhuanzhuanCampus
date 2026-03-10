@@ -1,15 +1,11 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
-
   profiles:
     active: dev
-
   main:
     allow-circular-references: true
-
-#数据库连接
   datasource:
     druid:
       driver-class-name: ${zhuanzhuan.datasource.driver-class-name}
@@ -18,30 +14,38 @@ spring:
       password: ${zhuanzhuan.datasource.password}
 
 mybatis:
-  #mapper配置文件
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.zhuanzhuan.entity
   configuration:
-    #开启驼峰命名
     map-underscore-to-camel-case: true
 
-#开启日志记录
 logging:
   level:
     com:
-      sky:
+      zhuanzhuan:
         mapper: debug
         service: info
         controller: info
 
-
 zhuanzhuan:
   jwt:
-    # 设置jwt签名加密时使用的秘钥
     admin-secret-key: itcast
-    # 设置jwt过期时间
     admin-ttl: 7200000
-    # 设置前端传递过来的令牌名称
     admin-token-name: token
-#000
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: default
+      paths-to-match: /**
+      packages-to-scan: com.zhuanzhuan.controller
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn

@@ -8,15 +8,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
-@EnableTransactionManagement //开启注解方式的事务管理
-@Slf4j
+@EnableTransactionManagement
 @EnableCaching//开启缓存注解
 @EnableScheduling//开启定时任务注解
+@Slf4j
 public class ZhuanzhuanApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(ZhuanzhuanApplication.class, args);
         log.info("server started");
     }
-
 }
