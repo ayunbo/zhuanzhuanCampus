@@ -25,10 +25,13 @@ function goLogin() {
   place-content: center;
   gap: 12px;
   text-align: center;
+  padding: 28px;
 }
 
 .forbidden-page h1 {
+  margin: 0;
   font-size: 36px;
+  color: #5e3a1d;
 }
 
 .forbidden-page p {

@@ -100,19 +100,22 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: url('/login-bg.png');
-  background-size: 100% 100%;
+  background-image:
+    linear-gradient(125deg, rgba(255, 244, 222, 0.72) 0%, rgba(255, 240, 211, 0.48) 100%),
+    url('/login-bg.png');
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .login-panel {
   width: min(460px, 100%);
-  padding: 28px 24px;
+  padding: 30px 24px;
   margin-left: auto;
   margin-right: clamp(20px, 3vw, 64px);
-  backdrop-filter: blur(4px);
-  background: rgba(255, 251, 243, 0.92);
+  border: 1px solid #f0d4af;
+  backdrop-filter: blur(5px);
+  background: rgba(255, 250, 241, 0.93);
 }
 
 .panel-header {
@@ -131,8 +134,10 @@ async function handleLogin() {
 }
 
 .panel-header h1 {
+  margin: 0;
   font-size: 28px;
   line-height: 1.2;
+  color: #5e3b1e;
 }
 
 .panel-header p {
@@ -153,6 +158,7 @@ async function handleLogin() {
 
 .login-form span {
   font-weight: 600;
+  color: #6e4b2a;
 }
 
 .submit-btn {

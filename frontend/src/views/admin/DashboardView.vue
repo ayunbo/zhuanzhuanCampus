@@ -1,6 +1,6 @@
-﻿<template>
-  <div class="dashboard-page">
-    <section class="stats app-card fade-in-up">
+<template>
+  <div class="dashboard-page fade-in-up">
+    <section class="stats app-card">
       <div class="stats-head">
         <h3>卖家认证审核统计</h3>
         <button class="app-btn secondary" :disabled="loading" @click="loadStats">
@@ -101,11 +101,11 @@ onMounted(() => {
 <style scoped>
 .dashboard-page {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .stats {
-  padding: 18px;
+  padding: 18px 18px 20px;
 }
 
 .stats-head {
@@ -115,26 +115,34 @@ onMounted(() => {
   gap: 12px;
 }
 
+.stats-head h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #5c3b1f;
+}
+
 .stats-grid {
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .stat-card {
   border-radius: 14px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  background: linear-gradient(140deg, #fffaf1 0%, #ffe7c4 100%);
+  padding: 14px 14px 12px;
+  border: 1px solid #f0d5b2;
+  background: linear-gradient(140deg, #fffbf4 0%, #ffe9ca 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .stat-card h4 {
+  margin: 0;
   color: #7a5a33;
 }
 
 .stat-card strong {
-  margin-top: 8px;
+  margin-top: 10px;
   display: block;
   font-size: 34px;
   line-height: 1;

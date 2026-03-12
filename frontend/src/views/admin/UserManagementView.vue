@@ -1,135 +1,141 @@
 <template>
-  <div class="user-management-simple fade-in-up">
-    <!-- Header Section -->
-    <div class="page-header">
-      <div class="header-info">
-        <h1>用户档案</h1>
-        <p>系统所有注册用户的管理与资料维护</p>
+  <div class="user-management-page app-card fade-in-up">
+    <section class="toolbar">
+      <h3>用户管理</h3>
+      <div class="toolbar-actions">
+        <button class="app-btn primary" @click="openAddDialog">新增用户</button>
+        <button class="app-btn secondary" :disabled="loading" @click="loadData">
+          {{ loading ? '加载中...' : '刷新列表' }}
+        </button>
       </div>
-      <div class="header-actions">
-        <el-button type="primary" :icon="Plus" @click="openAddDialog">新增用户</el-button>
+    </section>
+
+    <form class="filter-grid" @submit.prevent="handleSearch">
+      <label>
+        <span>学号</span>
+        <input v-model="query.studentNo" class="app-input" type="text" placeholder="学号模糊查询" />
+      </label>
+
+      <label>
+        <span>姓名</span>
+        <input v-model="query.name" class="app-input" type="text" placeholder="用户姓名" />
+      </label>
+
+      <label>
+        <span>角色</span>
+        <select v-model="query.role" class="app-select">
+          <option value="">全部</option>
+          <option :value="1">普通用户</option>
+          <option :value="2">校园卖家</option>
+        </select>
+      </label>
+
+      <div class="action-group">
+        <button class="app-btn primary" type="submit">查询</button>
+        <button class="app-btn ghost" type="button" @click="resetQuery">重置</button>
       </div>
+    </form>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>学号</th>
+            <th>姓名</th>
+            <th>手机号</th>
+            <th>角色</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="!loading && tableData.length === 0">
+            <td class="empty-row" colspan="7">暂无数据</td>
+          </tr>
+          <tr v-for="row in tableData" :key="String(row.id)">
+            <td>{{ row.id }}</td>
+            <td>{{ row.studentNo || '-' }}</td>
+            <td>{{ row.name || '-' }}</td>
+            <td>{{ row.phone || '-' }}</td>
+            <td>
+              <span class="role-badge" :class="Number(row.role) === 2 ? 'seller' : 'user'">
+                {{ Number(row.role) === 2 ? '校园卖家' : '普通用户' }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" :class="Number(row.status) === 1 ? 'status-approved' : 'status-rejected'">
+                {{ Number(row.status) === 1 ? '正常' : '禁用' }}
+              </span>
+            </td>
+            <td class="actions">
+              <button class="app-btn primary mini" @click="openEditDialog(row)">编辑</button>
+              <button class="app-btn secondary mini" @click="handleStatusToggle(row)">
+                {{ Number(row.status) === 1 ? '禁用' : '启用' }}
+              </button>
+              <button class="app-btn danger mini" @click="handleDelete(row.id)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <el-input
-        v-model="query.studentNo"
-        placeholder="学号搜索..."
-        :prefix-icon="Search"
-        style="width: 200px"
-        @input="handleSearch"
+    <footer class="pagination-wrap">
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.pageSize"
+        :total="total"
+        layout="total, prev, pager, next"
+        @current-change="loadData"
       />
-      <el-input
-        v-model="query.name"
-        placeholder="姓名搜索..."
-        :prefix-icon="Search"
-        style="width: 200px"
-        @input="handleSearch"
-      />
-      <el-select v-model="query.role" placeholder="角色" clearable style="width: 140px" @change="handleSearch">
-        <el-option label="普通用户" :value="1" />
-        <el-option label="校园卖家" :value="2" />
-      </el-select>
-      <el-button link :icon="Refresh" @click="resetQuery">重置</el-button>
-    </div>
+    </footer>
+  </div>
 
-    <!-- Main Table Section -->
-    <div class="table-container">
-      <el-table 
-        v-loading="loading" 
-        :data="tableData" 
-        style="width: 100%"
-      >
-        <el-table-column prop="id" label="ID" width="80" color="#8c8c8c" />
-        <el-table-column label="学号" width="140">
-          <template #default="{ row }">
-            <span class="student-no">{{ row.studentNo }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="name" label="姓名" width="120" />
-        <el-table-column prop="phone" label="手机号" width="140" />
-        <el-table-column label="角色" width="120">
-          <template #default="{ row }">
-            <span class="simple-badge" :class="row.role === 2 ? 'seller' : 'user'">
-              {{ row.role === 2 ? '卖家' : '用户' }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-switch
-              v-model="row.status"
-              :active-value="1"
-              :inactive-value="2"
-              size="small"
-              @change="(val) => handleStatusChange(row, val)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" align="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-divider direction="vertical" />
-            <el-button link type="danger" @click="handleDelete(row.id)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+  <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="520px" destroy-on-close>
+    <el-form :model="form" label-width="84px">
+      <el-form-item label="学号">
+        <el-input v-model="form.studentNo" :disabled="isEdit" maxlength="32" placeholder="请输入学号" />
+      </el-form-item>
 
-      <!-- Pagination -->
-      <div class="pagination-section">
-        <el-pagination
-          v-model:current-page="query.page"
-          v-model:page-size="query.pageSize"
-          :total="total"
-          small
-          layout="total, prev, pager, next"
-          @current-change="loadData"
+      <el-form-item v-if="!isEdit" label="密码">
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          maxlength="64"
+          placeholder="不填默认 123456"
         />
-      </div>
-    </div>
+      </el-form-item>
 
-    <!-- Dialog -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑资料' : '新增用户'" width="480px">
-      <el-form :model="form" label-position="top">
-        <el-form-item label="学号" required>
-          <el-input v-model="form.studentNo" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="初始密码" required v-if="!isEdit">
-          <el-input v-model="form.password" type="password" show-password />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="姓名">
-              <el-input v-model="form.name" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="手机号">
-              <el-input v-model="form.phone" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="所属角色">
-          <el-radio-group v-model="form.role" size="small">
-            <el-radio-button :label="1">普通用户</el-radio-button>
-            <el-radio-button :label="2">校园卖家</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <template #footer>
+      <el-form-item label="姓名">
+        <el-input v-model="form.name" maxlength="64" placeholder="请输入姓名" />
+      </el-form-item>
+
+      <el-form-item label="手机号">
+        <el-input v-model="form.phone" maxlength="20" placeholder="请输入手机号" />
+      </el-form-item>
+
+      <el-form-item label="角色">
+        <el-radio-group v-model="form.role">
+          <el-radio-button :label="1">普通用户</el-radio-button>
+          <el-radio-button :label="2">校园卖家</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <div class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">保存</el-button>
-      </template>
-    </el-dialog>
-  </div>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { Plus, Search, Refresh } from '@element-plus/icons-vue'
-import { fetchUserPage, createUser, updateUser, deleteUser, fetchUserById } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { createUser, deleteUser, fetchUserById, fetchUserPage, updateUser } from '@/api/admin'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -138,34 +144,107 @@ const total = ref(0)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 
-const query = reactive({ page: 1, pageSize: 10, studentNo: '', name: '', role: null })
-const form = reactive({ id: null, studentNo: '', password: '', name: '', phone: '', role: 1, status: 1 })
+const query = reactive({
+  page: 1,
+  pageSize: 10,
+  studentNo: '',
+  name: '',
+  role: '',
+})
+
+const form = reactive({
+  id: null,
+  studentNo: '',
+  password: '',
+  name: '',
+  phone: '',
+  role: 1,
+  status: 1,
+})
+
+function normalize(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function buildQueryParams() {
+  const params = {
+    page: query.page,
+    pageSize: query.pageSize,
+  }
+
+  const studentNo = normalize(query.studentNo)
+  const name = normalize(query.name)
+
+  if (studentNo) {
+    params.studentNo = studentNo
+  }
+
+  if (name) {
+    params.name = name
+  }
+
+  if (query.role !== null && query.role !== '') {
+    params.role = Number(query.role)
+  }
+
+  return params
+}
 
 async function loadData() {
   loading.value = true
+
   try {
-    const res = await fetchUserPage(query)
-    tableData.value = Array.isArray(res?.records) ? res.records : []
-    total.value = Number(res?.total || 0)
+    const result = await fetchUserPage(buildQueryParams())
+    tableData.value = Array.isArray(result?.records) ? result.records : []
+    total.value = Number(result?.total || 0)
+  } catch (error) {
+    ElMessage.error(error.message || '用户列表加载失败')
   } finally {
     loading.value = false
   }
 }
 
-function handleSearch() { query.page = 1; loadData() }
-function resetQuery() { Object.assign(query, { studentNo: '', name: '', role: null }); handleSearch() }
+function handleSearch() {
+  query.page = 1
+  loadData()
+}
+
+function resetQuery() {
+  query.studentNo = ''
+  query.name = ''
+  query.role = ''
+  query.page = 1
+  loadData()
+}
+
+function resetForm() {
+  form.id = null
+  form.studentNo = ''
+  form.password = ''
+  form.name = ''
+  form.phone = ''
+  form.role = 1
+  form.status = 1
+}
 
 function openAddDialog() {
   isEdit.value = false
-  Object.assign(form, { id: null, studentNo: '', password: '', name: '', phone: '', role: 1, status: 1 })
+  resetForm()
   dialogVisible.value = true
 }
 
 async function openEditDialog(user) {
+  isEdit.value = true
+
   try {
-    isEdit.value = true
     const detail = await fetchUserById(String(user.id))
-    Object.assign(form, detail)
+    form.id = detail?.id ?? user.id
+    form.studentNo = detail?.studentNo || ''
+    form.password = ''
+    form.name = detail?.name || ''
+    form.phone = detail?.phone || ''
+    form.role = Number(detail?.role ?? 1)
+    form.status = Number(detail?.status ?? 1)
     dialogVisible.value = true
   } catch (error) {
     ElMessage.error(error.message || '无法获取用户详情')
@@ -173,131 +252,249 @@ async function openEditDialog(user) {
 }
 
 async function handleSubmit() {
+  const studentNo = normalize(form.studentNo)
+  const password = normalize(form.password)
+  const name = normalize(form.name)
+  const phone = normalize(form.phone)
+
+  if (!studentNo) {
+    ElMessage.warning('学号不能为空')
+    return
+  }
+
   submitting.value = true
+
   try {
-    if (isEdit.value) await updateUser(form)
-    else await createUser(form)
+    if (isEdit.value) {
+      const payload = {
+        id: form.id,
+        studentNo,
+        name,
+        role: Number(form.role),
+        status: Number(form.status),
+      }
+
+      if (phone) {
+        payload.phone = phone
+      }
+
+      if (password) {
+        payload.password = password
+      }
+
+      await updateUser(payload)
+    } else {
+      const payload = {
+        studentNo,
+        role: Number(form.role),
+      }
+
+      if (name) {
+        payload.name = name
+      }
+
+      if (phone) {
+        payload.phone = phone
+      }
+
+      if (password) {
+        payload.password = password
+      }
+
+      await createUser(payload)
+    }
+
     ElMessage.success('操作成功')
     dialogVisible.value = false
-    loadData()
-  } finally { submitting.value = false }
+    await loadData()
+  } catch (error) {
+    ElMessage.error(error.message || '提交失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
-async function handleStatusChange(row, val) {
-  const previousStatus = val === 1 ? 2 : 1
+async function handleStatusToggle(row) {
+  const currentStatus = Number(row.status)
+  const newStatus = currentStatus === 1 ? 2 : 1
+
   try {
-    await updateUser({ ...row, status: val })
-    ElMessage.success('状态已更新')
+    await updateUser({ ...row, status: newStatus })
+    row.status = newStatus
+    ElMessage.success('账户状态已更新')
   } catch (error) {
-    row.status = previousStatus
+    row.status = currentStatus
     ElMessage.error(error.message || '状态更新失败')
   }
 }
 
 async function handleDelete(id) {
-  await ElMessageBox.confirm('确定删除该用户吗？', '提示', { type: 'warning' })
-  await deleteUser(id)
-  ElMessage.success('已删除')
-  loadData()
+  try {
+    await ElMessageBox.confirm('删除后不可恢复，确认删除该用户吗？', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  try {
+    await deleteUser(String(id))
+    ElMessage.success('删除成功')
+    await loadData()
+  } catch (error) {
+    ElMessage.error(error.message || '删除失败')
+  }
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <style scoped>
-.user-management-simple {
-  display: grid;
-  gap: 16px;
+.user-management-page {
+  padding: 18px;
 }
 
-.page-header {
+.toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: linear-gradient(140deg, #fff7e9 0%, #fff1dd 100%);
 }
 
-.header-info h1 {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-  color: #5b3b1f;
-}
-
-.header-info p {
+.toolbar h3 {
   margin: 0;
-  font-size: 14px;
-  color: #83684e;
+  font-size: 18px;
+  color: #5c3b1f;
 }
 
-.filter-bar {
+.toolbar-actions {
   display: flex;
-  align-items: center;
+  gap: 8px;
+}
+
+.filter-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, #fffdf9 0%, #fff7eb 100%);
-  box-shadow: var(--shadow-soft);
+  align-items: end;
 }
 
-.table-container {
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, #fffdf9 0%, #fff7eb 100%);
-  box-shadow: var(--shadow-soft);
-  padding: 8px 10px 16px;
+.filter-grid label {
+  display: grid;
+  gap: 8px;
 }
 
-.student-no {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  color: #5b3b1f;
+.filter-grid span {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.simple-badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.simple-badge.seller { color: #ff9100; background: #fff7e6; }
-.simple-badge.user { color: #7f6146; background: #f8ecdc; }
-
-.pagination-section {
-  margin-top: 16px;
+.action-group {
   display: flex;
-  justify-content: center;
+  gap: 8px;
 }
 
-:deep(.el-table__row) {
-  transition: background-color 0.2s;
+.table-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fffdf8;
 }
 
-:deep(.el-table__row:hover) {
-  background-color: #fff8ee !important;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 940px;
 }
 
-:deep(.el-switch.is-checked .el-switch__core) {
-  border-color: #d8822a;
-  background-color: #d8822a;
+.data-table th,
+.data-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
 }
 
-@media (max-width: 768px) {
-  .page-header {
-    align-items: flex-start;
-    flex-direction: column;
+.data-table th {
+  color: #6d4f2d;
+  background: #fff5e4;
+  position: sticky;
+  top: 0;
+}
+
+.empty-row {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.role-badge.seller {
+  color: #8e4b03;
+  background: #ffe8c4;
+}
+
+.role-badge.user {
+  color: #77563b;
+  background: #f3e8d9;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.app-btn.mini {
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.pagination-wrap {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1180px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .user-management-page {
+    padding: 14px;
   }
 
-  .table-container {
-    padding: 6px 6px 12px;
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-group {
+    flex-wrap: wrap;
   }
 }
 </style>

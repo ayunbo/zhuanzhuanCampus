@@ -31,14 +31,15 @@ const routes = [
         },
       },
       {
-        path: '/admin-manage',
+        path: 'admin-manage',
         name: 'adminManage',
         component: () => import('@/views/admin/AdminManageView.vue'),
         meta: {
           title: '管理员管理',
         },
-      },      {
-        path: '/user-manage',
+      },
+      {
+        path: 'user-manage',
         name: 'userManage',
         component: () => import('@/views/admin/UserManagementView.vue'),
         meta: {
@@ -46,8 +47,8 @@ const routes = [
         },
       },
       {
-        path: '/seller-auth',
-        name: 'sellerAuthAudit',
+        path: 'seller-auth',
+        name: 'sellerAuth',
         component: () => import('@/views/admin/SellerAuthView.vue'),
         meta: {
           title: '卖家认证审核',

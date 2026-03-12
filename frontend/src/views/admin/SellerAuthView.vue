@@ -60,22 +60,21 @@
             <td class="empty-row" colspan="10">暂无数据</td>
           </tr>
 
-          <tr v-for="record in records" :key="record.id">
+          <tr v-for="record in records" :key="String(record.id)">
             <td>{{ record.id }}</td>
             <td>{{ record.userName || '-' }}</td>
             <td>{{ record.realName || '-' }}</td>
             <td>{{ record.studentNo || '-' }}</td>
             <td>{{ record.phone || '-' }}</td>
             <td>
-              <a
+              <button
                 v-if="isUrl(record.material)"
                 class="material-link"
-                :href="record.material"
-                target="_blank"
-                rel="noopener noreferrer"
+                type="button"
+                @click="openMaterialPreview(record.material)"
               >
-                查看材料
-              </a>
+                查看资料
+              </button>
               <span v-else>{{ record.material || '-' }}</span>
             </td>
             <td>
@@ -88,14 +87,14 @@
             <td class="actions">
               <button
                 class="app-btn primary mini"
-                :disabled="!canAudit(record) || actionLoadingId === record.id"
+                :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
                 @click="handleApprove(record)"
               >
                 通过
               </button>
               <button
                 class="app-btn danger mini"
-                :disabled="!canAudit(record) || actionLoadingId === record.id"
+                :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
                 @click="handleReject(record)"
               >
                 驳回
@@ -132,6 +131,41 @@
         </button>
       </div>
     </footer>
+
+    <el-dialog
+      v-model="previewDialogVisible"
+      title="认证材料预览"
+      width="72%"
+      top="5vh"
+      destroy-on-close
+    >
+      <div class="preview-wrap">
+        <img
+          v-if="previewType === 'image'"
+          :src="previewUrl"
+          alt="认证材料"
+          class="preview-image"
+          @error="handleImagePreviewError"
+        />
+
+        <iframe
+          v-else-if="previewType === 'pdf'"
+          :src="previewUrl"
+          class="preview-frame"
+        />
+
+        <div v-else class="preview-tip">
+          当前材料类型暂不支持内嵌预览，请点击“新窗口打开”查看。
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="previewDialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="openMaterialInNewWindow">新窗口打开</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -149,6 +183,9 @@ import { formatDateTime } from '@/utils/format'
 const loading = ref(false)
 const actionLoadingId = ref(null)
 const records = ref([])
+const previewDialogVisible = ref(false)
+const previewUrl = ref('')
+const previewType = ref('other')
 
 const queryForm = reactive({
   name: '',
@@ -291,8 +328,45 @@ function isUrl(content) {
   return typeof content === 'string' && /^https?:\/\//i.test(content)
 }
 
+function detectPreviewType(url) {
+  const normalized = String(url).split('?')[0].toLowerCase()
+
+  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(normalized)) {
+    return 'image'
+  }
+
+  if (/\.pdf$/.test(normalized)) {
+    return 'pdf'
+  }
+
+  return 'other'
+}
+
+function openMaterialPreview(material) {
+  if (!isUrl(material)) {
+    ElMessage.warning('材料链接无效')
+    return
+  }
+
+  previewUrl.value = material
+  previewType.value = detectPreviewType(material)
+  previewDialogVisible.value = true
+}
+
+function openMaterialInNewWindow() {
+  if (!previewUrl.value) {
+    return
+  }
+
+  window.open(previewUrl.value, '_blank', 'noopener,noreferrer')
+}
+
+function handleImagePreviewError() {
+  ElMessage.warning('图片预览失败，请尝试新窗口打开')
+}
+
 async function submitAudit(authId, status, reason = '') {
-  actionLoadingId.value = authId
+  actionLoadingId.value = String(authId)
 
   try {
     await auditSellerAuth({
@@ -326,7 +400,7 @@ async function handleApprove(record) {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
     })
-    await submitAudit(record.id, SELLER_AUTH_STATUS.APPROVED)
+    await submitAudit(String(record.id), SELLER_AUTH_STATUS.APPROVED)
   } catch {
     // 用户取消操作，不提示。
   }
@@ -346,7 +420,7 @@ async function handleReject(record) {
       cancelButtonText: '取消',
     })
 
-    await submitAudit(record.id, SELLER_AUTH_STATUS.REJECTED, value.trim())
+    await submitAudit(String(record.id), SELLER_AUTH_STATUS.REJECTED, value.trim())
   } catch {
     // 用户取消操作，不提示。
   }
@@ -367,6 +441,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.toolbar h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #5c3b1f;
 }
 
 .filter-grid {
@@ -397,6 +477,7 @@ onMounted(() => {
   overflow-x: auto;
   border-radius: 12px;
   border: 1px solid var(--border);
+  background: #fffdf8;
 }
 
 .data-table {
@@ -436,7 +517,48 @@ onMounted(() => {
 }
 
 .material-link {
-  color: #175fbe;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: #9a5d1b;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.preview-wrap {
+  min-height: 360px;
+  max-height: 72vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  background: #fffaf1;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+}
+
+.preview-frame {
+  width: 100%;
+  height: 68vh;
+  border: 0;
+}
+
+.preview-tip {
+  color: #7b5a3d;
+  font-size: 14px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .pagination {
@@ -471,6 +593,10 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .seller-auth-page {
+    padding: 14px;
+  }
+
   .filter-grid {
     grid-template-columns: 1fr;
   }
