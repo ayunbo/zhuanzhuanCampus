@@ -4,6 +4,11 @@ zhuanzhuan:
     driver-class-name: com.mysql.cj.jdbc.Driver
     host: localhost
     port: 3306
-    database: zhuanzhuanCampus
+    database: zhuanzhuan
     username: root
     password: 20041021
+  alioss:
+    bucket-name: zhuanzhuancampus
+    endpoint: https://oss-cn-beijing.aliyuncs.com
+    region: cn-beijing
+

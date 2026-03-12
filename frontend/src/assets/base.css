@@ -1,0 +1,50 @@
+:root {
+  --bg-top: #fff7e7;
+  --bg-bottom: #ffefd8;
+  --surface: #ffffff;
+  --surface-soft: #fff9ef;
+  --text-main: #2f2218;
+  --text-secondary: #7b6148;
+  --primary: #ef8f2d;
+  --primary-deep: #da7210;
+  --primary-soft: #ffd190;
+  --danger: #c94436;
+  --success: #1f9f6d;
+  --border: #f0ddc5;
+  --shadow-soft: 0 14px 30px rgba(187, 122, 34, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  color: var(--text-main);
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  line-height: 1.5;
+  background:
+    radial-gradient(900px 420px at -5% -10%, #ffe2b3 0%, rgba(255, 226, 179, 0) 66%),
+    radial-gradient(720px 360px at 105% 12%, #ffd3a2 0%, rgba(255, 211, 162, 0) 68%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  color: inherit;
+  font: inherit;
+}

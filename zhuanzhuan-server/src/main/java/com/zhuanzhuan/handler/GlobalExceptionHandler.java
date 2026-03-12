@@ -1,6 +1,5 @@
 package com.zhuanzhuan.handler;
 
-
 import com.zhuanzhuan.constant.MessageConstant;
 import com.zhuanzhuan.exception.BaseException;
 import com.zhuanzhuan.result.Result;
@@ -11,36 +10,36 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
- * 全局异常处理器，处理项目中抛出的业务异常
+ * 全局异常处理器
  */
-@RestControllerAdvice// 声明这是一个全局异常处理组件，并要求返回 JSON 格式
+@RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
-    /**
-     * 1. 专门捕获业务异常 (你自定义的异常)
-     * 当 Controller 中抛出 BaseException 及其子类时，会进入这里
-     * @param ex
-     * @return
-     */
-    @ExceptionHandler
-    public Result exceptionHandler(BaseException ex){
-            log.error("异常信息：{}", ex.getMessage());
+    @ExceptionHandler(BaseException.class)
+    public Result<?> handleBaseException(BaseException ex) {
+        log.warn("业务异常: {}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
 
-    @ExceptionHandler
-    public Result exceptionHandler(SQLIntegrityConstraintViolationException exception){
-        // Duplicate entry 'zhangsan' for key 'employee.idx_username'
-        String message = exception.getMessage();
-        if(message.contains("Duplicate entry")){
+    @ExceptionHandler(SQLIntegrityConstraintViolationException.class)
+    public Result<?> handleSqlIntegrityException(SQLIntegrityConstraintViolationException ex) {
+        String message = ex.getMessage();
+        log.warn("数据库约束异常: {}", message);
+
+        if (message != null && message.contains("Duplicate entry")) {
             String[] split = message.split(" ");
-            String username=split[2];
-            String msg= username+ MessageConstant.ALREADY_EXISTS;
-            return Result.error(msg);
-        }else {
-            return Result.error(MessageConstant.UNKNOWN_ERROR);
+            if (split.length >= 3) {
+                String duplicateValue = split[2];
+                return Result.error(duplicateValue + MessageConstant.ALREADY_EXISTS);
+            }
         }
+        return Result.error(MessageConstant.UNKNOWN_ERROR);
     }
 
+    @ExceptionHandler(Exception.class)
+    public Result<?> handleException(Exception ex) {
+        log.error("系统异常: {}", ex.getMessage(), ex);
+        return Result.error(MessageConstant.UNKNOWN_ERROR);
+    }
 }

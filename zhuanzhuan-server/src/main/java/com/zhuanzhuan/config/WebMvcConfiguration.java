@@ -26,19 +26,24 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         log.info("Registering custom interceptors");
+
         registry.addInterceptor(jwtTokenAdminInterceptor)
                 .addPathPatterns("/admin/**")
-                .excludePathPatterns("/admin/employee/login");
+                .excludePathPatterns("/admin/login");
 
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/user/**")
-                .excludePathPatterns("/user/user/login")
-                .excludePathPatterns("/user/shop/status");
+                .excludePathPatterns("/user/register")
+                .excludePathPatterns("/user/login")
+                .excludePathPatterns("/user/login/buyer")
+                .excludePathPatterns("/user/login/seller")
+                .excludePathPatterns("/user/goods/**");
     }
 
     @Override
     public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         log.info("Extending message converters");
+
         for (HttpMessageConverter<?> converter : converters) {
             if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
                 jacksonConverter.setObjectMapper(new JacksonObjectMapper());
