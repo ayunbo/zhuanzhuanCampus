@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.mapper.PayRecordMapper">
+
+    <insert id="insert" parameterType="com.zhuanzhuan.entity.PayRecord" useGeneratedKeys="true" keyProperty="id">
+        insert into pay_record
+        (pay_id, order_id, record_no, content, status, channel_response,
+         create_time, update_time, create_user, update_user)
+        values
+            (#{payId}, #{orderId}, #{recordNo}, #{content}, #{status}, #{channelResponse},
+             now(), now(), #{createUser}, #{updateUser})
+    </insert>
+
+    <select id="listByOrderId" resultType="com.zhuanzhuan.entity.PayRecord">
+        select * from pay_record
+        where order_id = #{orderId}
+        order by create_time asc
+    </select>
+
+</mapper>
