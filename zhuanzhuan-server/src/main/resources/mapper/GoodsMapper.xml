@@ -39,4 +39,12 @@
           and status = #{oldStatus}
     </update>
 
+
+    <select id="listAll" resultType="com.zhuanzhuan.entity.Goods">
+        select *
+        from goods
+        where status in (3,4,5)
+        order by publish_time desc, id desc
+    </select>
+
 </mapper>

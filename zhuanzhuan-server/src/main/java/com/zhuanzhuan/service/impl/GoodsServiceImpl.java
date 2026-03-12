@@ -6,6 +6,8 @@ import com.zhuanzhuan.service.GoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class GoodsServiceImpl implements GoodsService {
 
@@ -15,5 +17,11 @@ public class GoodsServiceImpl implements GoodsService {
     @Override
     public Goods getById(Long id) {
         return goodsMapper.getById(id);
+    }
+
+
+    @Override
+    public List<Goods> listAll() {
+        return goodsMapper.listAll();
     }
 }

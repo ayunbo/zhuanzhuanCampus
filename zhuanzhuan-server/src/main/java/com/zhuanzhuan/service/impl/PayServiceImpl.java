@@ -2,6 +2,7 @@ package com.zhuanzhuan.service.impl;
 
 import com.zhuanzhuan.constant.OrderStatusConstant;
 import com.zhuanzhuan.constant.PayStatusConstant;
+import com.zhuanzhuan.context.BaseContext;
 import com.zhuanzhuan.dto.PaySubmitDTO;
 import com.zhuanzhuan.entity.Order;
 import com.zhuanzhuan.entity.Pay;
@@ -30,7 +31,10 @@ public class PayServiceImpl implements PayService {
     @Override
     @Transactional
     public void mockPay(PaySubmitDTO dto) {
-        Long currentId = 1L;
+        Long currentId = BaseContext.getCurrentId();
+        if (currentId == null) {
+            throw new BaseException("用户未登录");
+        }
 
         Order order = orderMapper.getById(dto.getOrderId());
         if (order == null) {

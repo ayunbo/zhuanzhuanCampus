@@ -51,8 +51,11 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Long submit(OrderSubmitDTO dto) {
         // 正式联调后改回 BaseContext.getCurrentId()
-        Long buyerId = 1L;
-
+       // Long buyerId = 1L; // 模拟登录用户ID
+        Long buyerId = BaseContext.getCurrentId();
+        if (buyerId == null) {
+            throw new BaseException("用户未登录");
+        }
         Goods goods = goodsMapper.getById(dto.getGoodsId());
         if (goods == null) {
             throw new BaseException("商品不存在");
@@ -146,7 +149,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void cancel(Long id) {
-        Long buyerId = 1L;
+        //获取用户id
+        Long buyerId = BaseContext.getCurrentId();
+        if (buyerId == null) {
+            throw new BaseException("用户未登录");
+        }
 
         Order order = orderMapper.getByIdAndBuyerId(id, buyerId);
         if (order == null) {
@@ -200,7 +207,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void complete(Long id) {
-        Long buyerId = 1L;
+
+        Long buyerId = BaseContext.getCurrentId();
+        if (buyerId == null) {
+            throw new BaseException("用户未登录");
+        }
 
         Order order = orderMapper.getByIdAndBuyerId(id, buyerId);
         if (order == null) {
@@ -233,7 +244,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public PageResult pageQuery(OrderPageQueryDTO dto) {
-        Long currentId = 1L;
+        Long currentId = BaseContext.getCurrentId();
+        if (currentId == null) {
+            throw new BaseException("用户未登录");
+        }
 
         PageHelper.startPage(dto.getPage(), dto.getPageSize());
         Page<OrderDetailVO> page;
