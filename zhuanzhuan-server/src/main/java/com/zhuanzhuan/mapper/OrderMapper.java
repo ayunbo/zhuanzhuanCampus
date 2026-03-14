@@ -52,11 +52,8 @@ public interface OrderMapper {
     List<OrderDetailVO> pageQuerySell(@Param("dto") OrderPageQueryDTO dto,
                                       @Param("sellerId") Long sellerId);
 
-
-    // 管理员订单分页
     List<OrderDetailVO> adminPageQuery(@Param("dto") AdminOrderPageQueryDTO dto);
 
-    // 管理员订单详情
     AdminOrderDetailVO adminDetail(Long id);
 
     int adminUpdateStatus(@Param("id") Long id, @Param("status") Integer status);
@@ -65,6 +62,7 @@ public interface OrderMapper {
 
     int adminSetCompleteTime(@Param("id") Long id, @Param("completeTime") LocalDateTime completeTime);
 
-    int deleteById(Long id);
+    int adminSetCloseTime(@Param("id") Long id, @Param("closeTime") LocalDateTime closeTime);
 
+    int deleteById(Long id);
 }

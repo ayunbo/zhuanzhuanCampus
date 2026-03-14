@@ -86,7 +86,6 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         orderSnapshotMapper.adminUpdateSnapshot(dto);
     }
 
-
     @Override
     @Transactional
     public void updateStatus(AdminOrderStatusDTO dto) {
@@ -97,61 +96,120 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
         Integer newStatus = dto.getStatus();
         Integer oldStatus = order.getStatus();
+        if (newStatus == null) {
+            throw new BaseException("目标状态不能为空");
+        }
 
         if (oldStatus.equals(newStatus)) {
             return;
         }
 
-        // 1. 更新订单状态
+        // 统一入口：管理员修改订单状态后，同步订单时间字段、支付状态和商品状态
         orderMapper.adminUpdateStatus(order.getId(), newStatus);
+        syncOrderTimeFields(order.getId(), newStatus);
+        syncPayStatus(order.getId(), newStatus);
+        syncGoodsStatus(order, newStatus);
+        insertAdminStatusRecord(order.getId(), newStatus);
+    }
 
-        // 2. 按目标状态联动处理
-        if (OrderStatusConstant.CANCELED.equals(newStatus)
-                || OrderStatusConstant.TIMEOUT_CLOSED.equals(newStatus)) {
+    private void syncOrderTimeFields(Long orderId, Integer newStatus) {
+        LocalDateTime now = LocalDateTime.now();
 
-            goodsMapper.unlockGoods(
-                    order.getGoodsId(),
-                    order.getId(),
-                    GoodsStatusConstant.LOCKED,
-                    GoodsStatusConstant.ON_SALE
-            );
-
-            payMapper.closePayByOrderId(
-                    order.getId(),
-                    PayStatusConstant.PENDING,
-                    PayStatusConstant.CLOSED
-            );
-
-            Pay pay = payMapper.getByOrderId(order.getId());
-            if (pay != null) {
-                PayRecord payRecord = new PayRecord();
-                payRecord.setPayId(pay.getId());
-                payRecord.setOrderId(order.getId());
-                payRecord.setRecordNo("PR" + System.currentTimeMillis());
-                payRecord.setContent("管理员修改订单状态为关闭/取消");
-                payRecord.setStatus(PayStatusConstant.CLOSED);
-                payRecord.setChannelResponse("管理员后台操作");
-                payRecord.setCreateUser(0L);
-                payRecord.setUpdateUser(0L);
-                payRecordMapper.insert(payRecord);
-            }
+        if (OrderStatusConstant.PENDING_PAY.equals(newStatus)) {
+            orderMapper.adminSetPayTime(orderId, null);
+            orderMapper.adminSetCompleteTime(orderId, null);
+            orderMapper.adminSetCloseTime(orderId, null);
+            return;
         }
 
         if (OrderStatusConstant.PAID.equals(newStatus)) {
-            orderMapper.adminSetPayTime(order.getId(), LocalDateTime.now());
-            payMapper.adminPaySuccess(order.getId(), PayStatusConstant.SUCCESS, LocalDateTime.now());
+            orderMapper.adminSetPayTime(orderId, now);
+            orderMapper.adminSetCompleteTime(orderId, null);
+            orderMapper.adminSetCloseTime(orderId, null);
+            return;
         }
 
         if (OrderStatusConstant.COMPLETED.equals(newStatus)) {
-            orderMapper.adminSetCompleteTime(order.getId(), LocalDateTime.now());
-
-            goodsMapper.soldGoods(
-                    order.getGoodsId(),
-                    order.getId(),
-                    GoodsStatusConstant.LOCKED,
-                    GoodsStatusConstant.SOLD
-            );
+            orderMapper.adminSetPayTime(orderId, now);
+            orderMapper.adminSetCompleteTime(orderId, now);
+            orderMapper.adminSetCloseTime(orderId, null);
+            return;
         }
+
+        if (OrderStatusConstant.CANCELED.equals(newStatus)
+                || OrderStatusConstant.TIMEOUT_CLOSED.equals(newStatus)) {
+            orderMapper.adminSetCompleteTime(orderId, null);
+            orderMapper.adminSetCloseTime(orderId, now);
+        }
+    }
+
+    private void syncPayStatus(Long orderId, Integer newStatus) {
+        if (OrderStatusConstant.PENDING_PAY.equals(newStatus)) {
+            payMapper.adminUpdateStatus(orderId, PayStatusConstant.PENDING, null);
+            return;
+        }
+
+        if (OrderStatusConstant.PAID.equals(newStatus)
+                || OrderStatusConstant.COMPLETED.equals(newStatus)) {
+            payMapper.adminUpdateStatus(orderId, PayStatusConstant.SUCCESS, LocalDateTime.now());
+            return;
+        }
+
+        if (OrderStatusConstant.CANCELED.equals(newStatus)
+                || OrderStatusConstant.TIMEOUT_CLOSED.equals(newStatus)) {
+            payMapper.adminUpdateStatus(orderId, PayStatusConstant.CLOSED, null);
+        }
+    }
+
+    private void syncGoodsStatus(Order order, Integer newStatus) {
+        if (OrderStatusConstant.PENDING_PAY.equals(newStatus)
+                || OrderStatusConstant.PAID.equals(newStatus)) {
+            goodsMapper.adminSetStatus(order.getGoodsId(), GoodsStatusConstant.LOCKED, order.getId());
+            return;
+        }
+
+        if (OrderStatusConstant.COMPLETED.equals(newStatus)) {
+            goodsMapper.adminSetStatus(order.getGoodsId(), GoodsStatusConstant.SOLD, order.getId());
+            return;
+        }
+
+        if (OrderStatusConstant.CANCELED.equals(newStatus)
+                || OrderStatusConstant.TIMEOUT_CLOSED.equals(newStatus)) {
+            goodsMapper.adminSetStatus(order.getGoodsId(), GoodsStatusConstant.ON_SALE, null);
+        }
+    }
+
+    private void insertAdminStatusRecord(Long orderId, Integer newStatus) {
+        Pay pay = payMapper.getByOrderId(orderId);
+        if (pay == null) {
+            return;
+        }
+
+        PayRecord payRecord = new PayRecord();
+        payRecord.setPayId(pay.getId());
+        payRecord.setOrderId(orderId);
+        payRecord.setRecordNo("PR" + System.currentTimeMillis());
+        payRecord.setContent("管理员修改订单状态");
+        payRecord.setStatus(mapPayRecordStatus(newStatus));
+        payRecord.setChannelResponse("adminChangeOrderStatus=" + newStatus);
+        payRecord.setCreateUser(0L);
+        payRecord.setUpdateUser(0L);
+        payRecordMapper.insert(payRecord);
+    }
+
+    private Integer mapPayRecordStatus(Integer orderStatus) {
+        if (OrderStatusConstant.PENDING_PAY.equals(orderStatus)) {
+            return PayStatusConstant.PENDING;
+        }
+        if (OrderStatusConstant.PAID.equals(orderStatus)
+                || OrderStatusConstant.COMPLETED.equals(orderStatus)) {
+            return PayStatusConstant.SUCCESS;
+        }
+        if (OrderStatusConstant.CANCELED.equals(orderStatus)
+                || OrderStatusConstant.TIMEOUT_CLOSED.equals(orderStatus)) {
+            return PayStatusConstant.CLOSED;
+        }
+        return PayStatusConstant.PENDING;
     }
 
     @Override
@@ -162,7 +220,6 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             throw new BaseException("订单不存在");
         }
 
-        // 如果商品当前还被这个订单锁定，先释放
         goodsMapper.unlockGoods(
                 order.getGoodsId(),
                 order.getId(),
@@ -175,5 +232,5 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         orderSnapshotMapper.deleteByOrderId(id);
         orderMapper.deleteById(id);
     }
-
 }
+

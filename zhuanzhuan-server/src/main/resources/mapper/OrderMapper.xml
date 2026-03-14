@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -171,10 +171,6 @@
         order by o.create_time desc
     </select>
 
-
-
-
-<!-- 管理员分页查询订单-->
     <select id="adminPageQuery" resultType="com.zhuanzhuan.vo.OrderDetailVO">
         select
         o.id,
@@ -246,8 +242,6 @@
         where o.id = #{id}
     </select>
 
-
-
     <update id="adminUpdateStatus">
         update `order`
         set status = #{status},
@@ -269,6 +263,12 @@
         where id = #{id}
     </update>
 
+    <update id="adminSetCloseTime">
+        update `order`
+        set close_time = #{closeTime},
+            update_time = now()
+        where id = #{id}
+    </update>
 
     <delete id="deleteById">
         delete from `order` where id = #{id}
