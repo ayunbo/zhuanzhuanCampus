@@ -1,7 +1,9 @@
 package com.zhuanzhuan.mapper;
 
+import com.zhuanzhuan.dto.AdminOrderPageQueryDTO;
 import com.zhuanzhuan.dto.OrderPageQueryDTO;
 import com.zhuanzhuan.entity.Order;
+import com.zhuanzhuan.vo.AdminOrderDetailVO;
 import com.zhuanzhuan.vo.OrderDetailVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -30,17 +32,17 @@ public interface OrderMapper {
                       @Param("newStatus") Integer newStatus,
                       @Param("completeTime") LocalDateTime completeTime);
 
+    int paySuccess(@Param("id") Long id,
+                   @Param("oldStatus") Integer oldStatus,
+                   @Param("newStatus") Integer newStatus,
+                   @Param("payTime") LocalDateTime payTime);
+
     List<Order> listTimeoutOrders(LocalDateTime now);
 
     int timeoutCloseOrder(@Param("id") Long id,
                           @Param("oldStatus") Integer oldStatus,
                           @Param("newStatus") Integer newStatus,
                           @Param("closeTime") LocalDateTime closeTime);
-
-    int paySuccess(@Param("id") Long id,
-                   @Param("oldStatus") Integer oldStatus,
-                   @Param("newStatus") Integer newStatus,
-                   @Param("payTime") LocalDateTime payTime);
 
     OrderDetailVO getDetailById(Long id);
 
@@ -49,4 +51,20 @@ public interface OrderMapper {
 
     List<OrderDetailVO> pageQuerySell(@Param("dto") OrderPageQueryDTO dto,
                                       @Param("sellerId") Long sellerId);
+
+
+    // 管理员订单分页
+    List<OrderDetailVO> adminPageQuery(@Param("dto") AdminOrderPageQueryDTO dto);
+
+    // 管理员订单详情
+    AdminOrderDetailVO adminDetail(Long id);
+
+    int adminUpdateStatus(@Param("id") Long id, @Param("status") Integer status);
+
+    int adminSetPayTime(@Param("id") Long id, @Param("payTime") LocalDateTime payTime);
+
+    int adminSetCompleteTime(@Param("id") Long id, @Param("completeTime") LocalDateTime completeTime);
+
+    int deleteById(Long id);
+
 }

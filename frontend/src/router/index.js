@@ -60,6 +60,19 @@ const routes = [
     path: '/:pathMatch(.*)*',
     redirect: '/login',
   },
+
+  {
+    path: '/admin/order',
+    name: 'admin-order',
+    component: () => import('@/views/admin/AdminOrderListView.vue'),
+    title:'管理员订单列表',
+  },
+  {
+    path: '/admin/order/detail/:id',
+    name: 'admin-order-detail',
+    component: () => import('@/views/admin/AdminOrderDetailView.vue'),
+    title:'管理员订单详情'
+  },
 ]
 
 const router = createRouter({

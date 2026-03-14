@@ -28,6 +28,13 @@ public class PayServiceImpl implements PayService {
     @Autowired
     private PayRecordMapper payRecordMapper;
 
+    private Long getCurrentUserId() {
+        Long currentId = BaseContext.getCurrentId();
+        if (currentId == null) {
+            throw new BaseException("用户未登录");
+        }
+        return currentId;
+    }
     @Override
     @Transactional
     public void mockPay(PaySubmitDTO dto) {

@@ -3,7 +3,6 @@ package com.zhuanzhuan.service.impl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.zhuanzhuan.constant.GoodsStatusConstant;
-import com.zhuanzhuan.constant.MessageConstant;
 import com.zhuanzhuan.constant.OrderStatusConstant;
 import com.zhuanzhuan.constant.PayStatusConstant;
 import com.zhuanzhuan.context.BaseContext;
@@ -36,26 +35,46 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderMapper orderMapper;
+
     @Autowired
     private OrderSnapshotMapper orderSnapshotMapper;
+
     @Autowired
     private GoodsMapper goodsMapper;
+
     @Autowired
     private UserMapper userMapper;
+
     @Autowired
     private PayMapper payMapper;
+
     @Autowired
     private PayRecordMapper payRecordMapper;
 
+    /**
+     * 获取当前登录用户id
+     */
+    private Long getCurrentUserId() {
+        Long currentId = BaseContext.getCurrentId();
+        if (currentId == null) {
+            throw new BaseException("用户未登录");
+        }
+        return currentId;
+    }
+
+    /**
+     * 买家提交订单
+     */
     @Override
     @Transactional
     public Long submit(OrderSubmitDTO dto) {
-        // 正式联调后改回 BaseContext.getCurrentId()
-       // Long buyerId = 1L; // 模拟登录用户ID
-        Long buyerId = BaseContext.getCurrentId();
-        if (buyerId == null) {
-            throw new BaseException("用户未登录");
+        Long buyerId = getCurrentUserId();
+
+        // 交易时间后端兜底校验
+        if (dto.getMeetTime() != null && !dto.getMeetTime().isAfter(LocalDateTime.now())) {
+            throw new BaseException("交易时间必须晚于当前时间");
         }
+
         Goods goods = goodsMapper.getById(dto.getGoodsId());
         if (goods == null) {
             throw new BaseException("商品不存在");
@@ -105,7 +124,7 @@ public class OrderServiceImpl implements OrderService {
 
         orderSnapshotMapper.insert(snapshot);
 
-        // 3. 锁商品
+        // 3. 锁定商品，防止重复下单
         int rows = goodsMapper.lockGoods(
                 goods.getId(),
                 GoodsStatusConstant.ON_SALE,
@@ -146,14 +165,13 @@ public class OrderServiceImpl implements OrderService {
         return order.getId();
     }
 
+    /**
+     * 取消未支付订单
+     */
     @Override
     @Transactional
     public void cancel(Long id) {
-        //获取用户id
-        Long buyerId = BaseContext.getCurrentId();
-        if (buyerId == null) {
-            throw new BaseException("用户未登录");
-        }
+        Long buyerId = getCurrentUserId();
 
         Order order = orderMapper.getByIdAndBuyerId(id, buyerId);
         if (order == null) {
@@ -161,7 +179,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (!OrderStatusConstant.PENDING_PAY.equals(order.getStatus())) {
-            throw new BaseException("订单状态异常");
+            throw new BaseException("当前订单不可取消");
         }
 
         int rows = orderMapper.cancelOrder(
@@ -173,9 +191,10 @@ public class OrderServiceImpl implements OrderService {
         );
 
         if (rows == 0) {
-            throw new BaseException("订单状态异常");
+            throw new BaseException("取消失败，订单状态异常");
         }
 
+        // 释放商品锁定
         goodsMapper.unlockGoods(
                 order.getGoodsId(),
                 order.getId(),
@@ -183,19 +202,21 @@ public class OrderServiceImpl implements OrderService {
                 GoodsStatusConstant.ON_SALE
         );
 
+        // 关闭支付单
         payMapper.closePayByOrderId(
                 order.getId(),
                 PayStatusConstant.PENDING,
                 PayStatusConstant.CLOSED
         );
 
+        // 记录支付流水
         Pay pay = payMapper.getByOrderId(order.getId());
         if (pay != null) {
             PayRecord payRecord = new PayRecord();
             payRecord.setPayId(pay.getId());
             payRecord.setOrderId(order.getId());
             payRecord.setRecordNo("PR" + System.currentTimeMillis());
-            payRecord.setContent("取消订单，关闭支付单");
+            payRecord.setContent("用户取消订单，关闭支付单");
             payRecord.setStatus(PayStatusConstant.CLOSED);
             payRecord.setChannelResponse("用户主动取消订单");
             payRecord.setCreateUser(buyerId);
@@ -204,14 +225,13 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+    /**
+     * 买家确认完成订单
+     */
     @Override
     @Transactional
     public void complete(Long id) {
-
-        Long buyerId = BaseContext.getCurrentId();
-        if (buyerId == null) {
-            throw new BaseException("用户未登录");
-        }
+        Long buyerId = getCurrentUserId();
 
         Order order = orderMapper.getByIdAndBuyerId(id, buyerId);
         if (order == null) {
@@ -219,7 +239,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (!OrderStatusConstant.PAID.equals(order.getStatus())) {
-            throw new BaseException("订单状态异常");
+            throw new BaseException("当前订单不可完成");
         }
 
         int rows = orderMapper.completeOrder(
@@ -231,9 +251,10 @@ public class OrderServiceImpl implements OrderService {
         );
 
         if (rows == 0) {
-            throw new BaseException("订单状态异常");
+            throw new BaseException("确认完成失败，订单状态异常");
         }
 
+        // 商品改为已售出
         goodsMapper.soldGoods(
                 order.getGoodsId(),
                 order.getId(),
@@ -242,12 +263,14 @@ public class OrderServiceImpl implements OrderService {
         );
     }
 
+    /**
+     * 分页查询订单
+     * type = 1 买家订单
+     * type = 2 卖家订单
+     */
     @Override
     public PageResult pageQuery(OrderPageQueryDTO dto) {
-        Long currentId = BaseContext.getCurrentId();
-        if (currentId == null) {
-            throw new BaseException("用户未登录");
-        }
+        Long currentId = getCurrentUserId();
 
         PageHelper.startPage(dto.getPage(), dto.getPageSize());
         Page<OrderDetailVO> page;
@@ -261,12 +284,23 @@ public class OrderServiceImpl implements OrderService {
         return new PageResult(page.getTotal(), page.getResult());
     }
 
+    /**
+     * 订单详情
+     * 只有买家本人或卖家本人能查看
+     */
     @Override
     public OrderDetailVO detail(Long id) {
+        Long currentId = getCurrentUserId();
+
         OrderDetailVO vo = orderMapper.getDetailById(id);
         if (vo == null) {
             throw new BaseException("订单不存在");
         }
+
+        if (!currentId.equals(vo.getBuyerId()) && !currentId.equals(vo.getSellerId())) {
+            throw new BaseException("无权查看该订单");
+        }
+
         return vo;
     }
 }

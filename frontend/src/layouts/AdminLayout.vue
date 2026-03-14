@@ -22,6 +22,7 @@ const menuItems = [
   { label: '管理员管理', path: '/admin-manage', icon: UserFilled },
   { label: '用户管理', path: '/user-manage', icon: User },
   { label: '卖家认证审核', path: '/seller-auth', icon: Stamp },
+  { label: '订单管理', path: '/admin/order' , icon: DataBoard },
 ]
 
 function handleLogout() {

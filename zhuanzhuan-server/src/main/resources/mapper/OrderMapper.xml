@@ -14,12 +14,14 @@
     </insert>
 
     <select id="getById" resultType="com.zhuanzhuan.entity.Order">
-        select * from `order` where id = #{id}
+        select * from `order`
+        where id = #{id}
     </select>
 
     <select id="getByIdAndBuyerId" resultType="com.zhuanzhuan.entity.Order">
         select * from `order`
-        where id = #{id} and buyer_id = #{buyerId}
+        where id = #{id}
+          and buyer_id = #{buyerId}
     </select>
 
     <update id="cancelOrder">
@@ -46,11 +48,21 @@
           and status = #{oldStatus}
     </update>
 
+    <update id="paySuccess">
+        update `order`
+        set status = #{newStatus},
+            pay_time = #{payTime},
+            update_time = now(),
+            version = version + 1
+        where id = #{id}
+          and status = #{oldStatus}
+    </update>
+
     <select id="listTimeoutOrders" resultType="com.zhuanzhuan.entity.Order">
         select *
         from `order`
         where status = 0
-          and expire_time &lt; #{now}
+          and expire_time <![CDATA[ < ]]> #{now}
         order by expire_time asc
     </select>
 
@@ -58,16 +70,6 @@
         update `order`
         set status = #{newStatus},
             close_time = #{closeTime},
-            update_time = now(),
-            version = version + 1
-        where id = #{id}
-          and status = #{oldStatus}
-    </update>
-
-    <update id="paySuccess">
-        update `order`
-        set status = #{newStatus},
-            pay_time = #{payTime},
             update_time = now(),
             version = version + 1
         where id = #{id}
@@ -169,4 +171,106 @@
         order by o.create_time desc
     </select>
 
+
+
+
+<!-- 管理员分页查询订单-->
+    <select id="adminPageQuery" resultType="com.zhuanzhuan.vo.OrderDetailVO">
+        select
+        o.id,
+        o.order_no,
+        o.goods_id,
+        o.seller_id,
+        o.buyer_id,
+        o.amount,
+        o.status,
+        o.expire_time,
+        o.pay_time,
+        o.close_time,
+        o.complete_time,
+        o.create_time,
+        os.goods_title,
+        os.goods_cover,
+        os.goods_price,
+        os.seller_name,
+        os.seller_phone,
+        os.buyer_name,
+        os.buyer_phone,
+        os.meet_location,
+        os.meet_time,
+        os.remark
+        from `order` o
+        left join order_snapshot os on o.id = os.order_id
+        where 1 = 1
+        <if test="dto.status != null">
+            and o.status = #{dto.status}
+        </if>
+        <if test="dto.orderNo != null and dto.orderNo != ''">
+            and o.order_no like concat('%', #{dto.orderNo}, '%')
+        </if>
+        order by o.create_time desc
+    </select>
+
+    <select id="adminDetail" resultType="com.zhuanzhuan.vo.AdminOrderDetailVO">
+        select
+            o.id,
+            o.order_no,
+            o.goods_id,
+            o.seller_id,
+            o.buyer_id,
+            o.amount,
+            o.status,
+            o.expire_time,
+            o.pay_time,
+            o.close_time,
+            o.complete_time,
+            o.create_time,
+            os.goods_title,
+            os.goods_cover,
+            os.goods_price,
+            os.seller_name,
+            os.seller_phone,
+            os.buyer_name,
+            os.buyer_phone,
+            os.meet_location,
+            os.meet_time,
+            os.remark,
+            p.id as pay_id,
+            p.pay_no,
+            p.status as pay_status,
+            p.method as pay_method,
+            p.pay_time as pay_record_time
+        from `order` o
+                 left join order_snapshot os on o.id = os.order_id
+                 left join pay p on o.id = p.order_id
+        where o.id = #{id}
+    </select>
+
+
+
+    <update id="adminUpdateStatus">
+        update `order`
+        set status = #{status},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="adminSetPayTime">
+        update `order`
+        set pay_time = #{payTime},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="adminSetCompleteTime">
+        update `order`
+        set complete_time = #{completeTime},
+            update_time = now()
+        where id = #{id}
+    </update>
+
+
+    <delete id="deleteById">
+        delete from `order` where id = #{id}
+    </delete>
 </mapper>

@@ -16,15 +16,15 @@ public interface GoodsMapper {
                   @Param("newStatus") Integer newStatus,
                   @Param("lockOrderId") Long lockOrderId);
 
-    int unlockGoods(@Param("id") Long id,
-                    @Param("lockOrderId") Long lockOrderId,
-                    @Param("oldStatus") Integer oldStatus,
-                    @Param("newStatus") Integer newStatus);
+     int unlockGoods(@Param("id") Long id,
+                           @Param("lockOrderId") Long lockOrderId,
+                           @Param("oldStatus") Integer oldStatus,
+                           @Param("newStatus") Integer newStatus);
 
     int soldGoods(@Param("id") Long id,
-                  @Param("lockOrderId") Long lockOrderId,
-                  @Param("oldStatus") Integer oldStatus,
-                  @Param("newStatus") Integer newStatus);
+                         @Param("lockOrderId") Long lockOrderId,
+                         @Param("oldStatus") Integer oldStatus,
+                         @Param("newStatus") Integer newStatus);
 
 
     List<Goods> listAll();
