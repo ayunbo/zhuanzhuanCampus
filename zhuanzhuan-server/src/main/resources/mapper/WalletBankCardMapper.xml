@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.mapper.WalletBankCardMapper">
+
+    <select id="listByWalletAccountId" resultType="com.zhuanzhuan.entity.WalletBankCard">
+        select *
+        from wallet_bank_card
+        where wallet_account_id = #{walletAccountId}
+          and status = 1
+        order by is_default desc, id asc
+    </select>
+
+    <select id="getById" resultType="com.zhuanzhuan.entity.WalletBankCard">
+        select *
+        from wallet_bank_card
+        where id = #{id}
+          and status = 1
+        limit 1
+    </select>
+
+    <update id="deductBalance">
+        update wallet_bank_card
+        set balance = balance - #{amount},
+            update_time = now()
+        where id = #{id}
+          and status = 1
+          and balance <![CDATA[ >= ]]> #{amount}
+    </update>
+
+</mapper>
