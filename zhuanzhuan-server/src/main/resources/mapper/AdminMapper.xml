@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.zhuanzhuan.mapper.AdminMapper">
+<mapper namespace="com.zhuanzhuan.mapper.administrator.AdminMapper">
 
     <resultMap id="BaseResultMap" type="com.zhuanzhuan.entity.Admin">
         <id property="id" column="id"/>
