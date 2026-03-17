@@ -1,4 +1,4 @@
-package com.zhuanzhuan.controller.user.admin;
+package com.zhuanzhuan.controller.admin.account;
 
 import com.zhuanzhuan.dto.AdminUserPageQueryDTO;
 import com.zhuanzhuan.dto.AdminUserSaveDTO;

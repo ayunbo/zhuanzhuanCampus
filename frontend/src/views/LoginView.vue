@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="login-page">
     <section class="login-panel app-card fade-in-up">
       <header class="panel-header">

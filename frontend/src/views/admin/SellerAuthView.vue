@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="seller-auth-page app-card fade-in-up">
     <section class="toolbar">
       <h3>卖家认证审核</h3>

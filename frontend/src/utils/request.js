@@ -1,4 +1,4 @@
-﻿import axios from 'axios'
+import axios from 'axios'
 import { getStoredToken } from '@/utils/auth'
 
 const request = axios.create({

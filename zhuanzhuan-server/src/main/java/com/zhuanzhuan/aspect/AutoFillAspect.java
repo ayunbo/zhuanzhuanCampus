@@ -28,7 +28,7 @@ public class AutoFillAspect {
     /**
      * 切入点
      */
-    @Pointcut("execution(* com.zhuanzhuan.mapper.*.*(..)) && @annotation(com.zhuanzhuan.annotation.AutoFill)")  //excution是指定方法，@annotation是指定加上这个注解的方法
+    @Pointcut("execution(* com.zhuanzhuan.mapper..*.*(..)) && @annotation(com.zhuanzhuan.annotation.AutoFill)")  // 匹配 mapper 及所有子包
     public void autoFillPointCut(){}
 
     @Before("autoFillPointCut()")
@@ -50,7 +50,10 @@ public class AutoFillAspect {
 
         //准备赋值数据
         LocalDateTime now=LocalDateTime.now();
-        long currentId= BaseContext.getCurrentId();
+        Long currentId = BaseContext.getCurrentId();
+        if (currentId == null) {
+            currentId = 0L;
+        }
 
         //根据当前不同操作类型，为对应属性通过反射赋值
         if(operationType== OperationType.INSERT){
