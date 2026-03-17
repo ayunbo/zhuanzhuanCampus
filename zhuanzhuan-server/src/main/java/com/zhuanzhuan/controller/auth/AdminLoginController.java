@@ -1,4 +1,4 @@
-package com.zhuanzhuan.controller.auth.admin;
+package com.zhuanzhuan.controller.auth;
 
 import com.zhuanzhuan.dto.AdminLoginDTO;
 import com.zhuanzhuan.result.Result;
@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 管理员登录控制器。
- */
 @Tag(name = "管理员登录接口")
 @RestController
 @RequestMapping("/admin")
@@ -23,9 +20,6 @@ public class AdminLoginController {
     @Autowired
     private LoginService loginService;
 
-    /**
-     * 管理员登录。
-     */
     @Operation(summary = "管理员登录")
     @PostMapping("/login")
     public Result<LoginVO> login(@RequestBody AdminLoginDTO adminLoginDTO) {

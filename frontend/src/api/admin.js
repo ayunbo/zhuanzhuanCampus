@@ -57,3 +57,33 @@ export function fetchSellerAuthPage(params) {
 export function auditSellerAuth(data) {
   return request.put('/admin/seller-auth/audit', data)
 }
+
+export function createCategory(data) {
+  return request.post('/admin/category', data)
+}
+
+export function fetchCategoryPage(params) {
+  return request.get('/admin/category/page', {
+    params,
+  })
+}
+
+export function fetchCategoryTree() {
+  return request.get('/admin/category/tree')
+}
+
+export function updateCategory(data) {
+  return request.put('/admin/category', data)
+}
+
+export function updateCategoryStatus(data) {
+  return request.put('/admin/category/status', data)
+}
+
+export function updateCategorySort(data) {
+  return request.put('/admin/category/sort', data)
+}
+
+export function deleteCategory(id) {
+  return request.delete(`/admin/category/${id}`)
+}

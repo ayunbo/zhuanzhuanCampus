@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
@@ -52,6 +52,14 @@ const routes = [
         component: () => import('@/views/admin/SellerAuthView.vue'),
         meta: {
           title: '卖家认证审核',
+        },
+      },
+      {
+        path: 'category-manage',
+        name: 'categoryManage',
+        component: () => import('@/views/admin/CategoryManageView.vue'),
+        meta: {
+          title: '分类管理',
         },
       },
     ],
