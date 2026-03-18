@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.mapper.chat.ChatMessageMapper">
+
+    <!-- 插入一条聊天消息 -->
+    <insert id="insert">
+        insert into chatmessage (
+            id, session_id, sender_id, receiver_id, type, content, read_status,
+            read_time, create_time, update_time, create_user, update_user
+        ) values (
+            #{id}, #{sessionId}, #{senderId}, #{receiverId}, #{type}, #{content}, #{readStatus},
+            #{readTime}, #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
+        )
+    </insert>
+
+    <!--
+        消息分页查询。
+        当前按时间倒序返回，前端如果想按常规聊天顺序显示，可以自行 reverse。
+    -->
+    <select id="listBySessionId" resultType="com.zhuanzhuan.vo.chat.ChatMessageVO">
+        select
+            cm.id,
+            cm.session_id,
+            cm.sender_id,
+            cm.receiver_id,
+            cm.type,
+            cm.content,
+            cm.read_status,
+            cm.read_time,
+            cm.create_time,
+            case when cm.sender_id = #{currentUserId} then true else false end as mine
+        from chatmessage cm
+        where cm.session_id = #{sessionId}
+        order by cm.create_time desc, cm.id desc
+        limit #{offset}, #{pageSize}
+    </select>
+
+    <!-- 将“发给当前用户且未读”的消息批量标记已读 -->
+    <update id="markReadBySession">
+        update chatmessage
+        set read_status = 1,
+            read_time = #{readTime},
+            update_time = #{readTime},
+            update_user = #{receiverId}
+        where session_id = #{sessionId}
+          and receiver_id = #{receiverId}
+          and read_status = 0
+    </update>
+
+</mapper>
