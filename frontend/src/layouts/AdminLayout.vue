@@ -11,64 +11,174 @@ import {
   Grid,
   SwitchButton,
   MoreFilled,
-  ArrowDown,
+  Goods,
+  ArrowLeftBold,
+  ArrowRightBold,
+  Document,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+
 const mobileNavVisible = ref(false)
+const secondaryCollapsed = ref(false)
 
 const displayName = computed(() => authStore.user.name || authStore.user.username || '管理员')
 
-const menuGroups = [
+const primaryGroups = [
   {
-    key: 'workspace',
-    label: '工作台',
-    icon: DataBoard,
-    items: [{ label: '后台总览', path: '/dashboard', icon: DataBoard }],
-  },
-  {
-    key: 'users',
-    label: '用户中心',
-    icon: User,
+    key: 'sales',
+    label: '销售管理',
+    icon: Goods,
     items: [
-      { label: '用户管理', path: '/user-manage', icon: User },
-      { label: '卖家认证审核', path: '/seller-auth', icon: Stamp },
+      {
+        key: 'dashboard',
+        label: '统计',
+        path: '/dashboard',
+        icon: DataBoard,
+        tasks: [{ label: '看板总览', path: '/dashboard' }],
+      },
+      {
+        key: 'product',
+        label: '商品',
+        path: '/product-manage',
+        icon: Goods,
+        tasks: [
+          { label: '所有商品', path: '/product-manage', query: { status: 'all' } },
+          { label: '待审核', path: '/product-manage', query: { status: 'to_review' } },
+          { label: '销售中', path: '/product-manage', query: { status: 'online' } },
+          { label: '已下架', path: '/product-manage', query: { status: 'offline' } },
+          { label: '审核驳回', path: '/product-manage', query: { status: 'rejected' } },
+        ],
+      },
+      {
+        key: 'order',
+        label: '订单',
+        path: '/order-manage',
+        icon: Document,
+        tasks: [
+          { label: '所有订单', path: '/order-manage', query: { status: 'all' } },
+          { label: '待买家付款', path: '/order-manage', query: { status: 'pending_pay' } },
+          { label: '待发货', path: '/order-manage', query: { status: 'pending_ship' } },
+          { label: '已发货', path: '/order-manage', query: { status: 'shipped' } },
+          { label: '退款中', path: '/order-manage', query: { status: 'refunding' } },
+          { label: '交易关闭', path: '/order-manage', query: { status: 'closed' } },
+        ],
+      },
     ],
   },
   {
-    key: 'config',
-    label: '平台配置',
+    key: 'account',
+    label: '账号管理',
+    icon: User,
+    items: [
+      {
+        key: 'user',
+        label: '用户',
+        path: '/user-manage',
+        icon: User,
+        tasks: [{ label: '用户列表', path: '/user-manage' }],
+      },
+      {
+        key: 'admin',
+        label: '管理员',
+        path: '/admin-manage',
+        icon: UserFilled,
+        tasks: [{ label: '管理员列表', path: '/admin-manage' }],
+      },
+      {
+        key: 'sellerAuth',
+        label: '认证审核',
+        path: '/seller-auth',
+        icon: Stamp,
+        tasks: [
+          { label: '全部', path: '/seller-auth' },
+          { label: '待审核', path: '/seller-auth', query: { status: 'pending' } },
+          { label: '已通过', path: '/seller-auth', query: { status: 'approved' } },
+          { label: '已驳回', path: '/seller-auth', query: { status: 'rejected' } },
+          { label: '已撤回', path: '/seller-auth', query: { status: 'revoked' } },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'system',
+    label: '系统配置',
     icon: Grid,
     items: [
-      { label: '管理员管理', path: '/admin-manage', icon: UserFilled },
-      { label: '分类管理', path: '/category-manage', icon: Grid },
+      {
+        key: 'category',
+        label: '分类',
+        path: '/category-manage',
+        icon: Grid,
+        tasks: [{ label: '分类总览', path: '/category-manage' }],
+      },
     ],
   },
 ]
-const openGroupKeys = ref(menuGroups.map((group) => group.key))
+
+const activePrimaryItem = computed(() => {
+  for (const group of primaryGroups) {
+    const matchedItem = group.items.find((item) => route.path === item.path)
+    if (matchedItem) {
+      return matchedItem
+    }
+  }
+  return primaryGroups[0].items[0]
+})
+
+const secondaryTasks = computed(() => activePrimaryItem.value?.tasks || [])
+const showSecondary = computed(() => secondaryTasks.value.length > 1)
+
+function buildTo(link) {
+  if (link.query && Object.keys(link.query).length > 0) {
+    return { path: link.path, query: link.query }
+  }
+  return { path: link.path }
+}
 
 function closeMobileNav() {
   mobileNavVisible.value = false
 }
 
-function findGroupKeyByPath(path) {
-  const matchedGroup = menuGroups.find((group) => group.items.some((item) => item.path === path))
-  return matchedGroup?.key || ''
+function isPrimaryActive(item) {
+  return route.path === item.path
 }
 
-function isGroupOpen(groupKey) {
-  return openGroupKeys.value.includes(groupKey)
-}
-
-function toggleGroup(groupKey) {
-  if (isGroupOpen(groupKey)) {
-    openGroupKeys.value = openGroupKeys.value.filter((key) => key !== groupKey)
-    return
+function isSecondaryActive(task) {
+  if (route.path !== task.path) {
+    return false
   }
 
-  openGroupKeys.value = [...openGroupKeys.value, groupKey]
+  const expectedQuery = task.query || {}
+  const queryKeys = Object.keys(expectedQuery)
+
+  if (queryKeys.length === 0) {
+    const relatedKeys = new Set(
+      secondaryTasks.value.flatMap((entry) => Object.keys(entry.query || {})),
+    )
+    for (const key of relatedKeys) {
+      if (route.query[key] !== undefined) {
+        return false
+      }
+    }
+    return true
+  }
+
+  return queryKeys.every((key) => String(route.query[key] ?? '') === String(expectedQuery[key]))
+}
+
+function navigatePrimary(item) {
+  if (item.tasks && item.tasks.length > 0) {
+    router.push(buildTo(item.tasks[0]))
+    return
+  }
+  router.push(buildTo(item))
+}
+
+function toggleSecondary() {
+  secondaryCollapsed.value = !secondaryCollapsed.value
 }
 
 function handleLogout() {
@@ -79,10 +189,6 @@ function handleLogout() {
 watch(
   () => route.fullPath,
   () => {
-    const activeGroupKey = findGroupKeyByPath(route.path)
-    if (activeGroupKey && !isGroupOpen(activeGroupKey)) {
-      openGroupKeys.value = [...openGroupKeys.value, activeGroupKey]
-    }
     closeMobileNav()
   },
 )
@@ -90,48 +196,44 @@ watch(
 
 <template>
   <div class="admin-layout">
-    <div class="bg-orb orb-a" />
-    <div class="bg-orb orb-b" />
-
-    <aside class="side-panel" :class="{ open: mobileNavVisible }">
+    <aside class="primary-panel" :class="{ open: mobileNavVisible }">
       <header class="brand-row">
         <img src="/logo.jpg" alt="logo" class="brand-logo" />
-        <div>
+        <div class="brand-text">
           <p class="brand-sub">Campus Admin</p>
-          <h2 class="brand-title">转转管理端</h2>
+          <h2 class="brand-title">转转运营台</h2>
         </div>
       </header>
 
-      <nav class="nav-list">
-        <section v-for="group in menuGroups" :key="group.key" class="nav-group">
-          <button type="button" class="group-trigger" @click="toggleGroup(group.key)">
+      <nav class="primary-scroll">
+        <section v-for="group in primaryGroups" :key="group.key" class="primary-group">
+          <div class="group-head">
             <span class="group-main">
               <el-icon><component :is="group.icon" /></el-icon>
               <span>{{ group.label }}</span>
             </span>
-            <el-icon class="group-arrow" :class="{ open: isGroupOpen(group.key) }"><ArrowDown /></el-icon>
-          </button>
+          </div>
 
-          <div v-show="isGroupOpen(group.key)" class="group-items">
-            <RouterLink
+          <div class="group-links">
+            <button
               v-for="item in group.items"
-              :key="item.path"
-              :to="item.path"
-              class="nav-item"
-              active-class="active"
-              @click="closeMobileNav"
+              :key="item.key"
+              type="button"
+              class="primary-link"
+              :class="{ active: isPrimaryActive(item), 'is-long': item.label.length >= 4 }"
+              @click="navigatePrimary(item)"
             >
               <el-icon><component :is="item.icon" /></el-icon>
               <span>{{ item.label }}</span>
-            </RouterLink>
+            </button>
           </div>
         </section>
       </nav>
 
       <footer class="side-footer">
-        <el-avatar :size="32" class="avatar-mark">{{ displayName.charAt(0) }}</el-avatar>
+        <el-avatar :size="30" class="avatar-mark">{{ displayName.charAt(0) }}</el-avatar>
         <div class="footer-user">
-          <span class="footer-label">当前账号</span>
+          <span>当前账号</span>
           <strong>{{ displayName }}</strong>
         </div>
       </footer>
@@ -139,18 +241,43 @@ watch(
 
     <button v-if="mobileNavVisible" type="button" class="mobile-mask" @click="closeMobileNav" />
 
+    <section v-if="showSecondary" class="secondary-panel" :class="{ collapsed: secondaryCollapsed }">
+      <div class="secondary-inner">
+        <header class="secondary-head">
+          <h3>{{ activePrimaryItem.label }}</h3>
+          <p>任务栏</p>
+        </header>
+
+        <nav class="secondary-links">
+          <RouterLink
+            v-for="task in secondaryTasks"
+            :key="`${task.path}-${JSON.stringify(task.query || {})}`"
+            :to="buildTo(task)"
+            class="secondary-link"
+            :class="{ active: isSecondaryActive(task) }"
+          >
+            {{ task.label }}
+          </RouterLink>
+        </nav>
+      </div>
+    </section>
+
+    <button
+      v-if="showSecondary"
+      type="button"
+      class="secondary-toggle"
+      :class="{ collapsed: secondaryCollapsed }"
+      @click="toggleSecondary"
+    >
+      <el-icon v-if="!secondaryCollapsed"><ArrowLeftBold /></el-icon>
+      <el-icon v-else><ArrowRightBold /></el-icon>
+    </button>
+
     <div class="main-panel">
       <header class="topbar">
-        <div class="topbar-left">
-          <button type="button" class="mobile-trigger" @click="mobileNavVisible = true">
-            <el-icon><MenuIcon /></el-icon>
-          </button>
-
-          <div class="title-stack">
-            <p>Control Center</p>
-            <h1>运营工作台</h1>
-          </div>
-        </div>
+        <button type="button" class="mobile-trigger" @click="mobileNavVisible = true">
+          <el-icon><MenuIcon /></el-icon>
+        </button>
 
         <div class="topbar-right">
           <span class="name-pill">{{ displayName }}</span>
@@ -172,8 +299,14 @@ watch(
       </header>
 
       <main class="page-main">
-        <section class="page-shell fade-in-up">
-          <RouterView />
+        <section class="page-shell">
+          <RouterView v-slot="{ Component, route: currentRoute }">
+            <Transition name="route-slide-right">
+              <div :key="currentRoute.path" class="route-view-host">
+                <component :is="Component" />
+              </div>
+            </Transition>
+          </RouterView>
         </section>
       </main>
     </div>
@@ -182,104 +315,83 @@ watch(
 
 <style scoped>
 .admin-layout {
-  position: relative;
-  min-height: 100vh;
+  --primary-width: 172px;
+  --secondary-width: 206px;
+
+  height: 100vh;
   display: flex;
   overflow: hidden;
-}
-
-.bg-orb {
-  position: absolute;
-  border-radius: 999px;
-  pointer-events: none;
-  filter: blur(0);
-}
-
-.orb-a {
-  width: 480px;
-  height: 480px;
-  top: -220px;
-  left: -160px;
-  background: radial-gradient(circle at center, rgba(71, 153, 255, 0.23) 0%, rgba(71, 153, 255, 0) 72%);
-}
-
-.orb-b {
-  width: 380px;
-  height: 380px;
-  right: -120px;
-  top: -120px;
-  background: radial-gradient(circle at center, rgba(20, 184, 166, 0.2) 0%, rgba(20, 184, 166, 0) 74%);
-}
-
-.side-panel {
   position: relative;
-  z-index: 40;
-  width: 220px;
-  padding: 14px 10px;
+}
+
+.primary-panel {
+  flex: 0 0 var(--primary-width);
+  width: var(--primary-width);
+  height: 100vh;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(243, 250, 255, 0.95) 100%);
-  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, #2a2c31 0%, #1f2024 100%);
+  border-right: 1px solid #373c45;
+  overflow-y: auto;
+  z-index: 25;
 }
 
 .brand-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 8px 12px;
+  gap: 8px;
+  padding: 4px 4px 10px;
 }
 
 .brand-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.86);
-  box-shadow: 0 8px 14px rgba(51, 120, 208, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.brand-text {
+  min-width: 0;
 }
 
 .brand-sub {
   margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.58);
   text-transform: uppercase;
-  color: var(--text-light);
+  letter-spacing: 0.08em;
 }
 
 .brand-title {
-  margin: 2px 0 0;
-  font-size: 16px;
-  line-height: 1.2;
-  color: #26426b;
+  margin: 1px 0 0;
+  font-size: 15px;
+  color: #f6f9ff;
+  white-space: nowrap;
 }
 
-.nav-list {
+.primary-scroll {
   flex: 1;
-  margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.nav-group {
-  border: 1px solid #d9e9fb;
-  border-radius: 12px;
-  background: rgba(248, 252, 255, 0.9);
+.primary-group {
+  border-radius: 10px;
+  border: 1px solid #3a3f49;
+  background: rgba(43, 46, 53, 0.95);
 }
 
-.group-trigger {
+.group-head {
   width: 100%;
+  height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid #3b414d;
+  color: #e8ca3f;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 10px;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  background: transparent;
-  color: #3f5c85;
-  cursor: pointer;
   font-size: 13px;
   font-weight: 700;
 }
@@ -287,140 +399,212 @@ watch(
 .group-main {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-
-.group-arrow {
-  transition: transform 0.2s ease;
-}
-
-.group-arrow.open {
-  transform: rotate(180deg);
-}
-
-.group-items {
-  display: grid;
   gap: 6px;
-  padding: 0 8px 8px;
-  border-top: 1px solid #deebfa;
 }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  margin-top: 6px;
-  border-radius: 12px;
+.group-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 6px 6px;
+}
+
+.primary-link {
+  min-height: 34px;
   border: 1px solid transparent;
-  color: #425b84;
-  font-size: 13px;
+  border-radius: 8px;
+  background: transparent;
+  color: #dde3ed;
+  font-size: 12px;
   font-weight: 600;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.nav-item:hover {
-  border-color: var(--border);
-  background: #f4f9ff;
-  color: #2d4f82;
-  transform: translateX(2px);
+.primary-link span {
+  white-space: nowrap;
 }
 
-.nav-item.active {
-  color: #1f6fd8;
-  border-color: #bdd8ff;
-  background: linear-gradient(135deg, #eaf4ff 0%, #f6fbff 100%);
-  box-shadow: inset 0 0 0 1px rgba(182, 215, 255, 0.6);
+.primary-link.is-long {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  padding: 0 10px;
+}
+
+.primary-link:hover {
+  background: #393f4a;
+  border-color: #4a5160;
+}
+
+.primary-link.active {
+  color: #2b2c32;
+  border-color: #f2db53;
+  background: linear-gradient(135deg, #f4df59 0%, #ebd141 100%);
 }
 
 .side-footer {
-  margin-top: 12px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #3a404a;
+  background: #2a2e36;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px;
-  border-radius: 14px;
-  background: #f0f7ff;
-  border: 1px solid #d4e5fa;
+  gap: 8px;
 }
 
 .avatar-mark {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #f4df59 0%, #ebd141 100%);
+  color: #2c3038;
   font-weight: 700;
 }
 
 .footer-user {
   display: grid;
-  line-height: 1.25;
+  min-width: 0;
 }
 
-.footer-label {
-  font-size: 12px;
-  color: var(--text-light);
+.footer-user span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 11px;
 }
 
 .footer-user strong {
+  color: #eef2f9;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.secondary-panel {
+  width: var(--secondary-width);
+  height: 100vh;
+  border-right: 1px solid #dce8f8;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  transition: width 0.24s ease, border-color 0.24s ease;
+  overflow: hidden;
+  z-index: 20;
+}
+
+.secondary-panel.collapsed {
+  width: 0;
+  border-right-color: transparent;
+}
+
+.secondary-inner {
+  width: var(--secondary-width);
+  height: 100%;
+  padding: 16px 12px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+}
+
+.secondary-head h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #233f67;
+}
+
+.secondary-head p {
+  margin: 2px 0 0;
+  color: #8fa0ba;
+  font-size: 12px;
+}
+
+.secondary-links {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.secondary-link {
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #657b9e;
   font-size: 14px;
-  color: #28456f;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  transition: all 0.2s ease;
+}
+
+.secondary-link:hover {
+  border-color: #d6e4f8;
+  background: #f4f9ff;
+  color: #35557f;
+}
+
+.secondary-link.active {
+  color: #2b2f37;
+  border-color: #f0d445;
+  background: linear-gradient(135deg, #f7e05e 0%, #efd746 100%);
+}
+
+.secondary-toggle {
+  position: absolute;
+  left: calc(var(--primary-width) + var(--secondary-width) - 13px);
+  top: 118px;
+  width: 26px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid #d7e4f6;
+  background: #f8fbff;
+  color: #7689a6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 40;
+  transition: left 0.24s ease;
+}
+
+.secondary-toggle.collapsed {
+  left: calc(var(--primary-width) - 13px);
 }
 
 .main-panel {
-  position: relative;
-  z-index: 10;
   flex: 1;
   min-width: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .topbar {
-  height: 76px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 26px;
+  height: 62px;
   border-bottom: 1px solid var(--border);
-  background: rgba(251, 254, 255, 0.82);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
   position: sticky;
   top: 0;
-  z-index: 30;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  z-index: 18;
 }
 
 .mobile-trigger {
   display: none;
-  width: 40px;
-  height: 40px;
-  border: 1px solid #d4e5fa;
-  border-radius: 11px;
-  background: #f3f9ff;
-  color: #315a92;
-  cursor: pointer;
-}
-
-.title-stack p {
-  margin: 0;
-  font-family: 'Lexend', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-light);
-}
-
-.title-stack h1 {
-  margin: 1px 0 0;
-  font-size: 21px;
-  color: #24436f;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #d3e3f7;
+  background: #f5f9ff;
+  color: #3a5f92;
 }
 
 .topbar-right {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -429,37 +613,86 @@ watch(
 .name-pill {
   padding: 7px 12px;
   border-radius: 999px;
-  border: 1px solid #cfe2fb;
-  background: #ecf5ff;
-  color: #30598f;
-  font-size: 13px;
+  border: 1px solid #d4e4f7;
+  background: #f2f7ff;
+  color: #2a4f82;
   font-weight: 600;
 }
 
 .menu-trigger {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  border: 1px solid #d5e6fb;
-  background: #f7fbff;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #d7e6f9;
+  background: #fbfdff;
   color: #355f96;
   cursor: pointer;
 }
 
-.menu-trigger:hover {
-  border-color: #bfd7f8;
-  background: #edf5ff;
-}
-
 .page-main {
   flex: 1;
-  padding: 16px;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
 }
 
 .page-shell {
   width: 100%;
-  margin: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.route-view-host {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.route-slide-right-enter-active,
+.route-slide-right-leave-active {
+  width: 100%;
+  will-change: transform, opacity;
+}
+
+.route-slide-right-enter-active {
+  transition: transform 0.46s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease;
+  position: relative;
+  z-index: 2;
+  backface-visibility: hidden;
+}
+
+.route-slide-right-leave-active {
+  transition: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+.route-slide-right-enter-from {
+  transform: translate3d(-72px, 0, 0);
+  opacity: 0;
+}
+
+.route-slide-right-enter-to {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+.route-slide-right-leave-from {
+  transform: translate3d(0, 0, 0);
+}
+
+.route-slide-right-leave-to {
+  transform: translate3d(0, 0, 0);
 }
 
 .logout-item {
@@ -469,55 +702,41 @@ watch(
 .mobile-mask {
   position: fixed;
   inset: 0;
-  z-index: 35;
   border: 0;
-  background: rgba(19, 34, 58, 0.24);
+  background: rgba(0, 0, 0, 0.36);
+  z-index: 35;
 }
 
-@media (max-width: 1024px) {
-  .side-panel {
+@media (max-width: 1180px) {
+  .admin-layout {
+    --primary-width: 164px;
+    --secondary-width: 190px;
+  }
+}
+
+@media (max-width: 980px) {
+  .primary-panel {
     position: fixed;
     left: 0;
     top: 0;
-    height: 100vh;
     transform: translateX(-100%);
-    transition: transform 0.26s ease;
+    transition: transform 0.24s ease;
   }
 
-  .side-panel.open {
+  .primary-panel.open {
     transform: translateX(0);
+  }
+
+  .secondary-panel,
+  .secondary-toggle,
+  .name-pill {
+    display: none;
   }
 
   .mobile-trigger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .topbar {
-    padding: 0 14px;
-  }
-
-  .title-stack h1 {
-    font-size: 18px;
-  }
-
-  .name-pill {
-    display: none;
-  }
-
-  .page-main {
-    padding: 14px;
-  }
-}
-
-@media (max-width: 640px) {
-  .title-stack p {
-    display: none;
-  }
-
-  .title-stack h1 {
-    font-size: 17px;
   }
 }
 </style>

@@ -1,34 +1,5 @@
-﻿<template>
+<template>
   <div class="seller-page">
-    <section class="page-head app-card">
-      <div>
-        <p class="head-tag">Seller Verification</p>
-        <h2>卖家认证审核</h2>
-      </div>
-      <button class="app-btn secondary" :disabled="loading" @click="fetchList">
-        {{ loading ? '加载中...' : '刷新列表' }}
-      </button>
-    </section>
-
-    <section class="metric-grid">
-      <article class="metric-card app-card">
-        <span>当前页申请</span>
-        <strong>{{ records.length }}</strong>
-      </article>
-      <article class="metric-card app-card">
-        <span>待审核</span>
-        <strong>{{ summary.pending }}</strong>
-      </article>
-      <article class="metric-card app-card">
-        <span>已通过</span>
-        <strong>{{ summary.approved }}</strong>
-      </article>
-      <article class="metric-card app-card">
-        <span>已驳回</span>
-        <strong>{{ summary.rejected }}</strong>
-      </article>
-    </section>
-
     <section class="table-panel app-card">
       <form class="filter-grid" @submit.prevent="handleSearch">
         <label>
@@ -46,19 +17,12 @@
           <input v-model="queryForm.studentNo" class="app-input" type="text" placeholder="支持模糊查询" />
         </label>
 
-        <label>
-          <span>状态</span>
-          <select v-model="queryForm.status" class="app-select">
-            <option value="">全部</option>
-            <option v-for="item in SELLER_AUTH_STATUS_OPTIONS" :key="item.value" :value="item.value">
-              {{ item.label }}
-            </option>
-          </select>
-        </label>
-
         <div class="action-group">
           <button class="app-btn primary" type="submit">查询</button>
           <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
+          <button class="app-btn secondary" type="button" :disabled="loading" @click="fetchList">
+            {{ loading ? '加载中...' : '刷新列表' }}
+          </button>
         </div>
       </form>
 
@@ -80,7 +44,12 @@
           </thead>
           <tbody>
             <tr v-if="!loading && records.length === 0">
-              <td class="empty-row" colspan="10">暂无数据</td>
+              <td class="empty-row" colspan="10">
+                <div class="table-empty">
+                  <el-icon><Box /></el-icon>
+                  <span>暂无数据</span>
+                </div>
+              </td>
             </tr>
 
             <tr v-for="record in records" :key="String(record.id)">
@@ -182,16 +151,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Box } from '@element-plus/icons-vue'
 import { auditSellerAuth, fetchSellerAuthPage } from '@/api/admin'
-import {
-  SELLER_AUTH_STATUS,
-  SELLER_AUTH_STATUS_LABEL_MAP,
-  SELLER_AUTH_STATUS_OPTIONS,
-} from '@/constants/sellerAuth'
+import { SELLER_AUTH_STATUS, SELLER_AUTH_STATUS_LABEL_MAP } from '@/constants/sellerAuth'
 import { formatDateTime } from '@/utils/format'
 
+const route = useRoute()
 const loading = ref(false)
 const actionLoadingId = ref(null)
 const records = ref([])
@@ -211,12 +179,6 @@ const pager = reactive({
   pageSize: 10,
   total: 0,
 })
-
-const summary = computed(() => ({
-  pending: records.value.filter((item) => Number(item.status) === SELLER_AUTH_STATUS.PENDING).length,
-  approved: records.value.filter((item) => Number(item.status) === SELLER_AUTH_STATUS.APPROVED).length,
-  rejected: records.value.filter((item) => Number(item.status) === SELLER_AUTH_STATUS.REJECTED).length,
-}))
 
 const pageCount = computed(() => {
   const count = Math.ceil(pager.total / pager.pageSize)
@@ -241,6 +203,37 @@ const visiblePages = computed(() => {
 
   return pages
 })
+
+const routeStatusMap = {
+  pending: SELLER_AUTH_STATUS.PENDING,
+  approved: SELLER_AUTH_STATUS.APPROVED,
+  rejected: SELLER_AUTH_STATUS.REJECTED,
+  revoked: SELLER_AUTH_STATUS.REVOKED,
+}
+
+function resolveStatusFromRoute(routeStatus) {
+  const raw = Array.isArray(routeStatus) ? routeStatus[0] : routeStatus
+
+  if (raw === undefined || raw === null || raw === '' || raw === 'all') {
+    return ''
+  }
+
+  if (Object.prototype.hasOwnProperty.call(routeStatusMap, raw)) {
+    return routeStatusMap[raw]
+  }
+
+  const numberStatus = Number(raw)
+  const validStatus = Object.values(SELLER_AUTH_STATUS)
+  if (Number.isInteger(numberStatus) && validStatus.includes(numberStatus)) {
+    return numberStatus
+  }
+
+  return ''
+}
+
+function syncStatusFromRoute() {
+  queryForm.status = resolveStatusFromRoute(route.query.status)
+}
 
 function buildQueryParams() {
   const params = {
@@ -299,7 +292,7 @@ function handleReset() {
   queryForm.name = ''
   queryForm.phone = ''
   queryForm.studentNo = ''
-  queryForm.status = ''
+  syncStatusFromRoute()
   pager.page = 1
   fetchList()
 }
@@ -444,66 +437,34 @@ async function handleReject(record) {
   }
 }
 
-onMounted(() => {
-  fetchList()
-})
+watch(
+  () => route.query.status,
+  () => {
+    syncStatusFromRoute()
+    pager.page = 1
+    fetchList()
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
 .seller-page {
-  display: grid;
-  gap: 12px;
-}
-
-.page-head {
-  padding: 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 12px;
-}
-
-.head-tag {
-  margin: 0;
-  font-family: 'Lexend', sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 11px;
-  color: var(--text-light);
-}
-
-.page-head h2 {
-  margin: 2px 0 0;
-  font-size: 26px;
-  color: #24446f;
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.metric-card {
-  padding: 14px;
-  display: grid;
-  gap: 4px;
-}
-
-.metric-card span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.metric-card strong {
-  font-family: 'Lexend', sans-serif;
-  color: #1f467a;
-  font-size: 26px;
-  line-height: 1;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .table-panel {
   padding: 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .filter-grid {
@@ -539,6 +500,9 @@ onMounted(() => {
   border-radius: 14px;
   overflow: auto;
   background: #ffffff;
+  flex: 1 1 auto;
+  height: 0;
+  min-height: 0;
 }
 
 .data-table {
@@ -568,13 +532,20 @@ onMounted(() => {
 }
 
 .empty-row {
+  padding: 0 !important;
   text-align: center;
-  color: var(--text-secondary);
 }
 
 .actions {
   display: flex;
   gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: right;
 }
 
 .app-btn.mini {
@@ -593,12 +564,16 @@ onMounted(() => {
 }
 
 .pagination {
-  margin-top: 12px;
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
+  flex: 0 0 auto;
 }
 
 .pagination .left {
@@ -652,29 +627,11 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-@media (max-width: 1180px) {
-  .metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 760px) {
-  .page-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .metric-grid {
-    grid-template-columns: 1fr;
-  }
-
   .action-group {
     margin-left: 0;
     width: 100%;
     justify-content: flex-start;
-  }
-
-  .action-group {
     flex-wrap: wrap;
   }
 }

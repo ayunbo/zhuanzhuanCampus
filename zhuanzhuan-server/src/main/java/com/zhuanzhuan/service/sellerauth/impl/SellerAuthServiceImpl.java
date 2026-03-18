@@ -157,9 +157,7 @@ public class SellerAuthServiceImpl implements SellerAuthService {
         int pageSize = (queryDTO.getPageSize() == null || queryDTO.getPageSize() < 1) ? 10 : queryDTO.getPageSize();
 
         //2閵嗕焦鐗庢灞借嫙婢跺嫮鎮婄拋銈堢槈閻樿埖鈧胶鐡柅澶嬫蒋娴?
-        if (queryDTO.getStatus() == null) {
-            queryDTO.setStatus(SellerAuth.STATUS_PENDING);
-        } else if (!isValidSellerAuthStatus(queryDTO.getStatus())) {
+        if (queryDTO.getStatus() != null && !isValidSellerAuthStatus(queryDTO.getStatus())) {
             throw new BaseException(MessageConstant.SELLER_AUTH_STATUS_INVALID);
         }
 

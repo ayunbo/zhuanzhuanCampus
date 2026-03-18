@@ -1,66 +1,74 @@
 ﻿<template>
   <div class="dashboard-page">
-    <section class="headline app-card">
-      <div>
-        <p class="caption">Seller Auth Metrics</p>
-        <h2>审核总览</h2>
+    <section v-if="showPendingPanel" class="panel app-card">
+      <header class="panel-head">
+        <h3>{{ pendingTitle }}</h3>
+        <button class="app-btn primary" :disabled="loading" @click="loadStats">
+          {{ loading ? '刷新中...' : '刷新数据' }}
+        </button>
+      </header>
+      <div class="card-grid four">
+        <article v-for="item in mergedCards" :key="item.key" class="stat-item">
+          <p>{{ item.title }}</p>
+          <strong>{{ formatCount(item.value) }}</strong>
+        </article>
       </div>
-      <button class="app-btn primary" :disabled="loading" @click="loadStats">
-        {{ loading ? '刷新中...' : '刷新数据' }}
-      </button>
     </section>
 
-    <section class="stats-grid">
-      <article v-for="item in statCards" :key="item.key" class="stat-card" :class="`status-${item.key}`">
-        <h3>{{ item.title }}</h3>
-        <strong>{{ item.count }}</strong>
-        <span>{{ item.tip }}</span>
-      </article>
+    <section v-if="showGoodsPanel" class="panel app-card">
+      <header class="panel-head">
+        <h3>商品统计</h3>
+      </header>
+      <div class="card-grid four">
+        <article v-for="item in goodsCards" :key="item.key" class="stat-item compact">
+          <p>{{ item.title }}</p>
+          <strong>{{ formatCount(item.value) }}</strong>
+        </article>
+      </div>
     </section>
 
-    <section class="panel-grid">
-      <article class="overview-card app-card">
-        <header>
-          <h3>平台总体数据</h3>
-          <span>实时汇总</span>
-        </header>
+    <section v-if="showOrderPanel" class="panel app-card">
+      <header class="panel-head">
+        <h3>订单统计</h3>
+      </header>
+      <div class="card-grid four">
+        <article v-for="item in orderCards" :key="item.key" class="stat-item compact">
+          <p>{{ item.title }}</p>
+          <strong>{{ formatCount(item.value) }}</strong>
+        </article>
+      </div>
+    </section>
 
-        <div class="overview-grid">
-          <div v-for="item in overviewCards" :key="item.key" class="overview-item">
-            <p>{{ item.title }}</p>
-            <strong>{{ formatCount(item.count) }}</strong>
-            <span>{{ item.tip }}</span>
-          </div>
-        </div>
-      </article>
-
-      <article class="shortcut-card app-card">
-        <h3>快捷入口</h3>
-        <div class="shortcut-grid">
-          <RouterLink class="shortcut-item" to="/seller-auth">卖家认证审核</RouterLink>
-          <RouterLink class="shortcut-item" to="/user-manage">用户管理</RouterLink>
-          <RouterLink class="shortcut-item" to="/admin-manage">管理员管理</RouterLink>
-          <RouterLink class="shortcut-item" to="/category-manage">分类管理</RouterLink>
-        </div>
-      </article>
+    <section v-if="showQuickPanel" class="panel app-card">
+      <header class="panel-head">
+        <h3>常用功能</h3>
+      </header>
+      <div class="quick-grid">
+        <RouterLink v-for="item in quickActions" :key="item.to" :to="item.to" class="quick-item">
+          <h4>{{ item.title }}</h4>
+        </RouterLink>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { fetchAdminPage, fetchCategoryPage, fetchSellerAuthPage, fetchUserPage } from '@/api/admin'
 import { SELLER_AUTH_STATUS } from '@/constants/sellerAuth'
 
+const route = useRoute()
 const loading = ref(false)
 
-const stats = reactive({
+const authStats = reactive({
   pending: 0,
   approved: 0,
   rejected: 0,
   revoked: 0,
 })
+
 const overview = reactive({
   userTotal: 0,
   sellerUserTotal: 0,
@@ -68,82 +76,95 @@ const overview = reactive({
   categoryTotal: 0,
 })
 
+const productStats = reactive({
+  online: null,
+  toReview: null,
+  rejected: null,
+  offline: null,
+  processing: null,
+  autoUp: null,
+  autoDown: null,
+  afterSale: null,
+})
+
+const orderStats = reactive({
+  all: null,
+  pendingPay: null,
+  pendingShip: null,
+  shipped: null,
+  refunding: null,
+  closed: null,
+})
+
 const statusConfig = [
-  {
-    key: 'pending',
-    title: '待审核',
-    tip: '待管理员处理',
-    status: SELLER_AUTH_STATUS.PENDING,
-  },
-  {
-    key: 'approved',
-    title: '已通过',
-    tip: '通过认证申请',
-    status: SELLER_AUTH_STATUS.APPROVED,
-  },
-  {
-    key: 'rejected',
-    title: '已驳回',
-    tip: '审核未通过',
-    status: SELLER_AUTH_STATUS.REJECTED,
-  },
-  {
-    key: 'revoked',
-    title: '已撤回',
-    tip: '申请人撤销',
-    status: SELLER_AUTH_STATUS.REVOKED,
-  },
+  { key: 'pending', status: SELLER_AUTH_STATUS.PENDING },
+  { key: 'approved', status: SELLER_AUTH_STATUS.APPROVED },
+  { key: 'rejected', status: SELLER_AUTH_STATUS.REJECTED },
+  { key: 'revoked', status: SELLER_AUTH_STATUS.REVOKED },
 ]
 
-const statCards = computed(() =>
-  statusConfig.map((item) => ({
-    ...item,
-    count: stats[item.key],
-  })),
-)
+const doneAuthCount = computed(() => Number(authStats.approved) + Number(authStats.rejected))
 
-const totalCount = computed(() => Object.values(stats).reduce((sum, count) => sum + Number(count || 0), 0))
-const doneAuthCount = computed(() => Number(stats.approved) + Number(stats.rejected))
-const overviewCards = computed(() => [
-  {
-    key: 'users',
-    title: '用户总量',
-    count: overview.userTotal,
-    tip: '平台注册用户',
-  },
-  {
-    key: 'sellers',
-    title: '卖家用户',
-    count: overview.sellerUserTotal,
-    tip: '已成为卖家的用户',
-  },
-  {
-    key: 'admins',
-    title: '管理员账号',
-    count: overview.adminTotal,
-    tip: '后台管理账号数',
-  },
-  {
-    key: 'categories',
-    title: '分类总量',
-    count: overview.categoryTotal,
-    tip: '平台分类节点总数',
-  },
-  {
-    key: 'auth_total',
-    title: '认证申请总量',
-    count: totalCount.value,
-    tip: '全部卖家认证申请',
-  },
-  {
-    key: 'auth_done',
-    title: '已处理申请',
-    count: doneAuthCount.value,
-    tip: '已完成审核处理',
-  },
+const activePanel = computed(() => {
+  const panel = String(route.query.panel || 'overview')
+  const panels = ['overview', 'status', 'goods', 'orders']
+  return panels.includes(panel) ? panel : 'overview'
+})
+
+const pendingTitle = computed(() => (activePanel.value === 'status' ? '状态归纳' : '待处理与今日统计'))
+const showPendingPanel = computed(() => activePanel.value === 'overview' || activePanel.value === 'status')
+const showGoodsPanel = computed(() => activePanel.value === 'overview' || activePanel.value === 'goods')
+const showOrderPanel = computed(() => activePanel.value === 'overview' || activePanel.value === 'orders')
+const showQuickPanel = computed(() => activePanel.value === 'overview')
+
+const pendingCards = computed(() => [
+  { key: 'p1', title: '待审核申请', value: authStats.pending },
+  { key: 'p2', title: '驳回待复核', value: authStats.rejected },
+  { key: 'p3', title: '卖家账号', value: overview.sellerUserTotal },
+  { key: 'p4', title: '管理员账号', value: overview.adminTotal },
 ])
 
+const todayCards = computed(() => [
+  { key: 't1', title: '平台用户', value: overview.userTotal },
+  { key: 't2', title: '认证通过', value: authStats.approved },
+  { key: 't3', title: '已处理申请', value: doneAuthCount.value },
+  { key: 't4', title: '分类数量', value: overview.categoryTotal },
+])
+
+const mergedCards = computed(() => [...pendingCards.value, ...todayCards.value])
+
+const goodsCards = computed(() => [
+  { key: 'g1', title: '商品分类数', value: overview.categoryTotal },
+  { key: 'g2', title: '销售中', value: productStats.online },
+  { key: 'g3', title: '待审核', value: productStats.toReview },
+  { key: 'g4', title: '审核驳回', value: productStats.rejected },
+  { key: 'g5', title: '已下架', value: productStats.offline },
+  { key: 'g6', title: '处理中', value: productStats.processing },
+  { key: 'g7', title: '自动上架', value: productStats.autoUp },
+  { key: 'g8', title: '自动下架', value: productStats.autoDown },
+  { key: 'g9', title: '售后恢复', value: productStats.afterSale },
+])
+
+const orderCards = computed(() => [
+  { key: 'o1', title: '全部订单', value: orderStats.all },
+  { key: 'o2', title: '待买家付款', value: orderStats.pendingPay },
+  { key: 'o3', title: '待发货', value: orderStats.pendingShip },
+  { key: 'o4', title: '已发货', value: orderStats.shipped },
+  { key: 'o5', title: '退款中', value: orderStats.refunding },
+  { key: 'o6', title: '交易关闭', value: orderStats.closed },
+])
+
+const quickActions = [
+  { to: '/product-manage?status=to_review', title: '商品审核' },
+  { to: '/order-manage?status=pending_ship', title: '订单处理' },
+  { to: '/seller-auth', title: '卖家认证审核' },
+  { to: '/category-manage', title: '分类管理' },
+]
+
 function formatCount(value) {
+  if (value === null || value === undefined) {
+    return '--'
+  }
   return Number(value || 0).toLocaleString('zh-CN')
 }
 
@@ -161,28 +182,15 @@ async function loadStats() {
           }),
         ),
       ),
-      fetchAdminPage({
-        page: 1,
-        pageSize: 1,
-      }),
-      fetchUserPage({
-        page: 1,
-        pageSize: 1,
-      }),
-      fetchUserPage({
-        page: 1,
-        pageSize: 1,
-        role: 2,
-      }),
-      fetchCategoryPage({
-        page: 1,
-        pageSize: 1,
-      }),
+      fetchAdminPage({ page: 1, pageSize: 1 }),
+      fetchUserPage({ page: 1, pageSize: 1 }),
+      fetchUserPage({ page: 1, pageSize: 1, role: 2 }),
+      fetchCategoryPage({ page: 1, pageSize: 1 }),
     ])
 
     statusResultList.forEach((result, index) => {
       const currentKey = statusConfig[index].key
-      stats[currentKey] = Number(result?.total || 0)
+      authStats[currentKey] = Number(result?.total || 0)
     })
 
     overview.adminTotal = Number(adminPageData?.total || 0)
@@ -204,198 +212,107 @@ onMounted(() => {
 <style scoped>
 .dashboard-page {
   display: grid;
-  gap: 14px;
-}
-
-.headline {
-  padding: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 12px;
 }
 
-.caption {
-  margin: 0;
-  font-family: 'Lexend', sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 11px;
-  color: var(--text-light);
-}
-
-.headline h2 {
-  margin: 2px 0 0;
-  font-size: 28px;
-  color: #24456f;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.stat-card {
-  border-radius: 16px;
-  border: 1px solid var(--border);
+.panel {
   padding: 14px;
-  background: #ffffff;
-  display: grid;
-  gap: 8px;
 }
 
-.stat-card h3 {
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.panel-head h3 {
   margin: 0;
-  font-size: 14px;
-  color: #4f658b;
+  font-size: 24px;
+  color: #2c4f82;
 }
 
-.stat-card strong {
+.card-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.card-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat-item {
+  border: 1px solid #dbe9fb;
+  border-radius: 14px;
+  background: #fbfdff;
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.stat-item p {
+  margin: 0;
+  color: #60769b;
+  font-size: 13px;
+}
+
+.stat-item strong {
   font-family: 'Lexend', sans-serif;
   font-size: 34px;
   line-height: 1;
-  color: #1f467a;
+  color: #253f66;
 }
 
-.stat-card span {
-  color: var(--text-secondary);
+.stat-item span {
+  color: #7f90ab;
   font-size: 12px;
 }
 
-.stat-pending {
-  background: linear-gradient(150deg, #ffffff 0%, #fff6ea 100%);
+.stat-item.compact strong {
+  font-size: 30px;
 }
 
-.stat-approved {
-  background: linear-gradient(150deg, #ffffff 0%, #ebfff7 100%);
-}
-
-.stat-rejected {
-  background: linear-gradient(150deg, #ffffff 0%, #ffeff1 100%);
-}
-
-.stat-revoked {
-  background: linear-gradient(150deg, #ffffff 0%, #edf4ff 100%);
-}
-
-.panel-grid {
+.quick-grid {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.overview-card,
-.shortcut-card {
-  padding: 16px;
+.quick-item {
+  border: 1px solid #d8e8fb;
+  border-radius: 14px;
+  background: #f4f9ff;
+  padding: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.overview-card header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.overview-card h3,
-.shortcut-card h3 {
+.quick-item h4 {
   margin: 0;
   color: #2b4f80;
 }
 
-.overview-card header span {
-  font-family: 'Lexend', sans-serif;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.overview-item {
-  border: 1px solid #d8e8fb;
-  border-radius: 12px;
-  background: #f5faff;
-  padding: 10px;
-  display: grid;
-  gap: 4px;
-}
-
-.overview-item p {
-  margin: 0;
-  color: #5f7498;
-  font-size: 12px;
-}
-
-.overview-item strong {
-  font-family: 'Lexend', sans-serif;
-  color: #1f467a;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.overview-item span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.shortcut-grid {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.shortcut-item {
-  min-height: 78px;
-  border-radius: 14px;
-  border: 1px solid #d6e7fa;
-  background: #f4f9ff;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  padding: 10px;
-  color: #2c5b95;
-  font-weight: 600;
-  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.shortcut-item:hover {
+.quick-item:hover {
   transform: translateY(-2px);
-  border-color: #bdd8ff;
-  background: #e9f4ff;
+  border-color: #b8d5fb;
+  background: #ecf5ff;
 }
 
-@media (max-width: 1080px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .panel-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .overview-grid {
+@media (max-width: 1220px) {
+  .card-grid.four,
+  .quick-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
-  .headline {
+@media (max-width: 760px) {
+  .panel-head {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
 
-  .headline h2 {
-    font-size: 24px;
-  }
-
-  .stats-grid,
-  .shortcut-grid,
-  .overview-grid {
+  .card-grid.four,
+  .quick-grid {
     grid-template-columns: 1fr;
   }
 }

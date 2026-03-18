@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
+import { hasValidStoredToken } from '@/utils/auth'
 
 const routes = [
   {
@@ -20,7 +21,12 @@ const routes = [
   {
     path: '/',
     component: () => import('@/layouts/AdminLayout.vue'),
-    redirect: '/dashboard',
+    redirect: {
+      path: '/dashboard',
+      query: {
+        panel: 'overview',
+      },
+    },
     children: [
       {
         path: 'dashboard',
@@ -28,6 +34,22 @@ const routes = [
         component: () => import('@/views/admin/DashboardView.vue'),
         meta: {
           title: '后台总览',
+        },
+      },
+      {
+        path: 'product-manage',
+        name: 'productManage',
+        component: () => import('@/views/admin/ProductManageView.vue'),
+        meta: {
+          title: '商品管理',
+        },
+      },
+      {
+        path: 'order-manage',
+        name: 'orderManage',
+        component: () => import('@/views/admin/OrderManageView.vue'),
+        meta: {
+          title: '订单管理',
         },
       },
       {
@@ -73,6 +95,34 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+router.beforeEach((to) => {
+  const isLoginRoute = to.path === '/login'
+  const loggedIn = hasValidStoredToken()
+
+  if (isLoginRoute) {
+    if (!loggedIn) {
+      return true
+    }
+
+    const redirectPath =
+      typeof to.query.redirect === 'string' && to.query.redirect && to.query.redirect !== '/login'
+        ? to.query.redirect
+        : '/dashboard'
+    return redirectPath
+  }
+
+  if (!loggedIn) {
+    return {
+      path: '/login',
+      query: {
+        redirect: to.fullPath,
+      },
+    }
+  }
+
+  return true
 })
 
 export default router

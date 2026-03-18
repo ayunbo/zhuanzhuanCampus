@@ -1,18 +1,6 @@
 ﻿<template>
   <div class="category-page">
-    <section class="page-head app-card">
-      <div>
-        <p class="head-tag">Category Console</p>
-        <h2>分类管理</h2>
-      </div>
-
-      <div class="head-actions">
-        <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增分类</el-button>
-        <el-button :icon="RefreshRight" :loading="loading" @click="refreshAll">刷新</el-button>
-      </div>
-    </section>
-
-    <el-row :gutter="12">
+    <el-row :gutter="12" class="content-row">
       <el-col :xs="24" :lg="6" :xl="5">
         <el-card class="side-card">
           <template #header>
@@ -36,8 +24,9 @@
             <el-button size="small" text @click="collapseTree">收起</el-button>
           </div>
 
-          <el-scrollbar height="460px" class="tree-scroll">
+          <el-scrollbar class="tree-scroll">
             <el-tree
+              :key="treeRenderKey"
               ref="treeRef"
               node-key="id"
               :data="treeData"
@@ -73,93 +62,84 @@
           </template>
 
           <el-form class="query-bar" :inline="true" :model="query">
-            <el-form-item label="分类名称">
-              <el-input
-                v-model="query.name"
-                clearable
-                placeholder="按名称模糊查询"
-                style="width: 200px"
-                @keyup.enter="handleSearch"
-              />
-            </el-form-item>
-
             <el-form-item label="状态">
-              <el-select v-model="query.status" clearable placeholder="全部" style="width: 140px">
+              <el-select v-model="query.status" placeholder="全部" style="width: 160px">
+                <el-option label="全部" value="" />
                 <el-option label="启用" value="1" />
                 <el-option label="禁用" value="0" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="父分类">
-              <el-select v-model="query.parentId" clearable filterable placeholder="全部父分类" style="width: 230px">
-                <el-option label="根分类" value="0" />
-                <el-option
-                  v-for="item in queryParentOptions"
-                  :key="String(item.id)"
-                  :label="item.label"
-                  :value="String(item.id)"
-                />
               </el-select>
             </el-form-item>
 
             <el-form-item>
               <el-button type="primary" @click="handleSearch">查询</el-button>
               <el-button @click="handleReset">重置</el-button>
+              <el-button type="primary" @click="openCreateDialog">新增分类</el-button>
+              <el-button :loading="loading" @click="refreshAll">刷新</el-button>
             </el-form-item>
           </el-form>
 
           <div class="table-area">
-            <el-table
-              v-loading="loading"
-              :data="tableData"
-              border
-              stripe
-              row-key="id"
-              class="category-table"
-              empty-text="暂无数据"
-            >
-              <el-table-column prop="id" label="ID" min-width="168" />
-              <el-table-column prop="name" label="分类名称" min-width="170" show-overflow-tooltip />
-              <el-table-column label="父分类" min-width="170" show-overflow-tooltip>
-                <template #default="{ row }">
-                  {{ parentName(row.parentId) }}
-                </template>
-              </el-table-column>
-              <el-table-column label="层级" width="90">
-                <template #default="{ row }">
-                  <el-tag size="small" type="warning">{{ levelText(row.level) }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="sort" label="排序" width="90" />
-              <el-table-column label="状态" width="90">
-                <template #default="{ row }">
-                  <el-tag :type="Number(row.status) === 1 ? 'success' : 'info'" size="small">
-                    {{ Number(row.status) === 1 ? '启用' : '禁用' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="更新时间" min-width="170">
-                <template #default="{ row }">
-                  {{ formatDateTime(row.updateTime) }}
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" fixed="right" min-width="290">
-                <template #default="{ row }">
-                  <div class="action-row">
-                    <el-button size="small" type="primary" :loading="isActionLoading(row)" @click="openEditDialog(row)">
-                      编辑
-                    </el-button>
-                    <el-button size="small" :loading="isActionLoading(row)" @click="handleSort(row)">排序</el-button>
-                    <el-button size="small" :loading="isActionLoading(row)" @click="handleStatus(row)">
-                      {{ Number(row.status) === 1 ? '禁用' : '启用' }}
-                    </el-button>
-                    <el-button size="small" type="danger" :loading="isActionLoading(row)" @click="handleDelete(row)">
-                      删除
-                    </el-button>
+            <div class="table-wrap">
+              <el-table
+                v-loading="loading"
+                :data="tableData"
+                border
+                stripe
+                row-key="id"
+                class="category-table"
+                empty-text="暂无数据"
+                height="100%"
+              >
+                <el-table-column prop="id" label="ID" min-width="168" />
+                <el-table-column prop="name" label="分类名称" min-width="170" show-overflow-tooltip />
+                <el-table-column label="父分类" min-width="170" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    {{ parentName(row.parentId) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="层级" width="90">
+                  <template #default="{ row }">
+                    <el-tag size="small" type="warning">{{ levelText(row.level) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="sort" label="排序" width="90" />
+                <el-table-column label="状态" width="90">
+                  <template #default="{ row }">
+                    <el-tag :type="Number(row.status) === 1 ? 'success' : 'info'" size="small">
+                      {{ Number(row.status) === 1 ? '启用' : '禁用' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="更新时间" min-width="170">
+                  <template #default="{ row }">
+                    {{ formatDateTime(row.updateTime) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" fixed="right" min-width="290">
+                  <template #default="{ row }">
+                    <div class="action-row">
+                      <el-button size="small" type="primary" :loading="isActionLoading(row)" @click="openEditDialog(row)">
+                        编辑
+                      </el-button>
+                      <el-button size="small" :loading="isActionLoading(row)" @click="handleSort(row)">排序</el-button>
+                      <el-button size="small" :loading="isActionLoading(row)" @click="handleStatus(row)">
+                        {{ Number(row.status) === 1 ? '禁用' : '启用' }}
+                      </el-button>
+                      <el-button size="small" type="danger" :loading="isActionLoading(row)" @click="handleDelete(row)">
+                        删除
+                      </el-button>
+                    </div>
+                  </template>
+                </el-table-column>
+
+                <template #empty>
+                  <div class="table-empty">
+                    <el-icon><Box /></el-icon>
+                    <span>暂无数据</span>
                   </div>
                 </template>
-              </el-table-column>
-            </el-table>
+              </el-table>
+            </div>
 
             <div class="pagination-wrap">
               <el-pagination
@@ -183,19 +163,18 @@
           <el-input v-model="dialogForm.name" maxlength="50" placeholder="请输入分类名称" />
         </el-form-item>
 
-        <el-form-item label="父分类" prop="parentId">
-          <el-tree-select
-            v-model="dialogForm.parentId"
-            :data="dialogParentTreeData"
-            :props="dialogTreeProps"
-            node-key="id"
-            check-strictly
-            filterable
-            default-expand-all
-            :render-after-expand="false"
-            placeholder="请选择父分类"
-            style="width: 100%"
-          />
+          <el-form-item label="父分类" prop="parentId">
+            <el-tree-select
+              v-model="dialogForm.parentId"
+              :data="dialogParentTreeData"
+              :props="dialogTreeProps"
+              node-key="id"
+              check-strictly
+              filterable
+              :render-after-expand="false"
+              placeholder="请选择父分类"
+              style="width: 100%"
+            />
         </el-form-item>
 
         <el-form-item label="排序" prop="sort">
@@ -225,7 +204,7 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, RefreshRight, Search } from '@element-plus/icons-vue'
+import { Box, Search } from '@element-plus/icons-vue'
 import {
   createCategory,
   deleteCategory,
@@ -238,6 +217,7 @@ import {
 import { formatDateTime } from '@/utils/format'
 
 const treeRef = ref()
+const treeRenderKey = ref(0)
 const treeKeyword = ref('')
 const treeProps = {
   children: 'children',
@@ -259,7 +239,6 @@ const treeData = ref([])
 const parentLabelMap = ref({})
 
 const query = reactive({
-  name: '',
   parentId: '',
   status: '',
   page: 1,
@@ -342,13 +321,6 @@ const flatTreeList = computed(() => {
   return result
 })
 
-const queryParentOptions = computed(() =>
-  flatTreeList.value.map((item) => ({
-    id: item.id,
-    label: `${'　'.repeat(Math.max(item.level - 1, 0))}${item.name}`,
-  })),
-)
-
 const dialogParentTreeData = computed(() => {
   const currentId = String(dialogForm.id || '')
   const blockedIds = new Set()
@@ -392,16 +364,27 @@ const currentTreeLabel = computed(() => {
 
 const currentFilterLabel = computed(() => {
   if (query.parentId === '') {
-    return '列表范围：全部父分类'
+    return '列表范围：全部分类'
   }
   if (query.parentId === '0') {
     return '列表范围：根分类'
   }
-  return `列表范围：${parentLabelMap.value[String(query.parentId)] || query.parentId} 的子分类`
+  return `列表范围：${parentLabelMap.value[String(query.parentId)] || query.parentId}`
 })
 
 function normalize(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function syncTreeVisualState() {
+  nextTick(() => {
+    if (!treeRef.value) {
+      return
+    }
+    const currentKey = query.parentId === '' || query.parentId === '0' ? null : query.parentId
+    treeRef.value.setCurrentKey(currentKey)
+    treeRef.value.filter(treeKeyword.value)
+  })
 }
 
 function appendChildrenIds(nodes, blockedIds) {
@@ -469,11 +452,6 @@ function buildQueryParams() {
     pageSize: query.pageSize,
   }
 
-  const name = normalize(query.name)
-  if (name) {
-    params.name = name
-  }
-
   if (query.parentId !== '') {
     params.parentId = query.parentId
   }
@@ -497,7 +475,9 @@ async function loadTree() {
   try {
     const data = await fetchCategoryTree()
     treeData.value = Array.isArray(data) ? data : []
-    expandedKeys.value = flatTreeList.value.filter((item) => item.level <= 2).map((item) => item.id)
+    expandedKeys.value = []
+    treeRenderKey.value += 1
+    syncTreeVisualState()
 
     const map = {}
     for (const item of flatTreeList.value) {
@@ -532,7 +512,6 @@ function handleSearch() {
 }
 
 function handleReset() {
-  query.name = ''
   query.parentId = ''
   query.status = ''
   query.page = 1
@@ -561,10 +540,14 @@ function viewAllFromTree() {
 
 function expandTree() {
   expandedKeys.value = flatTreeList.value.map((item) => item.id)
+  treeRenderKey.value += 1
+  syncTreeVisualState()
 }
 
 function collapseTree() {
   expandedKeys.value = []
+  treeRenderKey.value += 1
+  syncTreeVisualState()
 }
 
 function openCreateDialog() {
@@ -738,36 +721,23 @@ onMounted(() => {
 
 <style scoped>
 .category-page {
-  display: grid;
-  gap: 12px;
-}
-
-.page-head {
-  padding: 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.head-tag {
-  margin: 0;
-  font-family: 'Lexend', sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 11px;
-  color: var(--text-light);
+.content-row {
+  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
-.page-head h2 {
-  margin: 2px 0 0;
-  font-size: 26px;
-  color: #24446f;
-}
-
-.head-actions {
+.content-row :deep(.el-col) {
   display: flex;
-  gap: 8px;
+  min-height: 0;
 }
 
 .side-card,
@@ -776,14 +746,19 @@ onMounted(() => {
   border: 1px solid var(--border);
   background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
   box-shadow: var(--shadow-card);
+  flex: 1;
+  min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .side-card :deep(.el-card__body),
 .main-card :deep(.el-card__body) {
   display: flex;
   flex-direction: column;
-  min-height: 640px;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .card-header h3 {
@@ -812,6 +787,11 @@ onMounted(() => {
   padding: 8px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+.tree-scroll :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 
 .tree-node {
@@ -843,6 +823,19 @@ onMounted(() => {
 
 .category-table {
   margin-top: 0;
+  width: 100%;
+  min-width: 100%;
+}
+
+.table-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #ffffff;
 }
 
 .table-area {
@@ -851,6 +844,7 @@ onMounted(() => {
   flex: 1;
   min-height: 0;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .action-row {
@@ -862,9 +856,16 @@ onMounted(() => {
 }
 
 .pagination-wrap {
-  margin-top: 12px;
+  margin-top: 0;
+  padding-top: 12px;
+  padding-bottom: 4px;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
+  flex: 0 0 auto;
 }
 
 .dialog-footer {
@@ -873,12 +874,7 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .page-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .query-bar {
+    .query-bar {
     padding: 10px 10px 0;
   }
 
@@ -897,3 +893,4 @@ onMounted(() => {
   }
 }
 </style>
+

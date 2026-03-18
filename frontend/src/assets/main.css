@@ -177,6 +177,26 @@ select {
   background: #eaf1fb;
 }
 
+.table-empty {
+  min-height: 240px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #8a98b5;
+}
+
+.table-empty .el-icon {
+  font-size: 42px;
+  color: #b7c8e3;
+}
+
+.table-empty span {
+  font-size: 14px;
+}
+
 .fade-in-up {
   animation: fade-in-up 0.38s ease;
 }

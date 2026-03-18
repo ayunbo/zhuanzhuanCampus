@@ -1,34 +1,5 @@
-﻿<template>
+<template>
   <div class="admin-page">
-    <section class="page-head app-card">
-      <div>
-        <p class="head-tag">Admin Control</p>
-        <h2>管理员管理</h2>
-      </div>
-
-      <div class="head-actions">
-        <button class="app-btn primary" @click="handleCreate">新增管理员</button>
-        <button class="app-btn secondary" :disabled="loading" @click="fetchList">
-          {{ loading ? '加载中...' : '刷新列表' }}
-        </button>
-      </div>
-    </section>
-
-    <section class="metric-grid">
-      <article class="metric-card app-card">
-        <span>当前页记录</span>
-        <strong>{{ records.length }}</strong>
-      </article>
-      <article class="metric-card app-card">
-        <span>正常账号</span>
-        <strong>{{ summary.normal }}</strong>
-      </article>
-      <article class="metric-card app-card">
-        <span>禁用账号</span>
-        <strong>{{ summary.disabled }}</strong>
-      </article>
-    </section>
-
     <section class="app-card table-panel">
       <form class="filter-grid" @submit.prevent="handleSearch">
         <label>
@@ -59,6 +30,10 @@
         <div class="action-group">
           <button class="app-btn primary" type="submit">查询</button>
           <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
+          <button class="app-btn primary" type="button" @click="handleCreate">新增管理员</button>
+          <button class="app-btn secondary" type="button" :disabled="loading" @click="fetchList">
+            {{ loading ? '加载中...' : '刷新列表' }}
+          </button>
         </div>
       </form>
 
@@ -78,7 +53,12 @@
           </thead>
           <tbody>
             <tr v-if="!loading && records.length === 0">
-              <td class="empty-row" colspan="8">暂无数据</td>
+              <td class="empty-row" colspan="8">
+                <div class="table-empty">
+                  <el-icon><Box /></el-icon>
+                  <span>暂无数据</span>
+                </div>
+              </td>
             </tr>
 
             <tr v-for="record in records" :key="record.id">
@@ -170,6 +150,7 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Box } from '@element-plus/icons-vue'
 import {
   createAdmin,
   deleteAdmin,
@@ -209,16 +190,6 @@ const dialogForm = reactive({
   phone: '',
   status: ADMIN_STATUS.NORMAL,
   password: '',
-})
-
-const summary = computed(() => {
-  const normal = records.value.filter((item) => Number(item.status) === ADMIN_STATUS.NORMAL).length
-  const disabled = records.value.length - normal
-
-  return {
-    normal,
-    disabled,
-  }
 })
 
 const dialogRules = {
@@ -482,64 +453,21 @@ onMounted(() => {
 
 <style scoped>
 .admin-page {
-  display: grid;
-  gap: 12px;
-}
-
-.page-head {
-  padding: 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 12px;
-}
-
-.head-tag {
-  margin: 0;
-  font-family: 'Lexend', sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 11px;
-  color: var(--text-light);
-}
-
-.page-head h2 {
-  margin: 2px 0 0;
-  font-size: 26px;
-  color: #24446f;
-}
-
-.head-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.metric-card {
-  padding: 14px;
-  display: grid;
-  gap: 4px;
-}
-
-.metric-card span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.metric-card strong {
-  font-family: 'Lexend', sans-serif;
-  color: #1f467a;
-  font-size: 26px;
-  line-height: 1;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .table-panel {
   padding: 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .filter-grid {
@@ -575,6 +503,9 @@ onMounted(() => {
   border-radius: 14px;
   overflow: auto;
   background: #ffffff;
+  flex: 1 1 auto;
+  height: 0;
+  min-height: 0;
 }
 
 .data-table {
@@ -604,13 +535,20 @@ onMounted(() => {
 }
 
 .empty-row {
+  padding: 0 !important;
   text-align: center;
-  color: var(--text-secondary);
 }
 
 .actions {
   display: flex;
   gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: right;
 }
 
 .app-btn.mini {
@@ -629,9 +567,15 @@ onMounted(() => {
 }
 
 .pagination-wrap {
-  margin-top: 12px;
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
+  flex: 0 0 auto;
 }
 
 .dialog-footer {
@@ -640,29 +584,17 @@ onMounted(() => {
 }
 
 @media (max-width: 860px) {
-  .page-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .metric-grid {
-    grid-template-columns: 1fr;
-  }
-
   .action-group {
     margin-left: 0;
     width: 100%;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 
 @media (max-width: 620px) {
   .table-panel {
     padding: 10px;
-  }
-
-  .action-group {
-    flex-wrap: wrap;
   }
 }
 </style>
