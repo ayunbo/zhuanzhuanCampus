@@ -1,42 +1,64 @@
-<template>
-  <div class="login-page">
-    <section class="login-panel app-card fade-in-up">
-      <header class="panel-header">
-        <img class="brand-logo" src="/logo.jpg" alt="赚赚 logo" />
-        <div>
-          <h1>赚赚后台</h1>
-          <p>管理员登录</p>
+﻿<template>
+  <div class="login-scene">
+    <div class="login-grid">
+      <section class="showcase float-slow">
+        <span class="showcase-tag">Campus Console</span>
+        <h1>转转管理端</h1>
+
+        <div class="showcase-metrics">
+          <article>
+            <span>安全审查</span>
+            <strong>24h</strong>
+          </article>
+          <article>
+            <span>在线处理</span>
+            <strong>实时</strong>
+          </article>
+          <article>
+            <span>数据同步</span>
+            <strong>稳定</strong>
+          </article>
         </div>
-      </header>
+      </section>
 
-      <form class="login-form" @submit.prevent="handleLogin">
-        <label>
-          <span>管理员账号</span>
-          <input
-            v-model="form.username"
-            class="app-input"
-            type="text"
-            placeholder="请输入管理员账号"
-            autocomplete="username"
-          />
-        </label>
+      <section class="login-card app-card fade-in-up">
+        <header class="card-head">
+          <img class="brand-logo" src="/logo.jpg" alt="转转 logo" />
+          <div>
+            <h2>管理员登录</h2>
+            <p>Admin Access</p>
+          </div>
+        </header>
 
-        <label>
-          <span>密码</span>
-          <input
-            v-model="form.password"
-            class="app-input"
-            type="password"
-            placeholder="请输入密码"
-            autocomplete="current-password"
-          />
-        </label>
+        <form class="login-form" @submit.prevent="handleLogin">
+          <label>
+            <span>账号</span>
+            <input
+              v-model="form.username"
+              class="app-input"
+              type="text"
+              placeholder="请输入管理员账号"
+              autocomplete="username"
+            />
+          </label>
 
-        <button class="app-btn primary submit-btn" type="submit" :disabled="loading">
-          {{ loading ? '登录中...' : '登录' }}
-        </button>
-      </form>
-    </section>
+          <label>
+            <span>密码</span>
+            <input
+              v-model="form.password"
+              class="app-input"
+              type="password"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+            />
+          </label>
+
+          <button class="app-btn primary submit-btn" type="submit" :disabled="loading">
+            {{ loading ? '登录中...' : '登录' }}
+          </button>
+        </form>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -67,7 +89,7 @@ async function handleLogin() {
   const password = normalize(form.password)
 
   if (!username || !password) {
-    ElMessage.warning('管理员账号和密码不能为空')
+    ElMessage.warning('账号和密码不能为空')
     return
   }
 
@@ -94,93 +116,177 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.login-page {
+.login-scene {
   min-height: 100vh;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-image:
-    linear-gradient(125deg, rgba(255, 244, 222, 0.72) 0%, rgba(255, 240, 211, 0.48) 100%),
-    url('/login-bg.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  display: grid;
+  place-items: center;
+  padding: 28px;
 }
 
-.login-panel {
-  width: min(460px, 100%);
-  padding: 30px 24px;
-  margin-left: auto;
-  margin-right: clamp(20px, 3vw, 64px);
-  border: 1px solid #f0d4af;
-  backdrop-filter: blur(5px);
-  background: rgba(255, 250, 241, 0.93);
+.login-grid {
+  width: min(1080px, 100%);
+  display: grid;
+  grid-template-columns: 1fr minmax(360px, 430px);
+  gap: 22px;
+  align-items: stretch;
 }
 
-.panel-header {
+.showcase {
+  position: relative;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  padding: 32px;
+  background:
+    radial-gradient(260px 140px at 84% 22%, rgba(20, 184, 166, 0.24) 0%, rgba(20, 184, 166, 0) 75%),
+    radial-gradient(320px 170px at 10% 90%, rgba(47, 139, 255, 0.24) 0%, rgba(47, 139, 255, 0) 74%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.86) 0%, rgba(241, 249, 255, 0.88) 100%);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.showcase::after {
+  content: '';
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  right: -90px;
+  bottom: -90px;
+  background: radial-gradient(circle at center, rgba(255, 175, 113, 0.4) 0%, rgba(255, 175, 113, 0) 72%);
+}
+
+.showcase-tag {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #cfe2fb;
+  background: #edf5ff;
+  color: #2d5c9a;
+  font-family: 'Lexend', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.showcase h1 {
+  margin: 18px 0 0;
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 1.05;
+  color: #22426e;
+}
+
+.showcase-metrics {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.showcase-metrics article {
+  border-radius: 14px;
+  border: 1px solid #d6e7fa;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  display: grid;
+  gap: 4px;
+}
+
+.showcase-metrics span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.showcase-metrics strong {
+  font-family: 'Lexend', sans-serif;
+  font-size: 22px;
+  color: #1f4677;
+}
+
+.login-card {
+  padding: 26px 24px;
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.card-head {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .brand-logo {
-  width: 68px;
-  height: 68px;
+  width: 56px;
+  height: 56px;
   border-radius: 14px;
   object-fit: cover;
-  border: 2px solid #fff;
-  box-shadow: 0 8px 18px rgba(170, 112, 27, 0.28);
+  border: 2px solid #ffffff;
+  box-shadow: 0 8px 14px rgba(50, 108, 182, 0.2);
 }
 
-.panel-header h1 {
+.card-head h2 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.2;
-  color: #5e3b1e;
+  font-size: 24px;
+  color: #22426f;
 }
 
-.panel-header p {
-  margin-top: 4px;
-  color: var(--text-secondary);
+.card-head p {
+  margin: 3px 0 0;
+  font-family: 'Lexend', sans-serif;
+  color: var(--text-light);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .login-form {
-  margin-top: 20px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .login-form label {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .login-form span {
+  font-size: 13px;
+  color: #49648d;
   font-weight: 600;
-  color: #6e4b2a;
 }
 
 .submit-btn {
-  margin-top: 8px;
-  min-height: 46px;
+  margin-top: 6px;
+  min-height: 44px;
+  font-size: 14px;
 }
 
 @media (max-width: 960px) {
-  .login-page {
-    justify-content: flex-start;
+  .login-scene {
     padding: 16px;
-    background-size: cover;
-    background-position: 62% center;
   }
 
-  .login-panel {
-    margin-right: auto;
-    padding: 22px 18px;
+  .login-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 
-  .panel-header h1 {
-    font-size: 24px;
+  .showcase {
+    padding: 22px;
+  }
+
+  .showcase h1 {
+    font-size: 38px;
+  }
+}
+
+@media (max-width: 620px) {
+  .showcase-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .login-card {
+    padding: 20px 18px;
   }
 }
 </style>

@@ -1,144 +1,162 @@
-<template>
-  <div class="seller-auth-page app-card fade-in-up">
-    <section class="toolbar">
-      <h3>卖家认证审核</h3>
+﻿<template>
+  <div class="seller-page">
+    <section class="page-head app-card">
+      <div>
+        <p class="head-tag">Seller Verification</p>
+        <h2>卖家认证审核</h2>
+      </div>
       <button class="app-btn secondary" :disabled="loading" @click="fetchList">
         {{ loading ? '加载中...' : '刷新列表' }}
       </button>
     </section>
 
-    <form class="filter-grid" @submit.prevent="handleSearch">
-      <label>
-        <span>姓名</span>
-        <input v-model="queryForm.name" class="app-input" type="text" placeholder="认证姓名或用户昵称" />
-      </label>
+    <section class="metric-grid">
+      <article class="metric-card app-card">
+        <span>当前页申请</span>
+        <strong>{{ records.length }}</strong>
+      </article>
+      <article class="metric-card app-card">
+        <span>待审核</span>
+        <strong>{{ summary.pending }}</strong>
+      </article>
+      <article class="metric-card app-card">
+        <span>已通过</span>
+        <strong>{{ summary.approved }}</strong>
+      </article>
+      <article class="metric-card app-card">
+        <span>已驳回</span>
+        <strong>{{ summary.rejected }}</strong>
+      </article>
+    </section>
 
-      <label>
-        <span>手机号</span>
-        <input v-model="queryForm.phone" class="app-input" type="text" placeholder="支持模糊查询" />
-      </label>
+    <section class="table-panel app-card">
+      <form class="filter-grid" @submit.prevent="handleSearch">
+        <label>
+          <span>姓名</span>
+          <input v-model="queryForm.name" class="app-input" type="text" placeholder="认证姓名或用户昵称" />
+        </label>
 
-      <label>
-        <span>学号</span>
-        <input v-model="queryForm.studentNo" class="app-input" type="text" placeholder="支持模糊查询" />
-      </label>
+        <label>
+          <span>手机号</span>
+          <input v-model="queryForm.phone" class="app-input" type="text" placeholder="支持模糊查询" />
+        </label>
 
-      <label>
-        <span>状态</span>
-        <select v-model="queryForm.status" class="app-select">
-          <option value="">全部</option>
-          <option v-for="item in SELLER_AUTH_STATUS_OPTIONS" :key="item.value" :value="item.value">
-            {{ item.label }}
-          </option>
-        </select>
-      </label>
+        <label>
+          <span>学号</span>
+          <input v-model="queryForm.studentNo" class="app-input" type="text" placeholder="支持模糊查询" />
+        </label>
 
-      <div class="action-group">
-        <button class="app-btn primary" type="submit">查询</button>
-        <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
+        <label>
+          <span>状态</span>
+          <select v-model="queryForm.status" class="app-select">
+            <option value="">全部</option>
+            <option v-for="item in SELLER_AUTH_STATUS_OPTIONS" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </option>
+          </select>
+        </label>
+
+        <div class="action-group">
+          <button class="app-btn primary" type="submit">查询</button>
+          <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>用户昵称</th>
+              <th>真实姓名</th>
+              <th>学号</th>
+              <th>手机号</th>
+              <th>认证材料</th>
+              <th>状态</th>
+              <th>驳回原因</th>
+              <th>提交时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!loading && records.length === 0">
+              <td class="empty-row" colspan="10">暂无数据</td>
+            </tr>
+
+            <tr v-for="record in records" :key="String(record.id)">
+              <td>{{ record.id }}</td>
+              <td>{{ record.userName || '-' }}</td>
+              <td>{{ record.realName || '-' }}</td>
+              <td>{{ record.studentNo || '-' }}</td>
+              <td>{{ record.phone || '-' }}</td>
+              <td>
+                <button
+                  v-if="isUrl(record.material)"
+                  class="material-link"
+                  type="button"
+                  @click="openMaterialPreview(record.material)"
+                >
+                  查看资料
+                </button>
+                <span v-else>{{ record.material || '-' }}</span>
+              </td>
+              <td>
+                <span class="status-badge" :class="statusClass(record.status)">
+                  {{ statusLabel(record) }}
+                </span>
+              </td>
+              <td>{{ record.reason || '-' }}</td>
+              <td>{{ formatDateTime(record.createTime) }}</td>
+              <td class="actions">
+                <button
+                  class="app-btn primary mini"
+                  :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
+                  @click="handleApprove(record)"
+                >
+                  通过
+                </button>
+                <button
+                  class="app-btn danger mini"
+                  :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
+                  @click="handleReject(record)"
+                >
+                  驳回
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </form>
 
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>用户昵称</th>
-            <th>真实姓名</th>
-            <th>学号</th>
-            <th>手机号</th>
-            <th>认证材料</th>
-            <th>状态</th>
-            <th>驳回原因</th>
-            <th>提交时间</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!loading && records.length === 0">
-            <td class="empty-row" colspan="10">暂无数据</td>
-          </tr>
+      <footer class="pagination">
+        <div class="left">
+          <span>共 {{ pager.total }} 条</span>
+          <select v-model.number="pager.pageSize" class="app-select page-size" @change="handlePageSizeChange">
+            <option :value="10">10 / 页</option>
+            <option :value="20">20 / 页</option>
+            <option :value="30">30 / 页</option>
+          </select>
+        </div>
 
-          <tr v-for="record in records" :key="String(record.id)">
-            <td>{{ record.id }}</td>
-            <td>{{ record.userName || '-' }}</td>
-            <td>{{ record.realName || '-' }}</td>
-            <td>{{ record.studentNo || '-' }}</td>
-            <td>{{ record.phone || '-' }}</td>
-            <td>
-              <button
-                v-if="isUrl(record.material)"
-                class="material-link"
-                type="button"
-                @click="openMaterialPreview(record.material)"
-              >
-                查看资料
-              </button>
-              <span v-else>{{ record.material || '-' }}</span>
-            </td>
-            <td>
-              <span class="status-badge" :class="statusClass(record.status)">
-                {{ statusLabel(record) }}
-              </span>
-            </td>
-            <td>{{ record.reason || '-' }}</td>
-            <td>{{ formatDateTime(record.createTime) }}</td>
-            <td class="actions">
-              <button
-                class="app-btn primary mini"
-                :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
-                @click="handleApprove(record)"
-              >
-                通过
-              </button>
-              <button
-                class="app-btn danger mini"
-                :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
-                @click="handleReject(record)"
-              >
-                驳回
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <div class="pages">
+          <button class="app-btn ghost mini" :disabled="pager.page <= 1" @click="setPage(pager.page - 1)">上一页</button>
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            class="app-btn mini"
+            :class="page === pager.page ? 'primary' : 'ghost'"
+            @click="setPage(page)"
+          >
+            {{ page }}
+          </button>
+          <button class="app-btn ghost mini" :disabled="pager.page >= pageCount" @click="setPage(pager.page + 1)">
+            下一页
+          </button>
+        </div>
+      </footer>
+    </section>
 
-    <footer class="pagination">
-      <div class="left">
-        <span>共 {{ pager.total }} 条</span>
-        <select v-model.number="pager.pageSize" class="app-select page-size" @change="handlePageSizeChange">
-          <option :value="10">10 / 页</option>
-          <option :value="20">20 / 页</option>
-          <option :value="30">30 / 页</option>
-        </select>
-      </div>
-
-      <div class="pages">
-        <button class="app-btn ghost mini" :disabled="pager.page <= 1" @click="setPage(pager.page - 1)">上一页</button>
-        <button
-          v-for="page in visiblePages"
-          :key="page"
-          class="app-btn mini"
-          :class="page === pager.page ? 'primary' : 'ghost'"
-          @click="setPage(page)"
-        >
-          {{ page }}
-        </button>
-        <button class="app-btn ghost mini" :disabled="pager.page >= pageCount" @click="setPage(pager.page + 1)">
-          下一页
-        </button>
-      </div>
-    </footer>
-
-    <el-dialog
-      v-model="previewDialogVisible"
-      title="认证材料预览"
-      width="72%"
-      top="5vh"
-      destroy-on-close
-    >
+    <el-dialog v-model="previewDialogVisible" title="认证材料预览" width="72%" top="5vh" destroy-on-close>
       <div class="preview-wrap">
         <img
           v-if="previewType === 'image'"
@@ -148,15 +166,9 @@
           @error="handleImagePreviewError"
         />
 
-        <iframe
-          v-else-if="previewType === 'pdf'"
-          :src="previewUrl"
-          class="preview-frame"
-        />
+        <iframe v-else-if="previewType === 'pdf'" :src="previewUrl" class="preview-frame" />
 
-        <div v-else class="preview-tip">
-          当前材料类型暂不支持内嵌预览，请点击“新窗口打开”查看。
-        </div>
+        <div v-else class="preview-tip">当前材料类型暂不支持内嵌预览，请点击“新窗口打开”查看。</div>
       </div>
 
       <template #footer>
@@ -199,6 +211,12 @@ const pager = reactive({
   pageSize: 10,
   total: 0,
 })
+
+const summary = computed(() => ({
+  pending: records.value.filter((item) => Number(item.status) === SELLER_AUTH_STATUS.PENDING).length,
+  approved: records.value.filter((item) => Number(item.status) === SELLER_AUTH_STATUS.APPROVED).length,
+  rejected: records.value.filter((item) => Number(item.status) === SELLER_AUTH_STATUS.REJECTED).length,
+}))
 
 const pageCount = computed(() => {
   const count = Math.ceil(pager.total / pager.pageSize)
@@ -402,7 +420,7 @@ async function handleApprove(record) {
     })
     await submitAudit(String(record.id), SELLER_AUTH_STATUS.APPROVED)
   } catch {
-    // 用户取消操作，不提示。
+    // 用户取消
   }
 }
 
@@ -422,7 +440,7 @@ async function handleReject(record) {
 
     await submitAudit(String(record.id), SELLER_AUTH_STATUS.REJECTED, value.trim())
   } catch {
-    // 用户取消操作，不提示。
+    // 用户取消
   }
 }
 
@@ -432,73 +450,121 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.seller-auth-page {
-  padding: 18px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.seller-page {
+  display: grid;
   gap: 12px;
 }
 
-.toolbar h3 {
+.page-head {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.head-tag {
   margin: 0;
-  font-size: 18px;
-  color: #5c3b1f;
+  font-family: 'Lexend', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.page-head h2 {
+  margin: 2px 0 0;
+  font-size: 26px;
+  color: #24446f;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.metric-card span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.metric-card strong {
+  font-family: 'Lexend', sans-serif;
+  color: #1f467a;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.table-panel {
+  padding: 14px;
 }
 
 .filter-grid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   align-items: end;
 }
 
 .filter-grid label {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  flex: 1 1 210px;
+  min-width: 180px;
 }
 
 .filter-grid span {
+  color: #4a648c;
   font-size: 13px;
-  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .action-group {
   display: flex;
   gap: 8px;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .table-wrap {
-  margin-top: 14px;
-  overflow-x: auto;
-  border-radius: 12px;
+  margin-top: 12px;
   border: 1px solid var(--border);
-  background: #fffdf8;
+  border-radius: 14px;
+  overflow: auto;
+  background: #ffffff;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1080px;
+  min-width: 1120px;
 }
 
 .data-table th,
 .data-table td {
-  padding: 10px;
+  padding: 11px 10px;
   border-bottom: 1px solid var(--border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .data-table th {
-  color: #6d4f2d;
-  background: #fff5e4;
+  color: #35557f;
+  background: #f3f8ff;
+  font-weight: 700;
   position: sticky;
   top: 0;
+}
+
+.data-table tbody tr:hover {
+  background: #f9fcff;
 }
 
 .empty-row {
@@ -519,50 +585,15 @@ onMounted(() => {
 .material-link {
   border: 0;
   background: transparent;
-  padding: 0;
+  color: #1f6fd8;
   cursor: pointer;
-  color: #9a5d1b;
-  font-weight: 600;
+  padding: 0;
+  font-weight: 700;
   text-decoration: underline;
 }
 
-.preview-wrap {
-  min-height: 360px;
-  max-height: 72vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: auto;
-  background: #fffaf1;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-}
-
-.preview-image {
-  display: block;
-  max-width: 100%;
-  max-height: 68vh;
-  object-fit: contain;
-}
-
-.preview-frame {
-  width: 100%;
-  height: 68vh;
-  border: 0;
-}
-
-.preview-tip {
-  color: #7b5a3d;
-  font-size: 14px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .pagination {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -586,19 +617,61 @@ onMounted(() => {
   gap: 6px;
 }
 
+.preview-wrap {
+  min-height: 360px;
+  max-height: 72vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  background: #f6fbff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+}
+
+.preview-frame {
+  width: 100%;
+  height: 68vh;
+  border: 0;
+}
+
+.preview-tip {
+  color: #56719b;
+  font-size: 14px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1180px) {
-  .filter-grid {
+  .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
-  .seller-auth-page {
-    padding: 14px;
+@media (max-width: 760px) {
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .filter-grid {
+  .metric-grid {
     grid-template-columns: 1fr;
+  }
+
+  .action-group {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .action-group {

@@ -1,39 +1,19 @@
-<template>
-  <div class="category-page fade-in-up">
-    <section class="hero-card">
-      <div class="hero-text">
-        <p class="eyebrow">Catalog Console</p>
+﻿<template>
+  <div class="category-page">
+    <section class="page-head app-card">
+      <div>
+        <p class="head-tag">Category Console</p>
         <h2>分类管理</h2>
-        <p>维护分类树、排序和启用状态，前台发布与筛选都依赖这里的数据。</p>
       </div>
 
-      <div class="hero-stats">
-        <article class="stat-box">
-          <span>总分类</span>
-          <strong>{{ stats.total }}</strong>
-        </article>
-        <article class="stat-box">
-          <span>启用</span>
-          <strong>{{ stats.enabled }}</strong>
-        </article>
-        <article class="stat-box">
-          <span>禁用</span>
-          <strong>{{ stats.disabled }}</strong>
-        </article>
-        <article class="stat-box">
-          <span>一级分类</span>
-          <strong>{{ stats.level1 }}</strong>
-        </article>
-      </div>
-
-      <div class="hero-actions">
+      <div class="head-actions">
         <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增分类</el-button>
         <el-button :icon="RefreshRight" :loading="loading" @click="refreshAll">刷新</el-button>
       </div>
     </section>
 
-    <el-row :gutter="16">
-      <el-col :xs="24" :lg="7" :xl="6">
+    <el-row :gutter="12">
+      <el-col :xs="24" :lg="6" :xl="5">
         <el-card class="side-card">
           <template #header>
             <div class="card-header">
@@ -56,7 +36,7 @@
             <el-button size="small" text @click="collapseTree">收起</el-button>
           </div>
 
-          <el-scrollbar height="520px" class="tree-scroll">
+          <el-scrollbar height="460px" class="tree-scroll">
             <el-tree
               ref="treeRef"
               node-key="id"
@@ -81,7 +61,7 @@
         </el-card>
       </el-col>
 
-      <el-col :xs="24" :lg="17" :xl="18">
+      <el-col :xs="24" :lg="18" :xl="19">
         <el-card class="main-card">
           <template #header>
             <div class="card-header">
@@ -128,73 +108,70 @@
             </el-form-item>
           </el-form>
 
-          <el-table
-            v-loading="loading"
-            :data="tableData"
-            border
-            stripe
-            row-key="id"
-            class="category-table"
-            empty-text="暂无数据"
-          >
-            <el-table-column prop="id" label="ID" min-width="168" />
-            <el-table-column prop="name" label="分类名称" min-width="170" show-overflow-tooltip />
-            <el-table-column label="父分类" min-width="170" show-overflow-tooltip>
-              <template #default="{ row }">
-                {{ parentName(row.parentId) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="层级" width="90">
-              <template #default="{ row }">
-                <el-tag size="small" type="warning">{{ levelText(row.level) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="sort" label="排序" width="90" />
-            <el-table-column label="状态" width="90">
-              <template #default="{ row }">
-                <el-tag :type="Number(row.status) === 1 ? 'success' : 'info'" size="small">
-                  {{ Number(row.status) === 1 ? '启用' : '禁用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="创建时间" min-width="170">
-              <template #default="{ row }">
-                {{ formatDateTime(row.createTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="更新时间" min-width="170">
-              <template #default="{ row }">
-                {{ formatDateTime(row.updateTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" fixed="right" min-width="280">
-              <template #default="{ row }">
-                <el-space wrap>
-                  <el-button size="small" type="primary" :loading="isActionLoading(row)" @click="openEditDialog(row)">
-                    编辑
-                  </el-button>
-                  <el-button size="small" :loading="isActionLoading(row)" @click="handleSort(row)">排序</el-button>
-                  <el-button size="small" :loading="isActionLoading(row)" @click="handleStatus(row)">
-                    {{ Number(row.status) === 1 ? '禁用' : '启用' }}
-                  </el-button>
-                  <el-button size="small" type="danger" :loading="isActionLoading(row)" @click="handleDelete(row)">
-                    删除
-                  </el-button>
-                </el-space>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="table-area">
+            <el-table
+              v-loading="loading"
+              :data="tableData"
+              border
+              stripe
+              row-key="id"
+              class="category-table"
+              empty-text="暂无数据"
+            >
+              <el-table-column prop="id" label="ID" min-width="168" />
+              <el-table-column prop="name" label="分类名称" min-width="170" show-overflow-tooltip />
+              <el-table-column label="父分类" min-width="170" show-overflow-tooltip>
+                <template #default="{ row }">
+                  {{ parentName(row.parentId) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="层级" width="90">
+                <template #default="{ row }">
+                  <el-tag size="small" type="warning">{{ levelText(row.level) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="sort" label="排序" width="90" />
+              <el-table-column label="状态" width="90">
+                <template #default="{ row }">
+                  <el-tag :type="Number(row.status) === 1 ? 'success' : 'info'" size="small">
+                    {{ Number(row.status) === 1 ? '启用' : '禁用' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="更新时间" min-width="170">
+                <template #default="{ row }">
+                  {{ formatDateTime(row.updateTime) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" fixed="right" min-width="290">
+                <template #default="{ row }">
+                  <div class="action-row">
+                    <el-button size="small" type="primary" :loading="isActionLoading(row)" @click="openEditDialog(row)">
+                      编辑
+                    </el-button>
+                    <el-button size="small" :loading="isActionLoading(row)" @click="handleSort(row)">排序</el-button>
+                    <el-button size="small" :loading="isActionLoading(row)" @click="handleStatus(row)">
+                      {{ Number(row.status) === 1 ? '禁用' : '启用' }}
+                    </el-button>
+                    <el-button size="small" type="danger" :loading="isActionLoading(row)" @click="handleDelete(row)">
+                      删除
+                    </el-button>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
 
-          <div class="pagination-wrap">
-            <el-pagination
-              v-model:current-page="query.page"
-              v-model:page-size="query.pageSize"
-              :total="total"
-              :page-sizes="[10, 20, 30]"
-              layout="total, sizes, prev, pager, next"
-              @current-change="loadPage"
-              @size-change="handleSizeChange"
-            />
+            <div class="pagination-wrap">
+              <el-pagination
+                v-model:current-page="query.page"
+                v-model:page-size="query.pageSize"
+                :total="total"
+                :page-sizes="[10, 20, 30]"
+                layout="total, sizes, prev, pager, next"
+                @current-change="loadPage"
+                @size-change="handleSizeChange"
+              />
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -207,15 +184,18 @@
         </el-form-item>
 
         <el-form-item label="父分类" prop="parentId">
-          <el-select v-model="dialogForm.parentId" filterable placeholder="请选择父分类">
-            <el-option label="根分类" value="0" />
-            <el-option
-              v-for="item in dialogParentOptions"
-              :key="String(item.id)"
-              :label="item.label"
-              :value="String(item.id)"
-            />
-          </el-select>
+          <el-tree-select
+            v-model="dialogForm.parentId"
+            :data="dialogParentTreeData"
+            :props="dialogTreeProps"
+            node-key="id"
+            check-strictly
+            filterable
+            default-expand-all
+            :render-after-expand="false"
+            placeholder="请选择父分类"
+            style="width: 100%"
+          />
         </el-form-item>
 
         <el-form-item label="排序" prop="sort">
@@ -262,6 +242,11 @@ const treeKeyword = ref('')
 const treeProps = {
   children: 'children',
   label: 'name',
+}
+const dialogTreeProps = {
+  children: 'children',
+  label: 'label',
+  disabled: 'disabled',
 }
 const expandedKeys = ref([])
 
@@ -357,16 +342,6 @@ const flatTreeList = computed(() => {
   return result
 })
 
-const stats = computed(() => {
-  const list = flatTreeList.value
-  return {
-    total: list.length,
-    enabled: list.filter((item) => item.status === 1).length,
-    disabled: list.filter((item) => item.status !== 1).length,
-    level1: list.filter((item) => item.level === 1).length,
-  }
-})
-
 const queryParentOptions = computed(() =>
   flatTreeList.value.map((item) => ({
     id: item.id,
@@ -374,14 +349,36 @@ const queryParentOptions = computed(() =>
   })),
 )
 
-const dialogParentOptions = computed(() =>
-  flatTreeList.value
-    .filter((item) => item.level < 3 && String(item.id) !== String(dialogForm.id))
-    .map((item) => ({
-      id: item.id,
-      label: `${'　'.repeat(Math.max(item.level - 1, 0))}${item.pathLabel}`,
-    })),
-)
+const dialogParentTreeData = computed(() => {
+  const currentId = String(dialogForm.id || '')
+  const blockedIds = new Set()
+
+  if (currentId) {
+    markBlockedIds(treeData.value, currentId, blockedIds)
+  }
+
+  const buildTree = (nodes) =>
+    (Array.isArray(nodes) ? nodes : []).map((node) => {
+      const id = String(node.id)
+      const level = Number(node.level || 1)
+
+      return {
+        id,
+        label: node.name,
+        disabled: blockedIds.has(id) || level >= 3,
+        children: buildTree(node.children),
+      }
+    })
+
+  return [
+    {
+      id: '0',
+      label: '根分类',
+      disabled: false,
+      children: buildTree(treeData.value),
+    },
+  ]
+})
 
 const currentTreeLabel = computed(() => {
   if (query.parentId === '') {
@@ -405,6 +402,39 @@ const currentFilterLabel = computed(() => {
 
 function normalize(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function appendChildrenIds(nodes, blockedIds) {
+  if (!Array.isArray(nodes)) {
+    return
+  }
+
+  for (const node of nodes) {
+    const id = String(node.id)
+    blockedIds.add(id)
+    appendChildrenIds(node.children, blockedIds)
+  }
+}
+
+function markBlockedIds(nodes, targetId, blockedIds) {
+  if (!Array.isArray(nodes)) {
+    return false
+  }
+
+  for (const node of nodes) {
+    const id = String(node.id)
+    if (id === targetId) {
+      blockedIds.add(id)
+      appendChildrenIds(node.children, blockedIds)
+      return true
+    }
+
+    if (markBlockedIds(node.children, targetId, blockedIds)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function isActionLoading(row) {
@@ -709,94 +739,63 @@ onMounted(() => {
 <style scoped>
 .category-page {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
-.hero-card {
-  display: grid;
-  grid-template-columns: minmax(280px, 1.3fr) minmax(260px, 1fr) auto;
-  gap: 16px;
+.page-head {
+  padding: 16px;
+  display: flex;
   align-items: center;
-  padding: 18px;
-  border-radius: 18px;
-  border: 1px solid #efcf9c;
-  background:
-    radial-gradient(520px 240px at 95% -30%, rgba(235, 161, 80, 0.26) 0%, rgba(235, 161, 80, 0) 70%),
-    linear-gradient(135deg, #fff4df 0%, #fffbf3 60%, #ffffff 100%);
-  box-shadow: 0 18px 30px rgba(180, 118, 45, 0.16);
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.hero-text .eyebrow {
+.head-tag {
   margin: 0;
-  color: #c56d14;
+  font-family: 'Lexend', sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-light);
 }
 
-.hero-text h2 {
-  margin: 4px 0 6px;
-  font-size: 28px;
-  line-height: 1.2;
-  color: #4f3015;
+.page-head h2 {
+  margin: 2px 0 0;
+  font-size: 26px;
+  color: #24446f;
 }
 
-.hero-text p {
-  margin: 0;
-  color: #7e5a35;
-  font-size: 13px;
-}
-
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.stat-box {
-  border: 1px solid #f1d8b6;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.86);
-  padding: 10px 12px;
-  display: grid;
-  gap: 2px;
-}
-
-.stat-box span {
-  color: #8d6c48;
-  font-size: 12px;
-}
-
-.stat-box strong {
-  color: #6c3b10;
-  font-size: 24px;
-  line-height: 1;
-}
-
-.hero-actions {
-  display: grid;
-  gap: 10px;
+.head-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .side-card,
 .main-card {
   border-radius: 16px;
-  border: 1px solid #ecd7bb;
-  background: linear-gradient(180deg, #fffefb 0%, #fff8ed 100%);
-  box-shadow: 0 14px 26px rgba(181, 121, 48, 0.12);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: var(--shadow-card);
+  height: 100%;
+}
+
+.side-card :deep(.el-card__body),
+.main-card :deep(.el-card__body) {
+  display: flex;
+  flex-direction: column;
+  min-height: 640px;
 }
 
 .card-header h3 {
   margin: 0;
+  color: #2e5286;
   font-size: 17px;
-  color: #5d3818;
 }
 
 .card-header p {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
+  color: var(--text-secondary);
   font-size: 12px;
-  color: #82603f;
 }
 
 .tree-tools {
@@ -807,10 +806,12 @@ onMounted(() => {
 
 .tree-scroll {
   margin-top: 8px;
-  border: 1px solid #efdcc0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fffdf8;
+  background: #fbfdff;
   padding: 8px;
+  flex: 1;
+  min-height: 0;
 }
 
 .tree-node {
@@ -831,16 +832,37 @@ onMounted(() => {
 .query-bar {
   padding: 12px 12px 2px;
   border-radius: 12px;
-  border: 1px solid #efd8ba;
-  background: #fffdf8;
+  border: 1px solid var(--border);
+  background: #fbfdff;
+}
+
+.query-bar :deep(.el-form-item:last-child) {
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .category-table {
-  margin-top: 14px;
+  margin-top: 0;
+}
+
+.table-area {
+  margin-top: 12px;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .pagination-wrap {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   justify-content: flex-end;
 }
@@ -850,27 +872,10 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-@media (max-width: 1400px) {
-  .hero-card {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 768px) {
-  .hero-text h2 {
-    font-size: 24px;
-  }
-
-  .hero-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .hero-actions {
-    grid-template-columns: 1fr;
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .query-bar {
@@ -879,6 +884,16 @@ onMounted(() => {
 
   .query-bar :deep(.el-form-item) {
     margin-right: 0;
+  }
+
+  .side-card :deep(.el-card__body),
+  .main-card :deep(.el-card__body) {
+    min-height: auto;
+  }
+
+  .action-row {
+    flex-wrap: wrap;
+    white-space: normal;
   }
 }
 </style>

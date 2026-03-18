@@ -1,8 +1,10 @@
-<template>
-  <div class="forbidden-page app-card fade-in-up">
-    <h1>无权限访问</h1>
-    <p>当前账号角色不允许进入管理员后台，请使用管理员账号登录。</p>
-    <button class="app-btn primary" @click="goLogin">返回登录</button>
+﻿<template>
+  <div class="forbidden-wrap">
+    <section class="forbidden-card app-card fade-in-up">
+      <span class="code">403</span>
+      <h1>无权限访问</h1>
+      <button class="app-btn primary" @click="goLogin">返回登录</button>
+    </section>
   </div>
 </template>
 
@@ -19,26 +21,33 @@ function goLogin() {
 </script>
 
 <style scoped>
-.forbidden-page {
+.forbidden-wrap {
   min-height: 100vh;
+  padding: 20px;
   display: grid;
-  place-content: center;
-  gap: 12px;
+  place-items: center;
+}
+
+.forbidden-card {
+  width: min(420px, 100%);
+  padding: 34px 24px;
   text-align: center;
-  padding: 28px;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
 }
 
-.forbidden-page h1 {
+.code {
+  font-family: 'Lexend', sans-serif;
+  font-size: 72px;
+  line-height: 1;
+  color: #2a7ae7;
+  text-shadow: 0 10px 20px rgba(47, 139, 255, 0.24);
+}
+
+.forbidden-card h1 {
   margin: 0;
-  font-size: 36px;
-  color: #5e3a1d;
-}
-
-.forbidden-page p {
-  color: var(--text-secondary);
-}
-
-.forbidden-page button {
-  justify-self: center;
+  font-size: 24px;
+  color: #264a79;
 }
 </style>

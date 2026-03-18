@@ -1,8 +1,12 @@
-<template>
-  <div class="user-management-page app-card fade-in-up">
-    <section class="toolbar">
-      <h3>用户管理</h3>
-      <div class="toolbar-actions">
+﻿<template>
+  <div class="user-page">
+    <section class="page-head app-card">
+      <div>
+        <p class="head-tag">User Console</p>
+        <h2>用户管理</h2>
+      </div>
+
+      <div class="head-actions">
         <button class="app-btn primary" @click="openAddDialog">新增用户</button>
         <button class="app-btn secondary" :disabled="loading" @click="loadData">
           {{ loading ? '加载中...' : '刷新列表' }}
@@ -10,88 +14,109 @@
       </div>
     </section>
 
-    <form class="filter-grid" @submit.prevent="handleSearch">
-      <label>
-        <span>学号</span>
-        <input v-model="query.studentNo" class="app-input" type="text" placeholder="学号模糊查询" />
-      </label>
+    <section class="metric-grid">
+      <article class="metric-card app-card">
+        <span>当前页用户</span>
+        <strong>{{ tableData.length }}</strong>
+      </article>
+      <article class="metric-card app-card">
+        <span>普通用户</span>
+        <strong>{{ summary.normalUser }}</strong>
+      </article>
+      <article class="metric-card app-card">
+        <span>校园卖家</span>
+        <strong>{{ summary.seller }}</strong>
+      </article>
+      <article class="metric-card app-card">
+        <span>禁用账号</span>
+        <strong>{{ summary.disabled }}</strong>
+      </article>
+    </section>
 
-      <label>
-        <span>姓名</span>
-        <input v-model="query.name" class="app-input" type="text" placeholder="用户姓名" />
-      </label>
+    <section class="table-panel app-card">
+      <form class="filter-grid" @submit.prevent="handleSearch">
+        <label>
+          <span>学号</span>
+          <input v-model="query.studentNo" class="app-input" type="text" placeholder="学号模糊查询" />
+        </label>
 
-      <label>
-        <span>角色</span>
-        <select v-model="query.role" class="app-select">
-          <option value="">全部</option>
-          <option :value="1">普通用户</option>
-          <option :value="2">校园卖家</option>
-        </select>
-      </label>
+        <label>
+          <span>姓名</span>
+          <input v-model="query.name" class="app-input" type="text" placeholder="用户姓名" />
+        </label>
 
-      <div class="action-group">
-        <button class="app-btn primary" type="submit">查询</button>
-        <button class="app-btn ghost" type="button" @click="resetQuery">重置</button>
+        <label>
+          <span>角色</span>
+          <select v-model="query.role" class="app-select">
+            <option value="">全部</option>
+            <option :value="1">普通用户</option>
+            <option :value="2">校园卖家</option>
+          </select>
+        </label>
+
+        <div class="action-group">
+          <button class="app-btn primary" type="submit">查询</button>
+          <button class="app-btn ghost" type="button" @click="resetQuery">重置</button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>学号</th>
+              <th>姓名</th>
+              <th>手机号</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!loading && tableData.length === 0">
+              <td class="empty-row" colspan="7">暂无数据</td>
+            </tr>
+            <tr v-for="row in tableData" :key="String(row.id)">
+              <td>{{ row.id }}</td>
+              <td>{{ row.studentNo || '-' }}</td>
+              <td>{{ row.name || '-' }}</td>
+              <td>{{ row.phone || '-' }}</td>
+              <td>
+                <span class="role-badge" :class="Number(row.role) === 2 ? 'seller' : 'user'">
+                  {{ Number(row.role) === 2 ? '校园卖家' : '普通用户' }}
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" :class="Number(row.status) === 1 ? 'status-approved' : 'status-rejected'">
+                  {{ Number(row.status) === 1 ? '正常' : '禁用' }}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="app-btn primary mini" @click="openEditDialog(row)">编辑</button>
+                <button class="app-btn secondary mini" @click="handleStatusToggle(row)">
+                  {{ Number(row.status) === 1 ? '禁用' : '启用' }}
+                </button>
+                <button class="app-btn danger mini" @click="handleDelete(row.id)">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </form>
 
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>学号</th>
-            <th>姓名</th>
-            <th>手机号</th>
-            <th>角色</th>
-            <th>状态</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!loading && tableData.length === 0">
-            <td class="empty-row" colspan="7">暂无数据</td>
-          </tr>
-          <tr v-for="row in tableData" :key="String(row.id)">
-            <td>{{ row.id }}</td>
-            <td>{{ row.studentNo || '-' }}</td>
-            <td>{{ row.name || '-' }}</td>
-            <td>{{ row.phone || '-' }}</td>
-            <td>
-              <span class="role-badge" :class="Number(row.role) === 2 ? 'seller' : 'user'">
-                {{ Number(row.role) === 2 ? '校园卖家' : '普通用户' }}
-              </span>
-            </td>
-            <td>
-              <span class="status-badge" :class="Number(row.status) === 1 ? 'status-approved' : 'status-rejected'">
-                {{ Number(row.status) === 1 ? '正常' : '禁用' }}
-              </span>
-            </td>
-            <td class="actions">
-              <button class="app-btn primary mini" @click="openEditDialog(row)">编辑</button>
-              <button class="app-btn secondary mini" @click="handleStatusToggle(row)">
-                {{ Number(row.status) === 1 ? '禁用' : '启用' }}
-              </button>
-              <button class="app-btn danger mini" @click="handleDelete(row.id)">删除</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <footer class="pagination-wrap">
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        @current-change="loadData"
-      />
-    </footer>
+      <footer class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          layout="total, prev, pager, next"
+          @current-change="loadData"
+        />
+      </footer>
+    </section>
   </div>
 
-  <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="520px" destroy-on-close>
+  <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="540px" destroy-on-close>
     <el-form :model="form" label-width="84px">
       <el-form-item label="学号">
         <el-input v-model="form.studentNo" :disabled="isEdit" maxlength="32" placeholder="请输入学号" />
@@ -133,7 +158,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createUser, deleteUser, fetchUserById, fetchUserPage, updateUser } from '@/api/admin'
 
@@ -160,6 +185,18 @@ const form = reactive({
   phone: '',
   role: 1,
   status: 1,
+})
+
+const summary = computed(() => {
+  const normalUser = tableData.value.filter((item) => Number(item.role) === 1).length
+  const seller = tableData.value.filter((item) => Number(item.role) === 2).length
+  const disabled = tableData.value.filter((item) => Number(item.status) !== 1).length
+
+  return {
+    normalUser,
+    seller,
+    disabled,
+  }
 })
 
 function normalize(value) {
@@ -321,7 +358,7 @@ async function handleStatusToggle(row) {
   try {
     await updateUser({ ...row, status: newStatus })
     row.status = newStatus
-    ElMessage.success('账户状态已更新')
+    ElMessage.success('账号状态已更新')
   } catch (error) {
     row.status = currentStatus
     ElMessage.error(error.message || '状态更新失败')
@@ -354,78 +391,126 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-management-page {
-  padding: 18px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.user-page {
+  display: grid;
   gap: 12px;
 }
 
-.toolbar h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #5c3b1f;
+.page-head {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.toolbar-actions {
+.head-tag {
+  margin: 0;
+  font-family: 'Lexend', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.page-head h2 {
+  margin: 2px 0 0;
+  font-size: 26px;
+  color: #24446f;
+}
+
+.head-actions {
   display: flex;
   gap: 8px;
 }
 
-.filter-grid {
-  margin-top: 14px;
+.metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+}
+
+.metric-card {
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.metric-card span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.metric-card strong {
+  font-family: 'Lexend', sans-serif;
+  color: #1f467a;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.table-panel {
+  padding: 14px;
+}
+
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   align-items: end;
 }
 
 .filter-grid label {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  flex: 1 1 210px;
+  min-width: 180px;
 }
 
 .filter-grid span {
+  color: #4a648c;
   font-size: 13px;
-  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .action-group {
   display: flex;
   gap: 8px;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .table-wrap {
-  margin-top: 14px;
-  overflow-x: auto;
-  border-radius: 12px;
+  margin-top: 12px;
   border: 1px solid var(--border);
-  background: #fffdf8;
+  border-radius: 14px;
+  overflow: auto;
+  background: #ffffff;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 940px;
+  min-width: 920px;
 }
 
 .data-table th,
 .data-table td {
-  padding: 10px;
+  padding: 11px 10px;
   border-bottom: 1px solid var(--border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .data-table th {
-  color: #6d4f2d;
-  background: #fff5e4;
+  color: #35557f;
+  background: #f3f8ff;
+  font-weight: 700;
   position: sticky;
   top: 0;
+}
+
+.data-table tbody tr:hover {
+  background: #f9fcff;
 }
 
 .empty-row {
@@ -436,6 +521,8 @@ onMounted(() => {
 .role-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 72px;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -443,13 +530,13 @@ onMounted(() => {
 }
 
 .role-badge.seller {
-  color: #8e4b03;
-  background: #ffe8c4;
+  color: #0f7f6f;
+  background: #dcf8f4;
 }
 
 .role-badge.user {
-  color: #77563b;
-  background: #f3e8d9;
+  color: #33609d;
+  background: #eaf3ff;
 }
 
 .actions {
@@ -463,7 +550,7 @@ onMounted(() => {
 }
 
 .pagination-wrap {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   justify-content: flex-end;
 }
@@ -474,23 +561,25 @@ onMounted(() => {
 }
 
 @media (max-width: 1180px) {
-  .filter-grid {
+  .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
-  .user-management-page {
-    padding: 14px;
-  }
-
-  .toolbar {
+@media (max-width: 720px) {
+  .page-head {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .filter-grid {
+  .metric-grid {
     grid-template-columns: 1fr;
+  }
+
+  .action-group {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .action-group {
