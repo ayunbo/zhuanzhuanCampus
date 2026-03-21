@@ -28,7 +28,7 @@ public class AutoFillAspect {
     /**
      * 切入点
      */
-    @Pointcut("execution(* com.zhuanzhuan.mapper..*.*(..)) && @annotation(com.zhuanzhuan.annotation.AutoFill)")  // 匹配 mapper 及所有子包
+    @Pointcut("execution(* com.zhuanzhuan..mapper..*.*(..)) && @annotation(com.zhuanzhuan.annotation.AutoFill)")  // 匹配 mapper 及所有子包
     public void autoFillPointCut(){}
 
     @Before("autoFillPointCut()")

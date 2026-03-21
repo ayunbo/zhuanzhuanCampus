@@ -111,4 +111,20 @@ public final class MessageConstant {
     public static final String GOODS_MARK_SOLD_FAILED = "商品售出状态更新失败";
     public static final String GOODS_STATS_UPDATE_EMPTY = "请至少提供一个商品统计增量";
     public static final String GOODS_STATS_UPDATE_FAILED = "商品统计更新失败";
+    public static final String CATEGORY_NAME_EMPTY = "分类名称不能为空";
+    public static final String CATEGORY_PARENT_ID_INVALID = "父分类ID不合法";
+    public static final String CATEGORY_NAME_ALREADY_EXISTS = "同级分类名称已存在";
+    public static final String CATEGORY_PARENT_DISABLED_FOR_CREATE = "父分类未启用，不能新增启用状态的子分类";
+    public static final String CATEGORY_PARENT_DISABLED_FOR_MOVE = "父分类未启用，不能挂载启用状态的子分类";
+    public static final String CATEGORY_PARENT_DISABLED_FOR_ENABLE = "父分类未启用，不能单独启用当前分类";
+    public static final String CATEGORY_CREATE_FAILED = "新增分类失败";
+    public static final String CATEGORY_NOT_FOUND = "分类不存在";
+    public static final String CATEGORY_HAS_CHILDREN_CANNOT_CHANGE_PARENT = "存在子分类，不允许修改父分类";
+    public static final String CATEGORY_UPDATE_FAILED = "更新分类失败";
+    public static final String CATEGORY_SORT_UPDATE_FAILED = "更新分类排序失败";
+    public static final String CATEGORY_HAS_CHILDREN_CANNOT_DELETE = "存在子分类，不能删除";
+    public static final String CATEGORY_HAS_GOODS_CANNOT_DELETE = "分类下存在商品，不能删除";
+    public static final String CATEGORY_DELETE_FAILED = "删除分类失败";
+    public static final String CATEGORY_PARENT_NOT_FOUND = "父分类不存在";
+    public static final String CATEGORY_LEVEL_EXCEEDED = "分类层级不能超过3级";
 }
