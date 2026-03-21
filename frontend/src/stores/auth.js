@@ -26,6 +26,8 @@ export const useAuthStore = defineStore('auth', {
   },
   getters: {
     isLoggedIn: (state) => Boolean(state.token),
+    isAdmin: (state) => state.user.role === 0,
+    isSeller: (state) => state.user.role === 2,
     roleLabel: (state) => ROLE_LABEL_MAP[state.user.role] || '未知角色',
   },
   actions: {

@@ -4,19 +4,28 @@
       <header class="panel-header">
         <img class="brand-logo" src="/logo.jpg" alt="赚赚 logo" />
         <div>
-          <h1>赚赚后台</h1>
-          <p>管理员登录</p>
+          <h1>赚赚平台</h1>
+          <p>{{ activeMode === 'admin' ? '管理员登录' : '用户 / 卖家登录' }}</p>
         </div>
       </header>
 
+      <div class="mode-switch">
+        <button class="mode-btn" :class="activeMode === 'admin' ? 'active' : ''" type="button" @click="setMode('admin')">
+          管理员
+        </button>
+        <button class="mode-btn" :class="activeMode === 'user' ? 'active' : ''" type="button" @click="setMode('user')">
+          用户 / 卖家
+        </button>
+      </div>
+
       <form class="login-form" @submit.prevent="handleLogin">
         <label>
-          <span>管理员账号</span>
+          <span>{{ activeMode === 'admin' ? '管理员账号' : '学号或手机号' }}</span>
           <input
-            v-model="form.username"
+            v-model="form.account"
             class="app-input"
             type="text"
-            placeholder="请输入管理员账号"
+            :placeholder="activeMode === 'admin' ? '请输入管理员账号' : '请输入学号或手机号'"
             autocomplete="username"
           />
         </label>
@@ -36,6 +45,10 @@
           {{ loading ? '登录中...' : '登录' }}
         </button>
       </form>
+
+      <p v-if="activeMode === 'user'" class="login-tip">
+        卖家同样使用用户入口登录；如果当前账号角色是卖家，登录后会自动跳转到卖家工作台。
+      </p>
     </section>
   </div>
 </template>
@@ -45,6 +58,8 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { adminLogin } from '@/api/admin'
+import { userLogin } from '@/api/user'
+import { ADMIN_ROLE, SELLER_ROLE } from '@/constants/auth'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -52,9 +67,10 @@ const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
+const activeMode = ref(route.query.mode === 'user' ? 'user' : 'admin')
 
 const form = reactive({
-  username: '',
+  account: '',
   password: '',
 })
 
@@ -62,19 +78,37 @@ function normalize(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function setMode(mode) {
+  activeMode.value = mode
+}
+
+function defaultRedirect(loginResult) {
+  if (loginResult?.role === ADMIN_ROLE) {
+    return '/dashboard'
+  }
+
+  if (loginResult?.role === SELLER_ROLE) {
+    return '/market/seller/goods'
+  }
+
+  return '/market/goods'
+}
+
 async function handleLogin() {
-  const username = normalize(form.username)
+  const account = normalize(form.account)
   const password = normalize(form.password)
 
-  if (!username || !password) {
-    ElMessage.warning('管理员账号和密码不能为空')
+  if (!account || !password) {
+    ElMessage.warning('账号和密码不能为空')
     return
   }
 
   loading.value = true
 
   try {
-    const loginResult = await adminLogin({ username, password })
+    const loginResult = activeMode.value === 'admin'
+      ? await adminLogin({ username: account, password })
+      : await userLogin({ account, password })
 
     if (!loginResult?.token) {
       throw new Error('登录成功但未返回 token，请检查后端响应')
@@ -83,7 +117,7 @@ async function handleLogin() {
     authStore.setLoginInfo(loginResult)
     ElMessage.success('登录成功')
 
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : defaultRedirect(loginResult)
     router.replace(redirect)
   } catch (error) {
     ElMessage.error(error.message || '登录失败，请重试')
@@ -145,6 +179,32 @@ async function handleLogin() {
   color: var(--text-secondary);
 }
 
+.mode-switch {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #fff2e0;
+  border: 1px solid #f0d4af;
+}
+
+.mode-btn {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #7a5635;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+}
+
 .login-form {
   margin-top: 20px;
   display: grid;
@@ -164,6 +224,12 @@ async function handleLogin() {
 .submit-btn {
   margin-top: 8px;
   min-height: 46px;
+}
+
+.login-tip {
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 @media (max-width: 960px) {

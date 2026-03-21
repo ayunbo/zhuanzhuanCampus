@@ -85,4 +85,30 @@ public final class MessageConstant {
     public static final String FILE_UPLOAD_FAILED = "文件上传失败，请稍后重试";
 
     public static final String ALREADY_EXISTS = "已存在";
+    public static final String GOODS_NOT_FOUND = "商品不存在";
+    public static final String GOODS_CREATE_FAILED = "商品草稿创建失败";
+    public static final String GOODS_UPDATE_FAILED = "商品信息更新失败";
+    public static final String GOODS_CATEGORY_REQUIRED = "商品分类不能为空";
+    public static final String GOODS_TITLE_REQUIRED = "商品标题不能为空";
+    public static final String GOODS_TITLE_TOO_LONG = "商品标题长度不能超过100";
+    public static final String GOODS_PRICE_INVALID = "商品价格必须大于0";
+    public static final String GOODS_OLD_PRICE_INVALID = "原价不能小于售价";
+    public static final String GOODS_QUALITY_INVALID = "商品成色仅允许1到5";
+    public static final String GOODS_LOCATION_TOO_LONG = "面交地点长度不能超过120";
+    public static final String GOODS_COVER_INVALID = "商品封面地址格式不正确";
+    public static final String GOODS_STATUS_INVALID = "商品状态不合法";
+    public static final String GOODS_EDIT_FORBIDDEN = "当前状态下不允许编辑商品";
+    public static final String GOODS_SUBMIT_AUDIT_STATUS_INVALID = "只有草稿或已驳回商品才能提交审核";
+    public static final String GOODS_SUBMIT_AUDIT_FAILED = "商品提交审核失败";
+    public static final String GOODS_AUDIT_STATUS_INVALID = "商品审核结果只允许通过或驳回";
+    public static final String GOODS_AUDIT_STATUS_FLOW_INVALID = "当前商品不处于待审核状态";
+    public static final String GOODS_AUDIT_FAILED = "商品审核失败";
+    public static final String GOODS_ON_SHELF_STATUS_INVALID = "只有已下架商品才能重新上架";
+    public static final String GOODS_ON_SHELF_FAILED = "商品上架失败";
+    public static final String GOODS_OFF_SHELF_STATUS_INVALID = "只有在售商品才能下架";
+    public static final String GOODS_OFF_SHELF_FAILED = "商品下架失败";
+    public static final String GOODS_MARK_SOLD_STATUS_INVALID = "只有在售或锁定商品才能标记售出";
+    public static final String GOODS_MARK_SOLD_FAILED = "商品售出状态更新失败";
+    public static final String GOODS_STATS_UPDATE_EMPTY = "请至少提供一个商品统计增量";
+    public static final String GOODS_STATS_UPDATE_FAILED = "商品统计更新失败";
 }

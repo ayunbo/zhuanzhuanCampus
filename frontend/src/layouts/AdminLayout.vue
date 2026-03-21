@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -22,11 +22,12 @@ const menuItems = [
   { label: '管理员管理', path: '/admin-manage', icon: UserFilled },
   { label: '用户管理', path: '/user-manage', icon: User },
   { label: '卖家认证审核', path: '/seller-auth', icon: Stamp },
+  { label: '商品审核管理', path: '/goods-manage', icon: MenuIcon },
 ]
 
 function handleLogout() {
   authStore.logout()
-  router.replace('/login')
+  router.replace('/login?mode=admin')
 }
 </script>
 

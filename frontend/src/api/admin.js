@@ -57,3 +57,13 @@ export function fetchSellerAuthPage(params) {
 export function auditSellerAuth(data) {
   return request.put('/admin/seller-auth/audit', data)
 }
+
+export function fetchAdminGoodsPage(params) {
+  return request.get('/admin/goods/page', {
+    params,
+  })
+}
+
+export function auditAdminGoods(data) {
+  return request.put('/admin/goods/audit', data)
+}
