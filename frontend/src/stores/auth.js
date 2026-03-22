@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ROLE_LABEL_MAP } from '@/constants/auth'
-import { clearStoredAuth, getStoredToken, getStoredUser, setStoredAuth } from '@/utils/auth'
+import { clearStoredAuth, getStoredToken, getStoredUser, hasValidStoredToken, setStoredAuth } from '@/utils/auth'
 
 function createEmptyUser() {
   return {
@@ -14,10 +14,11 @@ function createEmptyUser() {
 
 export const useAuthStore = defineStore('auth', {
   state: () => {
-    const storedUser = getStoredUser()
+    const validToken = hasValidStoredToken()
+    const storedUser = validToken ? getStoredUser() : null
 
     return {
-      token: getStoredToken(),
+      token: validToken ? getStoredToken() : '',
       user: {
         ...createEmptyUser(),
         ...storedUser,
@@ -26,6 +27,8 @@ export const useAuthStore = defineStore('auth', {
   },
   getters: {
     isLoggedIn: (state) => Boolean(state.token),
+    isAdmin: (state) => state.user.role === 0,
+    isSeller: (state) => state.user.role === 2,
     roleLabel: (state) => ROLE_LABEL_MAP[state.user.role] || '未知角色',
   },
   actions: {

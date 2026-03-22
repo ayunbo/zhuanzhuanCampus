@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.goods.mapper.GoodsMapper">
+
+    <sql id="StatusDescSql">
+        case g.status
+            when 0 then '草稿'
+            when 1 then '待审核'
+            when 2 then '已驳回'
+            when 3 then '在售'
+            when 4 then '锁定'
+            when 5 then '已售出'
+            when 6 then '已下架'
+            else '未知状态'
+        end
+    </sql>
+
+    <!-- 用户端商品分页查询 -->
+    <select id="pageUser" resultType="com.zhuanzhuan.vo.UserGoodsPageVO">
+        select
+            g.id,
+            g.seller_id as sellerId,
+            g.category_id as categoryId,
+            c.name as categoryName,
+            g.title,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            <include refid="StatusDescSql"/> as statusDesc,
+            g.cover,
+            g.view_count as viewCount,
+            g.favorite_count as favoriteCount,
+            u.name as sellerName,
+            u.avatar as sellerAvatar,
+            g.publish_time as publishTime
+        from goods g
+        left join category c on g.category_id = c.id
+        left join user u on g.seller_id = u.id
+        <where>
+            g.status = 3
+            <if test="categoryId != null">
+                and g.category_id = #{categoryId}
+            </if>
+            <if test="sellerId != null">
+                and g.seller_id = #{sellerId}
+            </if>
+            <if test="minPrice != null">
+                and g.price &gt;= #{minPrice}
+            </if>
+            <if test="maxPrice != null">
+                and g.price &lt;= #{maxPrice}
+            </if>
+            <!-- 动态搜索条件 -->
+            <if test="keyword != null and keyword != ''">
+                and (
+                    g.title like concat('%', #{keyword}, '%')
+                    or g.detail like concat('%', #{keyword}, '%')
+                    or c.name like concat('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        order by g.publish_time desc, g.id desc
+    </select>
+
+    <!-- 卖家端商品分页查询 -->
+    <select id="pageSeller" resultType="com.zhuanzhuan.vo.SellerGoodsPageVO">
+        select
+            g.id,
+            g.seller_id as sellerId,
+            g.category_id as categoryId,
+            c.name as categoryName,
+            g.title,
+            g.detail,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            <include refid="StatusDescSql"/> as statusDesc,
+            g.cover,
+            g.reason,
+            g.view_count as viewCount,
+            g.favorite_count as favoriteCount,
+            g.publish_time as publishTime,
+            g.update_time as updateTime
+        from goods g
+        left join category c on g.category_id = c.id
+        <where>
+            g.seller_id = #{sellerId}
+            <if test="dto.status != null">
+                and g.status = #{dto.status}
+            </if>
+            <if test="dto.categoryId != null">
+                and g.category_id = #{dto.categoryId}
+            </if>
+            <if test="dto.minPrice != null">
+                and g.price &gt;= #{dto.minPrice}
+            </if>
+            <if test="dto.maxPrice != null">
+                and g.price &lt;= #{dto.maxPrice}
+            </if>
+            <!-- 动态搜索条件 -->
+            <if test="dto.keyword != null and dto.keyword != ''">
+                and (
+                    g.title like concat('%', #{dto.keyword}, '%')
+                    or g.detail like concat('%', #{dto.keyword}, '%')
+                    or c.name like concat('%', #{dto.keyword}, '%')
+                )
+            </if>
+        </where>
+        order by g.update_time desc, g.id desc
+    </select>
+
+    <!-- 管理端商品分页查询 -->
+    <select id="pageAdmin" resultType="com.zhuanzhuan.vo.AdminGoodsPageVO">
+        select
+            g.id,
+            g.seller_id as sellerId,
+            u.name as sellerName,
+            u.student_no as sellerStudentNo,
+            g.category_id as categoryId,
+            c.name as categoryName,
+            g.title,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            <include refid="StatusDescSql"/> as statusDesc,
+            g.cover,
+            g.reason,
+            g.audit_time as auditTime,
+            g.publish_time as publishTime,
+            g.update_time as updateTime
+        from goods g
+        left join category c on g.category_id = c.id
+        left join user u on g.seller_id = u.id
+        <where>
+            <if test="status != null">
+                and g.status = #{status}
+            </if>
+            <if test="categoryId != null">
+                and g.category_id = #{categoryId}
+            </if>
+            <if test="sellerId != null">
+                and g.seller_id = #{sellerId}
+            </if>
+            <if test="minPrice != null">
+                and g.price &gt;= #{minPrice}
+            </if>
+            <if test="maxPrice != null">
+                and g.price &lt;= #{maxPrice}
+            </if>
+            <!-- 动态搜索条件 -->
+            <if test="keyword != null and keyword != ''">
+                and (
+                    g.title like concat('%', #{keyword}, '%')
+                    or g.detail like concat('%', #{keyword}, '%')
+                    or c.name like concat('%', #{keyword}, '%')
+                    or u.name like concat('%', #{keyword}, '%')
+                    or u.student_no like concat('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        order by case when g.status = 1 then 0 else 1 end, g.update_time desc, g.id desc
+    </select>
+
+    <!-- 用户端商品详情查询 -->
+    <select id="detailUser" resultType="com.zhuanzhuan.vo.UserGoodsDetailVO">
+        select
+            g.id,
+            g.seller_id as sellerId,
+            u.name as sellerName,
+            u.avatar as sellerAvatar,
+            u.campus as sellerCampus,
+            u.score_avg as sellerScoreAvg,
+            u.review_count as sellerReviewCount,
+            g.category_id as categoryId,
+            c.name as categoryName,
+            g.title,
+            g.detail,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            <include refid="StatusDescSql"/> as statusDesc,
+            g.cover,
+            g.view_count as viewCount,
+            g.favorite_count as favoriteCount,
+            g.publish_time as publishTime,
+            g.create_time as createTime,
+            g.update_time as updateTime
+        from goods g
+        left join category c on g.category_id = c.id
+        left join user u on g.seller_id = u.id
+        where g.id = #{goodsId}
+        limit 1
+    </select>
+
+    <!-- 卖家端商品详情查询 -->
+    <select id="detailSeller" resultType="com.zhuanzhuan.vo.SellerGoodsDetailVO">
+        select
+            g.id,
+            g.seller_id as sellerId,
+            g.category_id as categoryId,
+            c.name as categoryName,
+            g.title,
+            g.detail,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            <include refid="StatusDescSql"/> as statusDesc,
+            g.cover,
+            g.reason,
+            g.audit_admin_id as auditAdminId,
+            g.audit_time as auditTime,
+            g.publish_time as publishTime,
+            g.view_count as viewCount,
+            g.favorite_count as favoriteCount,
+            g.lock_order_id as lockOrderId,
+            g.create_time as createTime,
+            g.update_time as updateTime
+        from goods g
+        left join category c on g.category_id = c.id
+        where g.id = #{goodsId}
+          and g.seller_id = #{sellerId}
+        limit 1
+    </select>
+
+    <!-- 管理端商品详情查询 -->
+    <select id="detailAdmin" resultType="com.zhuanzhuan.vo.AdminGoodsDetailVO">
+        select
+            g.id,
+            g.seller_id as sellerId,
+            u.name as sellerName,
+            u.student_no as sellerStudentNo,
+            u.avatar as sellerAvatar,
+            u.campus as sellerCampus,
+            g.category_id as categoryId,
+            c.name as categoryName,
+            g.title,
+            g.detail,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            <include refid="StatusDescSql"/> as statusDesc,
+            g.cover,
+            g.reason,
+            g.audit_admin_id as auditAdminId,
+            g.audit_time as auditTime,
+            g.publish_time as publishTime,
+            g.view_count as viewCount,
+            g.favorite_count as favoriteCount,
+            g.lock_order_id as lockOrderId,
+            g.version,
+            g.create_time as createTime,
+            g.update_time as updateTime
+        from goods g
+        left join category c on g.category_id = c.id
+        left join user u on g.seller_id = u.id
+        where g.id = #{goodsId}
+        limit 1
+    </select>
+</mapper>

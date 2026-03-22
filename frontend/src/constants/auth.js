@@ -1,4 +1,4 @@
-﻿export const ADMIN_ROLE = 0
+export const ADMIN_ROLE = 0
 export const NORMAL_USER_ROLE = 1
 export const SELLER_ROLE = 2
 
