@@ -37,6 +37,14 @@ public interface GoodsMapper {
     Goods selectById(Long id);
 
     /**
+     * 兼容订单模块的按 ID 查询方法。
+     *
+     * @param id 商品 ID
+     * @return 商品实体
+     */
+    Goods getById(Long id);
+
+    /**
      * 根据商品 ID 和卖家 ID 查询商品基础信息。
      *
      * @param id 商品 ID
@@ -159,6 +167,37 @@ public interface GoodsMapper {
             where id = #{goodsId}
             """)
     int adjustFavoriteCount(@Param("goodsId") Long goodsId, @Param("delta") Integer delta);
+
+    /**
+     * 锁定商品，防止同一商品被重复下单。
+     */
+    int lockGoods(@Param("id") Long id,
+                  @Param("oldStatus") Integer oldStatus,
+                  @Param("newStatus") Integer newStatus,
+                  @Param("lockOrderId") Long lockOrderId);
+
+    /**
+     * 释放商品锁定状态。
+     */
+    int unlockGoods(@Param("id") Long id,
+                    @Param("lockOrderId") Long lockOrderId,
+                    @Param("oldStatus") Integer oldStatus,
+                    @Param("newStatus") Integer newStatus);
+
+    /**
+     * 将商品更新为已售出。
+     */
+    int soldGoods(@Param("id") Long id,
+                  @Param("lockOrderId") Long lockOrderId,
+                  @Param("oldStatus") Integer oldStatus,
+                  @Param("newStatus") Integer newStatus);
+
+    /**
+     * 管理端直接调整商品状态。
+     */
+    int adminSetStatus(@Param("id") Long id,
+                       @Param("status") Integer status,
+                       @Param("lockOrderId") Long lockOrderId);
 
     /**
      * 用户端分页查询商品。

@@ -18,6 +18,51 @@
     </sql>
 
     <!-- 用户端商品分页查询 -->
+    <select id="getById" resultType="com.zhuanzhuan.entity.Goods">
+        select * from goods where id = #{id}
+    </select>
+
+    <update id="lockGoods">
+        update goods
+        set status = #{newStatus},
+            lock_order_id = #{lockOrderId},
+            update_time = now(),
+            version = version + 1
+        where id = #{id}
+          and status = #{oldStatus}
+    </update>
+
+    <update id="unlockGoods">
+        update goods
+        set status = #{newStatus},
+            lock_order_id = null,
+            update_time = now(),
+            version = version + 1
+        where id = #{id}
+          and lock_order_id = #{lockOrderId}
+          and status = #{oldStatus}
+    </update>
+
+    <update id="soldGoods">
+        update goods
+        set status = #{newStatus},
+            update_time = now(),
+            version = version + 1
+        where id = #{id}
+          and lock_order_id = #{lockOrderId}
+          and status = #{oldStatus}
+    </update>
+
+    <update id="adminSetStatus">
+        update goods
+        set status = #{status},
+            lock_order_id = #{lockOrderId},
+            update_time = now(),
+            version = version + 1
+        where id = #{id}
+    </update>
+
+    <!-- 用户端商品分页查询 -->
     <select id="pageUser" resultType="com.zhuanzhuan.vo.UserGoodsPageVO">
         select
             g.id,
