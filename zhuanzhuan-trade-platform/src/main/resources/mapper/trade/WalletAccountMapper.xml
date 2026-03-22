@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.trade.mapper.WalletAccountMapper">
+
+    <select id="getByLoginName" resultType="com.zhuanzhuan.entity.WalletAccount">
+        select *
+        from wallet_account
+        where login_name = #{loginName}
+          and status = 1
+        limit 1
+    </select>
+
+    <update id="deductBalance">
+        update wallet_account
+        set balance = balance - #{amount},
+            update_time = now(),
+            version = version
+        where id = #{id}
+          and status = 1
+          and balance <![CDATA[ >= ]]> #{amount}
+    </update>
+
+</mapper>

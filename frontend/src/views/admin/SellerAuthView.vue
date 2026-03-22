@@ -346,7 +346,7 @@ function detectPreviewType(url) {
     return 'image'
   }
 
-  if (/\.pdf$/.test(normalized)) {
+  if (normalized.endsWith('.pdf')) {
     return 'pdf'
   }
 
