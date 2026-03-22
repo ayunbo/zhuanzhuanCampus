@@ -187,7 +187,7 @@ async function loadDetail() {
 }
 
 function goBack() {
-  router.push('/admin/order')
+  router.push('/order-manage')
 }
 
 function openEditDialog() {
