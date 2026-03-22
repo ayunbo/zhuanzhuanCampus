@@ -13,7 +13,7 @@ export const GOODS_STATUS_LABEL_MAP = {
   [GOODS_STATUS.WAIT_AUDIT]: '待审核',
   [GOODS_STATUS.REJECTED]: '已驳回',
   [GOODS_STATUS.ON_SALE]: '在售',
-  [GOODS_STATUS.LOCKED]: '锁定',
+  [GOODS_STATUS.LOCKED]: '已锁定',
   [GOODS_STATUS.SOLD]: '已售出',
   [GOODS_STATUS.OFF_SHELF]: '已下架',
 }

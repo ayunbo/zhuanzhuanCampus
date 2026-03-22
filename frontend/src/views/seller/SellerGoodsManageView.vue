@@ -150,6 +150,9 @@
                   <button class="app-btn danger mini" type="button" :disabled="!canSold(record)" @click="handleSold(record.id)">
                     售出
                   </button>
+                  <button class="app-btn danger mini" type="button" @click="handleDelete(record.id)">
+                    删除
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -192,6 +195,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   createSellerGoodsDraft,
+  deleteSellerGoods,
   fetchSellerGoodsPage,
   offShelfSellerGoods,
   onShelfSellerGoods,
@@ -436,6 +440,14 @@ async function handleSold(goodsId) {
   await confirmThenRun(`确认将商品 #${goodsId} 标记为已售出吗？`, async () => {
     await soldSellerGoods(goodsId)
     ElMessage.success(`商品 #${goodsId} 已售出`)
+    await fetchList()
+  })
+}
+
+async function handleDelete(goodsId) {
+  await confirmThenRun(`确认删除商品 #${goodsId} 吗？删除后不可恢复。`, async () => {
+    await deleteSellerGoods(goodsId)
+    ElMessage.success(`商品 #${goodsId} 已删除`)
     await fetchList()
   })
 }

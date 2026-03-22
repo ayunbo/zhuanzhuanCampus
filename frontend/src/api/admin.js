@@ -87,3 +87,29 @@ export function updateCategorySort(data) {
 export function deleteCategory(id) {
   return request.delete(`/admin/category/${id}`)
 }
+
+export function fetchAdminGoodsPage(params) {
+  const nextParams = { ...params }
+  if (!nextParams.keyword && typeof nextParams.title === 'string' && nextParams.title.trim()) {
+    nextParams.keyword = nextParams.title.trim()
+  }
+  delete nextParams.title
+
+  return request.get('/admin/goods', {
+    params: nextParams,
+  })
+}
+
+export function fetchAdminGoodsDetail(id) {
+  return request.get(`/admin/goods/${id}`)
+}
+
+export function auditAdminGoods(data) {
+  const goodsId = data?.goodsId
+  const payload = {
+    status: data?.status,
+    reason: data?.reason,
+  }
+
+  return request.put(`/admin/goods/${goodsId}/audit`, payload)
+}

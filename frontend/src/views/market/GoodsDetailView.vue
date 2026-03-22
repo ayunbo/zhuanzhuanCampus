@@ -72,7 +72,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { fetchGoodsDetail, updateGoodsStats } from '@/api/goods'
+import { fetchGoodsDetail } from '@/api/goods'
 import { GOODS_STATUS, GOODS_STATUS_LABEL_MAP } from '@/constants/goods'
 import { useAuthStore } from '@/stores/auth'
 
@@ -132,11 +132,6 @@ async function loadDetail() {
 
   try {
     await fetchDetailOnly()
-    await updateGoodsStats({
-      goodsId,
-      viewDelta: 1,
-    })
-    await fetchDetailOnly()
   } catch (error) {
     detail.value = null
     ElMessage.error(error.message || '加载商品详情失败')
@@ -146,20 +141,16 @@ async function loadDetail() {
 }
 
 async function toggleFavorite() {
-  const goodsId = currentGoodsId()
-  if (!goodsId) {
+  if (!detail.value) {
     return
   }
 
   favoriteLoading.value = true
 
   try {
-    await updateGoodsStats({
-      goodsId,
-      favoriteDelta: simulatedFavorite.value ? -1 : 1,
-    })
     simulatedFavorite.value = !simulatedFavorite.value
-    await fetchDetailOnly()
+    const currentCount = Number(detail.value.favoriteCount || 0)
+    detail.value.favoriteCount = simulatedFavorite.value ? currentCount + 1 : Math.max(0, currentCount - 1)
     ElMessage.success(simulatedFavorite.value ? '收藏量已 +1' : '收藏量已 -1')
   } catch (error) {
     ElMessage.error(error.message || '更新收藏量失败')

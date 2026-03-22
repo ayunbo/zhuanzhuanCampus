@@ -5,14 +5,19 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 管理端商品分页返回对象。
+ */
 @Data
-public class GoodsVO {
+public class AdminGoodsPageVO {
 
     private Long id;
     private Long sellerId;
+    private String sellerName;
+    private String sellerStudentNo;
     private Long categoryId;
+    private String categoryName;
     private String title;
-    private String detail;
     private BigDecimal price;
     private BigDecimal oldPrice;
     private Integer quality;
@@ -21,12 +26,7 @@ public class GoodsVO {
     private String statusDesc;
     private String cover;
     private String reason;
-    private Long auditAdminId;
     private LocalDateTime auditTime;
     private LocalDateTime publishTime;
-    private Integer viewCount;
-    private Integer favoriteCount;
-    private Long lockOrderId;
-    private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

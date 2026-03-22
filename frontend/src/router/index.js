@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import { hasValidStoredToken } from '@/utils/auth'
 
 const routes = [
@@ -39,7 +39,7 @@ const routes = [
       {
         path: 'product-manage',
         name: 'productManage',
-        component: () => import('@/views/admin/ProductManageView.vue'),
+        component: () => import('@/views/admin/AdminGoodsView.vue'),
         meta: {
           title: '商品管理',
         },
