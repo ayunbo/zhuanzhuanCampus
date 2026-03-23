@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.review.mapper.ReviewMapper">
+
+    <insert id="insert" parameterType="com.zhuanzhuan.entity.Review">
+        insert into review
+        (id, order_id, goods_id, user_id, target_user_id, score, content, images, anonymous, create_time, update_time, create_user, update_user)
+        values
+            (#{id}, #{orderId}, #{goodsId}, #{userId}, #{targetUserId}, #{score}, #{content}, #{images}, #{anonymous}, now(), now(), #{createUser}, #{updateUser})
+    </insert>
+
+    <select id="getByOrderId" resultType="com.zhuanzhuan.entity.Review">
+        select *
+        from review
+        where order_id = #{orderId}
+        limit 1
+    </select>
+
+    <select id="getOrderReview" resultType="com.zhuanzhuan.vo.ReviewVO">
+        select
+            r.id,
+            r.order_id as orderId,
+            r.goods_id as goodsId,
+            r.user_id as userId,
+            r.target_user_id as targetUserId,
+            r.score,
+            r.content,
+            r.images,
+            r.anonymous,
+            r.create_time as createTime,
+            u.name as reviewerName,
+            u.avatar as reviewerAvatar
+        from review r
+                 left join `user` u on r.user_id = u.id
+        where r.order_id = #{orderId}
+        limit 1
+    </select>
+
+    <select id="pageByGoodsId" resultType="com.zhuanzhuan.vo.ReviewVO">
+        select
+            r.id,
+            r.order_id as orderId,
+            r.goods_id as goodsId,
+            r.user_id as userId,
+            r.target_user_id as targetUserId,
+            r.score,
+            r.content,
+            r.images,
+            r.anonymous,
+            r.create_time as createTime,
+            u.name as reviewerName,
+            u.avatar as reviewerAvatar
+        from review r
+                 left join `user` u on r.user_id = u.id
+        where r.goods_id = #{goodsId}
+        order by r.create_time desc, r.id desc
+    </select>
+</mapper>
