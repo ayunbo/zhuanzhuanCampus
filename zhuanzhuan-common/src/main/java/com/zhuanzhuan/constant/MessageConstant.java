@@ -111,6 +111,8 @@ public final class MessageConstant {
     public static final String GOODS_MARK_SOLD_FAILED = "商品售出状态更新失败";
     public static final String GOODS_STATS_UPDATE_EMPTY = "请至少提供一个商品统计增量";
     public static final String GOODS_STATS_UPDATE_FAILED = "商品统计更新失败";
+    public static final String FAVORITE_ALREADY_EXISTS = "请勿重复收藏";
+    public static final String FAVORITE_NOT_SUPPORTED_STATUS = "当前商品状态不支持收藏";
     public static final String CATEGORY_NAME_EMPTY = "分类名称不能为空";
     public static final String CATEGORY_PARENT_ID_INVALID = "父分类ID不合法";
     public static final String CATEGORY_NAME_ALREADY_EXISTS = "同级分类名称已存在";
