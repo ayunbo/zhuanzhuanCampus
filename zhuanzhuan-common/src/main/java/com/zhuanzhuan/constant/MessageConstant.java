@@ -127,4 +127,17 @@ public final class MessageConstant {
     public static final String CATEGORY_DELETE_FAILED = "删除分类失败";
     public static final String CATEGORY_PARENT_NOT_FOUND = "父分类不存在";
     public static final String CATEGORY_LEVEL_EXCEEDED = "分类层级不能超过3级";
+    public static final String REVIEW_ORDER_ID_REQUIRED = "orderId is required";
+    public static final String REVIEW_GOODS_ID_REQUIRED = "goodsId is required";
+    public static final String REVIEW_SCORE_INVALID = "review score must be between 1 and 5";
+    public static final String REVIEW_CONTENT_TOO_LONG = "review content cannot exceed 500 characters";
+    public static final String REVIEW_ANONYMOUS_INVALID = "anonymous flag must be 0 or 1";
+    public static final String REVIEW_IMAGES_TOO_MANY = "review images cannot exceed 6";
+    public static final String REVIEW_IMAGE_URL_INVALID = "review image url is invalid";
+    public static final String REVIEW_IMAGE_TYPE_NOT_ALLOWED = "only image files are allowed";
+    public static final String REVIEW_ORDER_NOT_COMPLETED = "only completed orders can be reviewed";
+    public static final String REVIEW_ALREADY_EXISTS = "this order has already been reviewed";
+    public static final String REVIEW_NOT_ALLOWED = "you are not allowed to view this review";
+    public static final String REVIEW_NOT_FOUND = "review not found";
+    public static final String REVIEW_SUBMIT_FAILED = "review submit failed";
 }

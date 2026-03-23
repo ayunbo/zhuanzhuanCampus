@@ -504,6 +504,7 @@ CREATE TABLE `review`  (
                            `target_user_id` bigint NOT NULL COMMENT '被评价人id，逻辑关联user.id',
                            `score` tinyint NOT NULL COMMENT '评分：1~5',
                            `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '评价内容',
+                           `images` varchar(2048) NULL DEFAULT NULL COMMENT '图片链接，review image urls' ,
                            `anonymous` tinyint NOT NULL DEFAULT 0 COMMENT '是否匿名：0否 1是',
                            `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

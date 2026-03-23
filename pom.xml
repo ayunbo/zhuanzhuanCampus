@@ -24,6 +24,7 @@
         <module>zhuanzhuan-goods-platform</module>
         <module>zhuanzhuan-trade-platform</module>
         <module>zhuanzhuan-server</module>
+        <module>zhuanzhuan-review-platform</module>
     </modules>
 
     <properties>
@@ -73,6 +74,12 @@
             <dependency>
                 <groupId>com.zhuanzhuan</groupId>
                 <artifactId>zhuanzhuan-trade-platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-review-platform</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
