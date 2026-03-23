@@ -57,3 +57,59 @@ export function fetchSellerAuthPage(params) {
 export function auditSellerAuth(data) {
   return request.put('/admin/seller-auth/audit', data)
 }
+
+export function createCategory(data) {
+  return request.post('/admin/category', data)
+}
+
+export function fetchCategoryPage(params) {
+  return request.get('/admin/category/page', {
+    params,
+  })
+}
+
+export function fetchCategoryTree() {
+  return request.get('/admin/category/tree')
+}
+
+export function updateCategory(data) {
+  return request.put('/admin/category', data)
+}
+
+export function updateCategoryStatus(data) {
+  return request.put('/admin/category/status', data)
+}
+
+export function updateCategorySort(data) {
+  return request.put('/admin/category/sort', data)
+}
+
+export function deleteCategory(id) {
+  return request.delete(`/admin/category/${id}`)
+}
+
+export function fetchAdminGoodsPage(params) {
+  const nextParams = { ...params }
+  if (!nextParams.keyword && typeof nextParams.title === 'string' && nextParams.title.trim()) {
+    nextParams.keyword = nextParams.title.trim()
+  }
+  delete nextParams.title
+
+  return request.get('/admin/goods', {
+    params: nextParams,
+  })
+}
+
+export function fetchAdminGoodsDetail(id) {
+  return request.get(`/admin/goods/${id}`)
+}
+
+export function auditAdminGoods(data) {
+  const goodsId = data?.goodsId
+  const payload = {
+    status: data?.status,
+    reason: data?.reason,
+  }
+
+  return request.put(`/admin/goods/${goodsId}/audit`, payload)
+}

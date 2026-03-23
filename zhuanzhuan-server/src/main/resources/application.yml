@@ -58,7 +58,7 @@ springdoc:
   group-configs:
     - group: default
       paths-to-match: /**
-      packages-to-scan: com.zhuanzhuan.controller
+      packages-to-scan: com.zhuanzhuan
 
 knife4j:
   enable: true

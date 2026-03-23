@@ -1,105 +1,106 @@
 <template>
-  <div class="admin-manage-page app-card fade-in-up">
-    <section class="toolbar">
-      <h3>管理员管理</h3>
-      <div class="toolbar-actions">
-        <button class="app-btn primary" @click="handleCreate">新增管理员</button>
-        <button class="app-btn secondary" :disabled="loading" @click="fetchList">
-          {{ loading ? '加载中...' : '刷新列表' }}
-        </button>
+  <div class="admin-page">
+    <section class="app-card table-panel">
+      <form class="filter-grid" @submit.prevent="handleSearch">
+        <label>
+          <span>账号</span>
+          <input v-model="queryForm.username" class="app-input" type="text" placeholder="管理员账号" />
+        </label>
+
+        <label>
+          <span>姓名</span>
+          <input v-model="queryForm.name" class="app-input" type="text" placeholder="管理员姓名" />
+        </label>
+
+        <label>
+          <span>手机号</span>
+          <input v-model="queryForm.phone" class="app-input" type="text" placeholder="手机号" />
+        </label>
+
+        <label>
+          <span>状态</span>
+          <select v-model="queryForm.status" class="app-select">
+            <option value="">全部</option>
+            <option v-for="item in ADMIN_STATUS_OPTIONS" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </option>
+          </select>
+        </label>
+
+        <div class="action-group">
+          <button class="app-btn primary" type="submit">查询</button>
+          <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
+          <button class="app-btn primary" type="button" @click="handleCreate">新增管理员</button>
+          <button class="app-btn secondary" type="button" :disabled="loading" @click="fetchList">
+            {{ loading ? '加载中...' : '刷新列表' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>账号</th>
+              <th>姓名</th>
+              <th>手机号</th>
+              <th>状态</th>
+              <th>创建时间</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!loading && records.length === 0">
+              <td class="empty-row" colspan="8">
+                <div class="table-empty">
+                  <el-icon><Box /></el-icon>
+                  <span>暂无数据</span>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-for="record in records" :key="record.id">
+              <td>{{ record.id }}</td>
+              <td>{{ record.username || '-' }}</td>
+              <td>{{ record.name || '-' }}</td>
+              <td>{{ record.phone || '-' }}</td>
+              <td>
+                <span class="status-badge" :class="statusClass(record.status)">
+                  {{ statusLabel(record.status) }}
+                </span>
+              </td>
+              <td>{{ formatDateTime(record.createTime) }}</td>
+              <td>{{ formatDateTime(record.updateTime) }}</td>
+              <td class="actions">
+                <button class="app-btn primary mini" :disabled="actionLoadingId === record.id" @click="handleEdit(record)">
+                  编辑
+                </button>
+                <button class="app-btn danger mini" :disabled="actionLoadingId === record.id" @click="handleDelete(record)">
+                  删除
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <footer class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="pager.page"
+          v-model:page-size="pager.pageSize"
+          :total="pager.total"
+          :page-sizes="[10, 20, 30]"
+          layout="total, sizes, prev, pager, next"
+          @current-change="handleCurrentChange"
+          @size-change="handleSizeChange"
+        />
+      </footer>
     </section>
-
-    <form class="filter-grid" @submit.prevent="handleSearch">
-      <label>
-        <span>账号</span>
-        <input v-model="queryForm.username" class="app-input" type="text" placeholder="管理员账号" />
-      </label>
-
-      <label>
-        <span>姓名</span>
-        <input v-model="queryForm.name" class="app-input" type="text" placeholder="管理员姓名" />
-      </label>
-
-      <label>
-        <span>手机号</span>
-        <input v-model="queryForm.phone" class="app-input" type="text" placeholder="手机号" />
-      </label>
-
-      <label>
-        <span>状态</span>
-        <select v-model="queryForm.status" class="app-select">
-          <option value="">全部</option>
-          <option v-for="item in ADMIN_STATUS_OPTIONS" :key="item.value" :value="item.value">
-            {{ item.label }}
-          </option>
-        </select>
-      </label>
-
-      <div class="action-group">
-        <button class="app-btn primary" type="submit">查询</button>
-        <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
-      </div>
-    </form>
-
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>账号</th>
-            <th>姓名</th>
-            <th>手机号</th>
-            <th>状态</th>
-            <th>创建时间</th>
-            <th>更新时间</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!loading && records.length === 0">
-            <td class="empty-row" colspan="8">暂无数据</td>
-          </tr>
-
-          <tr v-for="record in records" :key="record.id">
-            <td>{{ record.id }}</td>
-            <td>{{ record.username || '-' }}</td>
-            <td>{{ record.name || '-' }}</td>
-            <td>{{ record.phone || '-' }}</td>
-            <td>
-              <span class="status-badge" :class="statusClass(record.status)">
-                {{ statusLabel(record.status) }}
-              </span>
-            </td>
-            <td>{{ formatDateTime(record.createTime) }}</td>
-            <td>{{ formatDateTime(record.updateTime) }}</td>
-            <td class="actions">
-              <button class="app-btn primary mini" :disabled="actionLoadingId === record.id" @click="handleEdit(record)">
-                编辑
-              </button>
-              <button class="app-btn danger mini" :disabled="actionLoadingId === record.id" @click="handleDelete(record)">
-                删除
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <footer class="pagination-wrap">
-      <el-pagination
-        v-model:current-page="pager.page"
-        v-model:page-size="pager.pageSize"
-        :total="pager.total"
-        :page-sizes="[10, 20, 30]"
-        layout="total, sizes, prev, pager, next"
-        @current-change="handleCurrentChange"
-        @size-change="handleSizeChange"
-      />
-    </footer>
   </div>
 
-  <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px" destroy-on-close>
+  <el-dialog v-model="dialogVisible" :title="dialogTitle" width="540px" destroy-on-close>
     <el-form ref="dialogFormRef" :model="dialogForm" :rules="dialogRules" label-width="88px" status-icon>
       <el-form-item label="账号" prop="username">
         <el-input v-model="dialogForm.username" maxlength="64" placeholder="请输入管理员账号" />
@@ -149,6 +150,7 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Box } from '@element-plus/icons-vue'
 import {
   createAdmin,
   deleteAdmin,
@@ -343,7 +345,6 @@ async function handleEdit(record) {
   }
 }
 
-// 新增和编辑都走同一弹窗，提交时按模式组装不同参数。
 async function submitDialog() {
   if (!dialogFormRef.value) {
     return
@@ -414,11 +415,15 @@ async function submitDialog() {
 
 async function handleDelete(record) {
   try {
-    await ElMessageBox.confirm(`确认删除管理员「${record.name || record.username || record.id}」吗？`, '删除确认', {
-      type: 'warning',
-      confirmButtonText: '确认删除',
-      cancelButtonText: '取消',
-    })
+    await ElMessageBox.confirm(
+      `确认删除管理员「${record.name || record.username || record.id}」吗？`,
+      '删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+      },
+    )
   } catch {
     return
   }
@@ -447,88 +452,103 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.admin-manage-page {
-  padding: 18px;
-}
-
-.toolbar {
+.admin-page {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.toolbar h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #5c3b1f;
-}
-
-.toolbar-actions {
+.table-panel {
+  padding: 14px;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .filter-grid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   align-items: end;
 }
 
 .filter-grid label {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  flex: 1 1 200px;
+  min-width: 180px;
 }
 
 .filter-grid span {
+  color: #4a648c;
   font-size: 13px;
-  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .action-group {
   display: flex;
   gap: 8px;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .table-wrap {
-  margin-top: 14px;
-  overflow-x: auto;
-  border-radius: 12px;
+  margin-top: 12px;
   border: 1px solid var(--border);
-  background: #fffdf8;
+  border-radius: 14px;
+  overflow: auto;
+  background: #ffffff;
+  flex: 1 1 auto;
+  height: 0;
+  min-height: 0;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 960px;
 }
 
 .data-table th,
 .data-table td {
-  padding: 10px;
+  padding: 11px 10px;
   border-bottom: 1px solid var(--border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .data-table th {
-  color: #6d4f2d;
-  background: #fff5e4;
+  color: #35557f;
+  background: #f3f8ff;
+  font-weight: 700;
   position: sticky;
   top: 0;
 }
 
+.data-table tbody tr:hover {
+  background: #f9fcff;
+}
+
 .empty-row {
+  padding: 0 !important;
   text-align: center;
-  color: var(--text-secondary);
 }
 
 .actions {
   display: flex;
   gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: right;
 }
 
 .app-btn.mini {
@@ -537,19 +557,25 @@ onMounted(() => {
 }
 
 .status-normal {
-  color: #086f50;
-  background: #d9f7eb;
+  color: #13795b;
+  background: #ddf8ee;
 }
 
 .status-disabled {
-  color: #8d291f;
-  background: #ffe0dd;
+  color: #b0444d;
+  background: #ffe8eb;
 }
 
 .pagination-wrap {
-  margin-top: 14px;
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
+  flex: 0 0 auto;
 }
 
 .dialog-footer {
@@ -557,28 +583,18 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-@media (max-width: 1180px) {
-  .filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 860px) {
+  .action-group {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 
-@media (max-width: 640px) {
-  .admin-manage-page {
-    padding: 14px;
-  }
-
-  .toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .action-group {
-    flex-wrap: wrap;
+@media (max-width: 620px) {
+  .table-panel {
+    padding: 10px;
   }
 }
 </style>
