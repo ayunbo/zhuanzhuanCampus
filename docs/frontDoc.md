@@ -118,22 +118,32 @@
 
 ## 4. 通知模块当前状态
 
-通知模块当前还没有开始写后端接口。
+通知模块当前已经落地一个“基础查询原型”，目标是先让前端把 `notice` 表里的通知渲染进聊天页中的“通知消息”会话。
 
-目前只有统一业务约束已经明确：
+当前已经支持：
 
-- 通知本质上是一套统一的站内通知系统
-- 后续会覆盖订单通知、审核通知、举报通知、系统通知
-- 后续路径会使用 `/user/notice/...`
-- 在线通知也会走 WebSocket
+- 系统通知会话摘要
+- 通知消息列表查询
+- 通知未读总数
+- 单条通知已读
+- 全部通知已读
 
-当前前端可以先做的只有：
+当前还没做：
 
-- 预留通知中心页面结构
-- 预留通知列表、未读数、已读态样式
-- 预留 WebSocket 事件处理扩展位
+- 业务事件自动生成通知
+- 通知 WebSocket 实时推送
+- 顶部胶囊弹窗
+- 通知点击后的业务跳转编排
 
-当前不能直接联调通知接口，因为还没落库到代码里。
+当前接口路径：
+
+- `/user/notice/...`
+
+前端展示约定：
+
+- 后端返回的是通知数据，不是真实聊天消息
+- 前端可以把这些通知渲染成“系统通知”会话里的气泡列表
+- 如果当前只是做基础原型，前端可先只查询未读通知并展示到该会话里
 
 ---
 
@@ -183,6 +193,30 @@
 
 - `type = 1` 文本
 - 其他类型先不用
+
+---
+
+## 5.3 `notice`
+
+通知表，用来支撑系统通知消息。
+
+关键字段：
+- `id`
+- `user_id`
+- `type`
+- `title`
+- `content`
+- `biz_type`
+- `biz_id`
+- `read_status`
+- `read_time`
+- `create_time`
+
+前端重点理解：
+- `notice` 不是聊天消息表，但可以被前端渲染成“系统通知”会话中的消息气泡
+- 一条 `notice` 记录，对应前端一条系统通知气泡
+- `title + content` 足够支撑系统通知气泡展示
+- `read_status` 和 `read_time` 可直接决定已读态样式
 
 ---
 
@@ -487,6 +521,151 @@ GET /user/chat/unread/count
 
 ---
 
+## 7.7 通知原型接口
+
+这一版通知模块的目标，不是把完整通知系统一次做完，而是先给前端一个可联调的“系统通知会话”数据源。
+
+---
+
+## 7.7.1 查询系统通知会话摘要
+
+接口：
+```http
+GET /user/notice/session/summary
+```
+
+用途：
+
+- 用于聊天页左侧会话列表中的“通知消息”卡片
+- 展示系统通知会话名称、最后一条通知摘要、最后时间、未读数
+
+成功返回示例：
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "sessionKey": "system-notice",
+    "sessionName": "通知消息",
+    "lastNoticeId": 970004,
+    "lastTitle": "系统通知",
+    "lastMsg": "系统通知 - 聊天模块测试数据已准备完成，你现在可以直接联调聊天页面。",
+    "lastTime": "2026-03-17T08:30:00",
+    "unreadCount": 2
+  }
+}
+```
+
+前端建议：
+
+- 这个摘要对象不是 `chatsession`，而是前端虚拟系统会话的数据源
+- 可以把它和普通聊天会话一起渲染在会话列表里
+
+---
+
+## 7.7.2 查询通知消息列表
+
+接口：
+```http
+GET /user/notice/message/list?pageNo=1&pageSize=20&readStatus=0
+```
+
+说明：
+
+- `readStatus` 可选
+- `readStatus = 0` 表示只查未读通知
+- `readStatus = 1` 表示只查已读通知
+- 不传 `readStatus` 表示查全部通知
+
+成功返回示例：
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "id": 970004,
+      "type": 4,
+      "title": "系统通知",
+      "content": "聊天模块测试数据已准备完成，你现在可以直接联调聊天页面。",
+      "bizType": 4,
+      "bizId": 950001,
+      "readStatus": 0,
+      "readTime": null,
+      "createTime": "2026-03-17T08:30:00"
+    }
+  ]
+}
+```
+
+前端建议：
+
+- 后端按时间倒序返回
+- 如果聊天页要按正常消息流从旧到新展示，可自行 `reverse`
+- 对于基础原型，前端可以先固定请求 `readStatus=0`
+
+---
+
+## 7.7.3 查询通知未读总数
+
+接口：
+```http
+GET /user/notice/unread/count
+```
+
+成功返回示例：
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "totalUnreadCount": 2
+  }
+}
+```
+
+用途：
+
+- 聊天页左侧“通知消息”会话红点
+- 全局消息中心红点
+
+---
+
+## 7.7.4 单条通知标记已读
+
+接口：
+```http
+PATCH /user/notice/read
+```
+
+请求体：
+```json
+{
+  "noticeId": 970004
+}
+```
+
+适用场景：
+
+- 点击一条通知后标记已读
+- 某条通知进入可见状态后标记已读
+
+---
+
+## 7.7.5 全部通知标记已读
+
+接口：
+```http
+POST /user/notice/read-all
+```
+
+适用场景：
+
+- 用户进入“通知消息”会话后一次性清空未读
+- 列表页提供“一键全部已读”
+
+---
+
 ## 8. WebSocket 对接
 
 ## 8.1 连接方式
@@ -716,13 +895,22 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 
 ---
 
-## 10.3 当前通知模块未落地
+## 10.3 当前通知模块是基础查询原型
 
-所以前端不要直接请求：
+当前通知模块已经可以联调，但要注意它还只是原型版本：
 
-- `/user/notice/...`
+- 已支持 `/user/notice/...` 的 HTTP 查询和已读接口
+- 已支持把通知渲染进聊天页中的“通知消息”会话
+- 暂未支持通知 WebSocket 推送
+- 暂未支持通知顶部胶囊弹窗
+- 暂未支持业务事件自动生成通知
 
-否则会 404。
+因此前端当前更适合的接入方式是：
+
+- 页面进入时主动拉通知会话摘要
+- 主动拉通知消息列表
+- 主动拉未读总数
+- 需要时调用单条已读或全部已读接口
 
 ---
 
@@ -808,6 +996,29 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 - `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/vo/chat/...`
 - `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/entity/chat/...`
 
+通知控制器：
+
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/controller/user/notify/UserNoticeController.java`
+
+通知业务：
+
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/service/notify/NoticeService.java`
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/service/impl/notify/NoticeServiceImpl.java`
+
+通知 Mapper：
+
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/mapper/notify/NoticeMapper.java`
+
+通知 SQL：
+
+- `zhuanzhuan-server/src/main/resources/mapper/notify/NoticeMapper.xml`
+
+通知相关 DTO / VO / Entity：
+
+- `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/dto/notify/...`
+- `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/vo/notify/...`
+- `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/entity/notify/...`
+
 ---
 
 ## 12. 下一步建议
@@ -818,11 +1029,15 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 - 聊天详情页
 - 全局聊天未读红点
 - WebSocket 实时收消息
+- “通知消息”系统会话
+- 通知消息气泡列表
+- 通知未读红点
 
 后端下一步建议继续补：
 
-- 通知模块接口
+- 通知生成链路
+- 通知 WebSocket 事件
+- 顶部胶囊弹窗联动事件
 - 聊天消息顺序优化
 - 图片消息
 - 会话分页
-- 通知 WebSocket 事件

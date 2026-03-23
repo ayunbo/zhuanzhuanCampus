@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.mapper.notify.NoticeMapper">
+
+    <resultMap id="NoticeResultMap" type="com.zhuanzhuan.entity.notify.Notice">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="bizType" column="biz_type"/>
+        <result property="bizId" column="biz_id"/>
+        <result property="readStatus" column="read_status"/>
+        <result property="readTime" column="read_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createUser" column="create_user"/>
+        <result property="updateUser" column="update_user"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, user_id, type, title, content, biz_type, biz_id, read_status,
+        read_time, create_time, update_time, create_user, update_user
+    </sql>
+
+    <select id="getLatestByUserId" resultMap="NoticeResultMap">
+        select
+        <include refid="BaseColumns"/>
+        from notice
+        where user_id = #{userId}
+        order by create_time desc, id desc
+        limit 1
+    </select>
+
+    <select id="listByUserId" resultType="com.zhuanzhuan.vo.notify.NoticeMessageVO">
+        select
+            n.id,
+            n.type,
+            n.title,
+            n.content,
+            n.biz_type,
+            n.biz_id,
+            n.read_status,
+            n.read_time,
+            n.create_time
+        from notice n
+        where n.user_id = #{userId}
+        <if test="readStatus != null">
+            and n.read_status = #{readStatus}
+        </if>
+        order by n.create_time desc, n.id desc
+        limit #{offset}, #{pageSize}
+    </select>
+
+    <select id="countUnreadByUserId" resultType="java.lang.Integer">
+        select count(1)
+        from notice
+        where user_id = #{userId}
+          and read_status = 0
+    </select>
+
+    <select id="getByIdAndUserId" resultMap="NoticeResultMap">
+        select
+        <include refid="BaseColumns"/>
+        from notice
+        where id = #{id}
+          and user_id = #{userId}
+        limit 1
+    </select>
+
+    <update id="markRead">
+        update notice
+        set read_status = 1,
+            read_time = #{readTime},
+            update_time = #{readTime},
+            update_user = #{userId}
+        where id = #{id}
+          and user_id = #{userId}
+          and read_status = 0
+    </update>
+
+    <update id="markAllRead">
+        update notice
+        set read_status = 1,
+            read_time = #{readTime},
+            update_time = #{readTime},
+            update_user = #{userId}
+        where user_id = #{userId}
+          and read_status = 0
+    </update>
+
+</mapper>
