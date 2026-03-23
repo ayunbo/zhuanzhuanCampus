@@ -4,6 +4,7 @@ import com.zhuanzhuan.dto.GoodsPageQueryDTO;
 import com.zhuanzhuan.platform.goods.service.UserGoodsService;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.result.Result;
+import com.zhuanzhuan.vo.SellerSpaceVO;
 import com.zhuanzhuan.vo.UserGoodsDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,17 @@ public class UserGoodsController {
     @GetMapping({"", "/page"})
     public Result<PageResult> page(GoodsPageQueryDTO dto) {
         return Result.success(userGoodsService.page(dto));
+    }
+
+    /**
+     * 查询卖家空间基础信息。
+     *
+     * @param sellerId 卖家 ID
+     * @return 卖家空间信息
+     */
+    @GetMapping("/seller/{sellerId:\\d+}")
+    public Result<SellerSpaceVO> sellerSpace(@PathVariable Long sellerId) {
+        return Result.success(userGoodsService.getSellerSpace(sellerId));
     }
 
     /**

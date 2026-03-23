@@ -169,6 +169,12 @@ public interface GoodsMapper {
     int adjustFavoriteCount(@Param("goodsId") Long goodsId, @Param("delta") Integer delta);
 
     /**
+     * 统计指定卖家指定状态的商品数量。
+     */
+    @Select("select count(1) from goods where seller_id = #{sellerId} and status = #{status}")
+    Long countBySellerIdAndStatus(@Param("sellerId") Long sellerId, @Param("status") Integer status);
+
+    /**
      * 锁定商品，防止同一商品被重复下单。
      */
     int lockGoods(@Param("id") Long id,

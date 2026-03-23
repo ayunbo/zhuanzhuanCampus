@@ -5,15 +5,19 @@ import com.github.pagehelper.PageHelper;
 import com.zhuanzhuan.constant.GoodsConstant;
 import com.zhuanzhuan.constant.MessageConstant;
 import com.zhuanzhuan.dto.GoodsPageQueryDTO;
+import com.zhuanzhuan.entity.User;
 import com.zhuanzhuan.exception.BaseException;
+import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.goods.mapper.GoodsImageMapper;
 import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.platform.goods.service.UserGoodsService;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.vo.SellerSpaceVO;
 import com.zhuanzhuan.vo.UserGoodsDetailVO;
 import com.zhuanzhuan.vo.UserGoodsPageVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -29,6 +33,9 @@ public class UserGoodsServiceImpl implements UserGoodsService {
     @Autowired
     private GoodsImageMapper goodsImageMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
     /**
      * 用户端分页查询商品列表。
      *
@@ -37,16 +44,37 @@ public class UserGoodsServiceImpl implements UserGoodsService {
      */
     @Override
     public PageResult page(GoodsPageQueryDTO dto) {
-        // 1. 准备查询参数。
         GoodsPageQueryDTO queryDTO = dto == null ? new GoodsPageQueryDTO() : dto;
+        validateUserGoodsStatus(queryDTO.getStatus());
 
-        // 2. 执行分页查询。
         PageHelper.startPage(queryDTO.getPage(), queryDTO.getPageSize());
         List<UserGoodsPageVO> records = goodsMapper.pageUser(queryDTO);
         Page<UserGoodsPageVO> pageInfo = (Page<UserGoodsPageVO>) records;
-
-        // 3. 返回分页结果。
         return new PageResult(pageInfo.getTotal(), records);
+    }
+
+    @Override
+    public SellerSpaceVO getSellerSpace(Long sellerId) {
+        if (sellerId == null) {
+            throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
+        }
+
+        User seller = userMapper.getById(sellerId);
+        if (seller == null) {
+            throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
+        }
+
+        SellerSpaceVO vo = new SellerSpaceVO();
+        vo.setSellerId(seller.getId());
+        vo.setSellerName(StringUtils.hasText(seller.getName()) ? seller.getName() : ("卖家" + seller.getId()));
+        vo.setSellerAvatar(seller.getAvatar());
+        vo.setSellerCampus(seller.getCampus());
+        vo.setSellerIntro(seller.getIntro());
+        vo.setSellerScoreAvg(seller.getScoreAvg());
+        vo.setSellerReviewCount(seller.getReviewCount() == null ? 0 : seller.getReviewCount());
+        vo.setOnSaleCount(safeCount(goodsMapper.countBySellerIdAndStatus(sellerId, GoodsConstant.STATUS_ON_SALE)));
+        vo.setSoldCount(safeCount(goodsMapper.countBySellerIdAndStatus(sellerId, GoodsConstant.STATUS_SOLD)));
+        return vo;
     }
 
     /**
@@ -57,25 +85,33 @@ public class UserGoodsServiceImpl implements UserGoodsService {
      */
     @Override
     public UserGoodsDetailVO getDetail(Long goodsId) {
-        // 1. 查询商品详情。
         UserGoodsDetailVO detailVO = goodsMapper.detailUser(goodsId);
         if (detailVO == null) {
             throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
         }
 
-        // 2. 校验用户端可见状态。
         if (!GoodsConstant.STATUS_ON_SALE.equals(detailVO.getStatus())
                 && !GoodsConstant.STATUS_LOCKED.equals(detailVO.getStatus())
                 && !GoodsConstant.STATUS_SOLD.equals(detailVO.getStatus())) {
             throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
         }
 
-        // 3. 补充图片并更新浏览量。
         detailVO.setImages(goodsImageMapper.selectByGoodsId(goodsId));
         goodsMapper.increaseViewCount(goodsId, 1);
         detailVO.setViewCount(detailVO.getViewCount() == null ? 1 : detailVO.getViewCount() + 1);
-
-        // 4. 返回商品详情。
         return detailVO;
+    }
+
+    private void validateUserGoodsStatus(Integer status) {
+        if (status == null) {
+            return;
+        }
+        if (!GoodsConstant.STATUS_ON_SALE.equals(status) && !GoodsConstant.STATUS_SOLD.equals(status)) {
+            throw new BaseException(MessageConstant.GOODS_STATUS_INVALID);
+        }
+    }
+
+    private Long safeCount(Long value) {
+        return value == null ? 0L : value;
     }
 }
