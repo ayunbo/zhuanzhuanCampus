@@ -510,12 +510,44 @@ ws://localhost:8080/ws/chat?token=eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
+强约束：
+
+- `/ws/chat` 是 WebSocket 端点，不是普通 HTTP 接口
+- 前端必须使用浏览器原生 `WebSocket` 或等价的 WebSocket 客户端发起连接
+- 页面为 `http` 时使用 `ws://`
+- 页面为 `https` 时使用 `wss://`
+- 不允许用 `axios`、`fetch`、`uni.request`、普通 `<a>` 跳转、浏览器地址栏直接访问等方式请求 `/ws/chat`
+- 不允许把 `/ws/chat` 当成 REST API 做 GET/POST 联调
+
+错误示例：
+
+```js
+fetch('http://localhost:8080/ws/chat?token=xxx')
+axios.get('/ws/chat?token=xxx')
+window.location.href = 'http://localhost:8080/ws/chat?token=xxx'
+```
+
+正确示例：
+
+```js
+const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token}`)
+```
+
+联调验收标准：
+
+- 浏览器开发者工具 Network 中，这条连接应出现在 `WS` 分类下
+- 握手成功时状态码应为 `101 Switching Protocols`
+- 如果后端日志出现 `No static resource ws/chat`，通常表示前端把 WebSocket 端点当成了普通 HTTP 请求
+- 如果连接失败，先检查协议是否写成了 `http://` 而不是 `ws://` / `wss://`
+
 ## 8.2 当前后端会主动推送的事件
 
 当前已经实现两类事件：
 
 - `chat.message`
 - `chat.unread`
+- `chat.read`
 
 统一结构：
 
@@ -579,6 +611,30 @@ ws://localhost:8080/ws/chat?token=eyJhbGciOiJIUzI1NiJ9...
 
 - 全局 store 中维护聊天未读总数
 - 收到该事件后直接覆盖全局红点计数
+
+---
+
+## 8.5 `chat.read`
+
+表示当前会话中，对方已经读到了你发出的若干条消息。
+
+示例：
+```json
+{
+  "event": "chat.read",
+  "data": {
+    "sessionId": 174176000001,
+    "readerId": 5,
+    "readTime": "2026-03-23T15:30:00",
+    "messageIds": [174176000101, 174176000102]
+  }
+}
+```
+
+前端处理建议：
+- 只处理当前登录用户作为“发送方”的消息
+- 根据 `messageIds` 精确更新本地消息列表中的 `readStatus` 和 `readTime`
+- 如果当前就在对应会话页，可直接把这些消息更新为已读态
 
 ---
 
@@ -676,6 +732,51 @@ ws://localhost:8080/ws/chat?token=eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
+## 10.5 WebSocket 实现红线
+
+前端实现聊天实时能力时，必须遵守下面这些规则：
+
+- WebSocket 只负责“服务端主动推送”
+- 当前一期发送消息仍然走 HTTP 接口，不要改成通过 WebSocket 发送聊天内容
+- 建连地址固定为 `/ws/chat?token={JWT}`，token 放 query 参数，不放请求头
+- 建连失败时不要自动降级成请求 `http://.../ws/chat`
+- 重连时仍然必须按 WebSocket 协议重新握手，不能改成轮询这个地址
+- 如果项目有代理层，也必须保证 WebSocket upgrade 正常转发，不能按普通 HTTP 转发
+
+建议前端 AI 在输出代码前自检：
+
+- 是否使用了 `new WebSocket(...)` 或明确的 WebSocket 客户端
+- 是否使用了 `ws://` / `wss://`，而不是 `http://` / `https://`
+- 是否误把 `/ws/chat` 写进了接口请求封装层
+- 是否把“发送消息”错误地写成了 `websocket.send(...)`，而不是继续调用后端现有 HTTP 发消息接口
+
+---
+
+## 10.6 给前端 AI 的提示词模板
+
+以后如果让 AI 实现聊天前端，建议在提示词里明确加上下面这段约束：
+
+```text
+本项目聊天模块有一个后端 WebSocket 端点：/ws/chat?token={JWT}。
+
+你必须严格区分 WebSocket 端点和普通 HTTP 接口：
+1. /ws/chat 只能使用 WebSocket 协议连接，必须写成 ws:// 或 wss://，不能写成 http:// 或 https://。
+2. 只能使用 new WebSocket(...) 或等价 WebSocket 客户端连接，不能使用 fetch、axios、request、页面跳转或浏览器直接访问。
+3. 发送聊天消息仍然调用现有 HTTP 接口，不要改成通过 websocket.send 发送业务消息。
+4. 如果你要输出聊天连接代码，请同时给出连接、断开、重连、onmessage、onerror 的处理。
+5. 输出代码前请自检：浏览器 Network 中该请求应属于 WS，成功握手状态应为 101 Switching Protocols。
+
+如果你不确定某个地址是不是 WebSocket 端点，先不要把它当 REST 接口调用。
+```
+
+如果你想进一步减少 AI 跑偏，可以再补一句：
+
+```text
+凡是形如 /ws/... 的地址，默认先按 WebSocket 端点理解，除非我明确说明它是普通 HTTP 接口。
+```
+
+---
+
 ## 11. 当前已落代码位置
 
 聊天控制器：
@@ -725,4 +826,3 @@ ws://localhost:8080/ws/chat?token=eyJhbGciOiJIUzI1NiJ9...
 - 图片消息
 - 会话分页
 - 通知 WebSocket 事件
-

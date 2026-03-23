@@ -27,6 +27,9 @@ public interface ChatMessageMapper {
     /**
      * 批量将“发给当前用户且未读”的消息标记为已读。
      */
+    List<Long> listUnreadMessageIdsBySession(@Param("sessionId") Long sessionId,
+                                             @Param("receiverId") Long receiverId);
+
     int markReadBySession(@Param("sessionId") Long sessionId,
                           @Param("receiverId") Long receiverId,
                           @Param("readTime") LocalDateTime readTime);

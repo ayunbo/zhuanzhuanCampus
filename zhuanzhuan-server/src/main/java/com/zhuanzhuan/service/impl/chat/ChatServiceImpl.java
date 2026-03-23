@@ -9,13 +9,14 @@ import com.zhuanzhuan.entity.chat.ChatMessage;
 import com.zhuanzhuan.entity.chat.ChatSession;
 import com.zhuanzhuan.exception.BaseException;
 import com.zhuanzhuan.exception.UserNotLoginException;
-import com.zhuanzhuan.mapper.UserMapper;
+import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.mapper.chat.ChatMessageMapper;
 import com.zhuanzhuan.mapper.chat.ChatSessionMapper;
 import com.zhuanzhuan.service.chat.ChatService;
 import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.chat.ChatMessageVO;
 import com.zhuanzhuan.vo.chat.ChatPushMessageVO;
+import com.zhuanzhuan.vo.chat.ChatReadReceiptVO;
 import com.zhuanzhuan.vo.chat.ChatSessionCreateSupportVO;
 import com.zhuanzhuan.vo.chat.ChatSessionVO;
 import com.zhuanzhuan.vo.chat.ChatUnreadCountVO;
@@ -210,10 +211,16 @@ public class ChatServiceImpl implements ChatService {
         Long currentUserId = getCurrentUserId();
         ChatSession session = getAuthorizedSession(chatSessionReadDTO.getSessionId(), currentUserId);
         LocalDateTime now = LocalDateTime.now();
+        List<Long> unreadMessageIds = chatMessageMapper.listUnreadMessageIdsBySession(session.getId(), currentUserId);
         // 这里实现的是“进入会话后批量已读”，不是逐条点击已读。
         chatMessageMapper.markReadBySession(session.getId(), currentUserId, now);
         chatSessionMapper.clearUnreadForUser(session.getId(), currentUserId, currentUserId);
         chatWebSocketPublisher.sendToUser(currentUserId, new ChatPushMessageVO<>("chat.unread", getUnreadCountByUserId(currentUserId)));
+        if (unreadMessageIds != null && !unreadMessageIds.isEmpty()) {
+            Long otherUserId = session.getSellerId().equals(currentUserId) ? session.getBuyerId() : session.getSellerId();
+            ChatReadReceiptVO receiptVO = new ChatReadReceiptVO(session.getId(), currentUserId, now, unreadMessageIds);
+            chatWebSocketPublisher.sendToUser(otherUserId, new ChatPushMessageVO<>("chat.read", receiptVO));
+        }
     }
 
     @Override

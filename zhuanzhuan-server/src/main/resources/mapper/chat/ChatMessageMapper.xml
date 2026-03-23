@@ -38,6 +38,15 @@
     </select>
 
     <!-- 将“发给当前用户且未读”的消息批量标记已读 -->
+    <select id="listUnreadMessageIdsBySession" resultType="java.lang.Long">
+        select cm.id
+        from chatmessage cm
+        where cm.session_id = #{sessionId}
+          and cm.receiver_id = #{receiverId}
+          and cm.read_status = 0
+        order by cm.create_time asc, cm.id asc
+    </select>
+
     <update id="markReadBySession">
         update chatmessage
         set read_status = 1,
