@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>zhuanzhuan-goods-platform</artifactId>
+    <artifactId>zhuanzhuan-history--platform</artifactId>
 
     <dependencies>
         <dependency>
@@ -21,24 +21,12 @@
             <artifactId>zhuanzhuan-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.zhuanzhuan</groupId>
-            <artifactId>zhuanzhuan-account-platform</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.zhuanzhuan</groupId>
-            <artifactId>zhuanzhuan-history--platform</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.pagehelper</groupId>
-            <artifactId>pagehelper-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -49,4 +37,5 @@
             <artifactId>lombok</artifactId>
         </dependency>
     </dependencies>
+
 </project>

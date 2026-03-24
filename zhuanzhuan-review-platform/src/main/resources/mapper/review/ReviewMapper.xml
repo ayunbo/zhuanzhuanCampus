@@ -57,4 +57,45 @@
         where r.goods_id = #{goodsId}
         order by r.create_time desc, r.id desc
     </select>
+
+    <select id="pageBySellerId" resultType="com.zhuanzhuan.vo.ReviewVO">
+        select
+            r.id,
+            r.order_id as orderId,
+            r.goods_id as goodsId,
+            r.user_id as userId,
+            r.target_user_id as targetUserId,
+            r.score,
+            r.content,
+            r.images,
+            r.anonymous,
+            r.create_time as createTime,
+            u.name as reviewerName,
+            u.avatar as reviewerAvatar
+        from review r
+                 left join `user` u on r.user_id = u.id
+        where r.target_user_id = #{sellerId}
+        <if test="scoreType != null and scoreType == 1">
+            and r.score = 5
+        </if>
+        <if test="scoreType != null and scoreType == 2">
+            and r.score in (3, 4)
+        </if>
+        <if test="scoreType != null and scoreType == 3">
+            and r.score in (1, 2)
+        </if>
+        order by r.create_time desc, r.id desc
+    </select>
+
+    <select id="countBySellerId" resultType="com.zhuanzhuan.vo.ReviewStatsVO">
+        select
+            count(1) as totalCount,
+            coalesce(sum(case when r.score = 5 then 1 else 0 end), 0) as score5Count,
+            coalesce(sum(case when r.score = 4 then 1 else 0 end), 0) as score4Count,
+            coalesce(sum(case when r.score = 3 then 1 else 0 end), 0) as score3Count,
+            coalesce(sum(case when r.score = 2 then 1 else 0 end), 0) as score2Count,
+            coalesce(sum(case when r.score = 1 then 1 else 0 end), 0) as score1Count
+        from review r
+        where r.target_user_id = #{sellerId}
+    </select>
 </mapper>

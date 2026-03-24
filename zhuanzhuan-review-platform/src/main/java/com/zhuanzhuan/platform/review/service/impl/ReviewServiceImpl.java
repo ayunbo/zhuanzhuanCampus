@@ -19,13 +19,16 @@ import com.zhuanzhuan.platform.trade.mapper.OrderMapper;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.utils.ValidationRuleUtil;
+import com.zhuanzhuan.vo.ReviewStatsVO;
 import com.zhuanzhuan.vo.ReviewVO;
+import com.zhuanzhuan.vo.SellerReviewPageVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -140,6 +143,41 @@ public class ReviewServiceImpl implements ReviewService {
         return new PageResult(pageInfo.getTotal(), records);
     }
 
+    @Override
+    public SellerReviewPageVO pageBySellerId(Long sellerId, ReviewPageQueryDTO dto) {
+        if (sellerId == null) {
+            throw new BaseException(MessageConstant.REVIEW_SELLER_ID_REQUIRED);
+        }
+
+        ReviewPageQueryDTO queryDTO = dto == null ? new ReviewPageQueryDTO() : dto;
+        PageHelper.startPage(queryDTO.getPage(), queryDTO.getPageSize());
+        List<ReviewVO> records = reviewMapper.pageBySellerId(sellerId, queryDTO.getScoreType());
+        records.forEach(item -> maskAnonymousReviewer(item, null));
+
+        Page<ReviewVO> pageInfo = (Page<ReviewVO>) records;
+        ReviewStatsVO stats = reviewMapper.countBySellerId(sellerId);
+        if (stats == null) {
+            stats = new ReviewStatsVO();
+        }
+
+        long score5Count = getLongValue(stats.getScore5Count());
+        long score4Count = getLongValue(stats.getScore4Count());
+        long score3Count = getLongValue(stats.getScore3Count());
+        long score2Count = getLongValue(stats.getScore2Count());
+        long score1Count = getLongValue(stats.getScore1Count());
+
+        stats.setTotalCount(getLongValue(stats.getTotalCount()));
+        stats.setGoodCount(score5Count);
+        stats.setNeutralCount(score4Count + score3Count);
+        stats.setBadCount(score2Count + score1Count);
+
+        SellerReviewPageVO result = new SellerReviewPageVO();
+        result.setTotal(pageInfo.getTotal());
+        result.setRecords(records == null ? Collections.emptyList() : records);
+        result.setStats(stats);
+        return result;
+    }
+
     private Long getCurrentUserId() {
         Long currentId = BaseContext.getCurrentId();
         if (currentId == null) {
@@ -208,5 +246,8 @@ public class ReviewServiceImpl implements ReviewService {
         if (!StringUtils.hasText(reviewVO.getReviewerName())) {
             reviewVO.setReviewerName("用户" + reviewVO.getUserId());
         }
+    }
+    private long getLongValue(Long value) {
+        return value == null ? 0L : value;
     }
 }
