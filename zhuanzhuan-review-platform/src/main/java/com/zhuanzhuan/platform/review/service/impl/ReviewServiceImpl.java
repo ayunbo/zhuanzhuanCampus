@@ -17,7 +17,6 @@ import com.zhuanzhuan.platform.review.mapper.ReviewMapper;
 import com.zhuanzhuan.platform.review.service.ReviewService;
 import com.zhuanzhuan.platform.trade.mapper.OrderMapper;
 import com.zhuanzhuan.result.PageResult;
-import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.utils.ValidationRuleUtil;
 import com.zhuanzhuan.vo.ReviewVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +73,6 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         Review review = new Review();
-        review.setId(IdGenerator.nextId());
         review.setOrderId(order.getId());
         review.setGoodsId(order.getGoodsId());
         review.setUserId(currentUserId);

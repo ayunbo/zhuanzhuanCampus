@@ -13,7 +13,6 @@ import com.zhuanzhuan.platform.collect.mapper.FavoriteMapper;
 import com.zhuanzhuan.platform.collect.service.FavoriteService;
 import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.result.PageResult;
-import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.FavoriteStatusVO;
 import com.zhuanzhuan.vo.FavoriteToggleVO;
 import com.zhuanzhuan.vo.UserFavoritePageVO;
@@ -40,7 +39,6 @@ public class FavoriteServiceImpl implements FavoriteService {
         validateCollectibleStatus(goods.getStatus());
 
         Favorite favorite = Favorite.builder()
-                .id(IdGenerator.nextId())
                 .userId(userId)
                 .goodsId(goodsId)
                 .build();

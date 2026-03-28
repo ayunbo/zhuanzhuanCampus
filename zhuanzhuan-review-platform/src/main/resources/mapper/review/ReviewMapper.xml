@@ -4,11 +4,11 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zhuanzhuan.platform.review.mapper.ReviewMapper">
 
-    <insert id="insert" parameterType="com.zhuanzhuan.entity.Review">
+    <insert id="insert" parameterType="com.zhuanzhuan.entity.Review" useGeneratedKeys="true" keyProperty="id">
         insert into review
-        (id, order_id, goods_id, user_id, target_user_id, score, content, images, anonymous, create_time, update_time, create_user, update_user)
+        (order_id, goods_id, user_id, target_user_id, score, content, images, anonymous, create_time, update_time, create_user, update_user)
         values
-            (#{id}, #{orderId}, #{goodsId}, #{userId}, #{targetUserId}, #{score}, #{content}, #{images}, #{anonymous}, now(), now(), #{createUser}, #{updateUser})
+            (#{orderId}, #{goodsId}, #{userId}, #{targetUserId}, #{score}, #{content}, #{images}, #{anonymous}, now(), now(), #{createUser}, #{updateUser})
     </insert>
 
     <select id="getByOrderId" resultType="com.zhuanzhuan.entity.Review">

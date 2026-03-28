@@ -37,24 +37,13 @@ public final class MessageConstant {
     public static final String CAMPUS_FORMAT_INVALID = "校区长度不能超过 50";
     public static final String INTRO_TOO_LONG = "个人简介长度不能超过 255";
     public static final String PROFILE_UPDATE_EMPTY = "请至少提交一项要修改的资料";
-
-    public static final String REGISTER_FAILED = "注册失败";
-    public static final String UPDATE_PROFILE_FAILED = "个人资料修改失败";
-    public static final String DELETE_USER_FAILED = "注销用户失败";
     public static final String USER_DELETE_FORBIDDEN_SELLER = "卖家账号暂不支持自主注销，请联系管理员";
     public static final String USER_DELETE_FORBIDDEN_PENDING_AUTH = "存在待审核的卖家认证申请，暂不能注销";
 
     public static final String ADMIN_ACCOUNT_NOT_FOUND = "管理员账号不存在";
     public static final String ADMIN_ACCOUNT_DISABLED = "管理员账号已被禁用";
-    public static final String ADMIN_USERNAME_EMPTY = "管理员账号不能为空";
-    public static final String ADMIN_USERNAME_FORMAT_INVALID = "管理员账号格式不正确，应为 4-32 位字母数字下划线且字母开头";
-    public static final String ADMIN_NAME_EMPTY = "管理员名称不能为空";
-    public static final String ADMIN_STATUS_INVALID = "管理员状态不合法";
     public static final String ADMIN_ALREADY_EXISTS = "管理员账号已存在";
     public static final String ADMIN_NOT_FOUND = "管理员不存在";
-    public static final String ADMIN_CREATE_FAILED = "管理员创建失败";
-    public static final String ADMIN_UPDATE_FAILED = "管理员修改失败";
-    public static final String ADMIN_DELETE_FAILED = "管理员删除失败";
     public static final String ADMIN_DELETE_SELF_NOT_ALLOWED = "不能删除当前登录管理员";
     public static final String ADMIN_DISABLE_SELF_NOT_ALLOWED = "不能禁用当前登录管理员";
     public static final String LAST_ACTIVE_ADMIN_NOT_ALLOWED = "至少保留一个正常状态的管理员";
@@ -68,7 +57,7 @@ public final class MessageConstant {
     public static final String SELLER_AUTH_STUDENT_NO_MISMATCH = "提交的学号与当前登录账号不一致";
     public static final String MATERIAL_EMPTY = "认证材料不能为空";
     public static final String MATERIAL_URL_INVALID = "认证材料地址格式不正确";
-    public static final String SELLER_AUTH_SUBMIT_FAILED = "卖家认证申请提交失败";
+
     public static final String NO_SELLER_AUTH_RECORD = "暂无卖家认证申请记录";
     public static final String AUDIT_PARAM_INCOMPLETE = "审核参数不完整";
     public static final String AUDIT_STATUS_INVALID = "审核状态只允许通过或驳回";

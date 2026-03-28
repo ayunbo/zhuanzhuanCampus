@@ -7,7 +7,6 @@ import com.zhuanzhuan.entity.BrowseHistory;
 import com.zhuanzhuan.exception.BaseException;
 import com.zhuanzhuan.platform.history.mapper.BrowseHistoryMapper;
 import com.zhuanzhuan.platform.history.service.BrowseHistoryService;
-import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.UserBrowseHistoryArchiveVO;
 import com.zhuanzhuan.vo.UserBrowseHistoryItemVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +40,6 @@ public class BrowseHistoryServiceImpl implements BrowseHistoryService {
         validateGoods(goodsId);
 
         BrowseHistory browseHistory = BrowseHistory.builder()
-                .id(IdGenerator.nextId())
                 .userId(userId)
                 .goodsId(goodsId)
                 .browseCount(1)

@@ -35,209 +35,143 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 用户注册。
+     *
+     * @param userRegisterDTO 注册信息（学号、密码、手机号等）
      */
     @Override
     public void register(UserRegisterDTO userRegisterDTO) {
-        // 1、校验注册参数
-        if (userRegisterDTO == null) {
-            throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
-        }
-
-        // 2、整理注册字段
-        String studentNo = userRegisterDTO.getStudentNo();
-        if (StringUtils.hasText(studentNo)) {
-            studentNo = studentNo.trim();
-        } else {
-            studentNo = null;
-        }
-
-        String password = userRegisterDTO.getPassword();
-        if (!StringUtils.hasText(password)) {
-            password = null;
-        }
-
-        String phone = userRegisterDTO.getPhone();
-        if (StringUtils.hasText(phone)) {
-            phone = phone.trim();
-        } else {
-            phone = null;
-        }
-
-        String name = userRegisterDTO.getName();
-        if (!StringUtils.hasText(name)) {
-            name = null;
-        }
-
-        // 3、校验基础信息
-        if (!StringUtils.hasText(studentNo)) {
+        // 1、校验必填项：学号和密码不允许为空
+        if (!StringUtils.hasText(userRegisterDTO.getStudentNo())) {
             throw new BaseException(MessageConstant.STUDENT_NO_EMPTY);
         }
-        if (!StringUtils.hasText(password)) {
+        if (!StringUtils.hasText(userRegisterDTO.getPassword())) {
             throw new BaseException(MessageConstant.PASSWORD_EMPTY);
         }
 
-        // 4、校验学号和手机号唯一
-        if (StringUtils.hasText(phone)) {
-            User phoneUser = userMapper.getByPhone(phone);
+        // 2、若填写了手机号，校验手机号唯一性，避免绑定已被使用的手机号
+        if (StringUtils.hasText(userRegisterDTO.getPhone())) {
+            User phoneUser = userMapper.getByPhone(userRegisterDTO.getPhone());
             if (phoneUser != null) {
                 throw new BaseException(MessageConstant.PHONE_ALREADY_BOUND);
             }
         }
 
-        User studentNoUser = userMapper.getByStudentNo(studentNo);
+        // 3、校验学号唯一性，同一学号不允许重复注册
+        User studentNoUser = userMapper.getByStudentNo(userRegisterDTO.getStudentNo());
         if (studentNoUser != null) {
             throw new BaseException(MessageConstant.STUDENT_NO_ALREADY_EXISTS);
         }
 
-        // 5、保存用户
-        String displayName = studentNo;
-        if (StringUtils.hasText(name)) {
-            displayName = name;
+        // 4、将 DTO 属性拷贝到用户实体
+        User user = new User();
+        BeanUtils.copyProperties(userRegisterDTO, user);
+
+        // 5、密码统一 MD5 加密后存储
+        user.setPassword(DigestUtils.md5DigestAsHex(userRegisterDTO.getPassword().getBytes()));
+
+        // 6、未填写姓名时以学号作为初始显示名
+        if (!StringUtils.hasText(userRegisterDTO.getName())) {
+            user.setName(userRegisterDTO.getStudentNo());
         }
 
-        User user = new User();
-        user.setStudentNo(studentNo);
-        user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
-        user.setName(displayName);
-        user.setPhone(phone);
+        // 7、注册用户默认为普通用户角色、正常状态
         user.setRole(RoleConstant.NORMAL_USER);
         user.setStatus(UserStatusConstant.NORMAL);
 
-        int rows = userMapper.insert(user);
-        if (rows <= 0) {
-            throw new BaseException(MessageConstant.REGISTER_FAILED);
-        }
+        // 8、执行数据库插入
+        userMapper.insert(user);
     }
 
     /**
-     * 查询当前用户资料。
+     * 查询当前登录用户的个人资料。
+     *
+     * @return 用户资料视图对象
      */
     @Override
     public UserProfileVO getCurrentUserProfile() {
-        // 1、获取当前登录用户
+        // 1、获取当前登录用户 ID，未登录则拒绝
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
 
+        // 2、查询用户，账号不存在则抛出业务异常
         User user = userMapper.getById(userId);
         if (user == null) {
             throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
         }
 
-        // 2、转换并返回资料
+        // 3、将实体属性拷贝到 VO 并返回
         UserProfileVO vo = new UserProfileVO();
         BeanUtils.copyProperties(user, vo);
         return vo;
     }
 
     /**
-     * 修改当前用户资料。
+     * 修改当前登录用户的个人资料。
+     *
+     * @param userProfileUpdateDTO 要修改的资料字段（均为可选）
      */
     @Override
     public void updateCurrentUserProfile(UserProfileUpdateDTO userProfileUpdateDTO) {
-        // 1、校验修改参数
-        if (userProfileUpdateDTO == null) {
-            throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
-        }
-
-        // 2、获取当前登录用户
+        // 1、获取当前登录用户 ID，未登录则拒绝
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
 
+        // 2、查询当前用户，确认账号存在
         User currentUser = userMapper.getById(userId);
         if (currentUser == null) {
             throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
         }
 
-        // 3、整理更新字段
-        String name = userProfileUpdateDTO.getName();
-        if (!StringUtils.hasText(name)) {
-            name = null;
-        }
-
-        String phone = userProfileUpdateDTO.getPhone();
-        if (StringUtils.hasText(phone)) {
-            phone = phone.trim();
-        } else {
-            phone = null;
-        }
-
-        String avatar = userProfileUpdateDTO.getAvatar();
-        if (!StringUtils.hasText(avatar)) {
-            avatar = null;
-        }
-
-        String campus = userProfileUpdateDTO.getCampus();
-        if (!StringUtils.hasText(campus)) {
-            campus = null;
-        }
-
-        String intro = userProfileUpdateDTO.getIntro();
-        if (!StringUtils.hasText(intro) && intro != null) {
-            intro = null;
-        }
-
-        // 4、校验至少有一个更新字段
-        if (name == null && phone == null && avatar == null && campus == null && intro == null) {
-            throw new BaseException(MessageConstant.PROFILE_UPDATE_EMPTY);
-        }
-
-        // 5、校验手机号唯一
-        if (StringUtils.hasText(phone)) {
-            int phoneUsedCount = userMapper.countByPhoneExcludeId(phone, userId);
+        // 3、如果修改了手机号，校验新手机号是否已被其他账号使用
+        if (StringUtils.hasText(userProfileUpdateDTO.getPhone())) {
+            int phoneUsedCount = userMapper.countByPhoneExcludeId(userProfileUpdateDTO.getPhone(), userId);
             if (phoneUsedCount > 0) {
                 throw new BaseException(MessageConstant.PHONE_ALREADY_BOUND);
             }
         }
 
-        // 6、执行更新
+        // 4、将 DTO 属性拷贝到更新实体，并绑定当前用户 ID
         User user = new User();
+        BeanUtils.copyProperties(userProfileUpdateDTO, user);
         user.setId(userId);
-        user.setName(name);
-        user.setPhone(phone);
-        user.setAvatar(avatar);
-        user.setCampus(campus);
-        user.setIntro(intro);
 
-        int rows = userMapper.updateByIdSelective(user);
-        if (rows <= 0) {
-            throw new BaseException(MessageConstant.UPDATE_PROFILE_FAILED);
-        }
+        // 5、执行选择性更新（只更新非 null 字段）
+        userMapper.updateByIdSelective(user);
     }
 
     /**
-     * 注销当前用户。
+     * 注销当前登录用户账号。
      */
     @Override
     public void deleteCurrentUser() {
-        // 1、获取当前登录用户
+        // 1、获取当前登录用户 ID，未登录则拒绝
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
 
+        // 2、查询当前用户，确认账号存在
         User currentUser = userMapper.getById(userId);
         if (currentUser == null) {
             throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
         }
 
-        // 2、校验是否允许注销
+        // 3、卖家账号不允许自主注销，需联系管理员处理
         if (RoleConstant.SELLER.equals(currentUser.getRole())) {
             throw new BaseException(MessageConstant.USER_DELETE_FORBIDDEN_SELLER);
         }
 
+        // 4、存在待审核的卖家申请时不允许注销，避免审核数据悬空
         SellerAuth latestAuth = sellerAuthMapper.getLatestByUserId(userId);
         if (latestAuth != null && SellerAuthStatusConstant.PENDING.equals(latestAuth.getStatus())) {
             throw new BaseException(MessageConstant.USER_DELETE_FORBIDDEN_PENDING_AUTH);
         }
 
-        // 3、执行注销
-        int rows = userMapper.deleteById(userId);
-        if (rows <= 0) {
-            throw new BaseException(MessageConstant.DELETE_USER_FAILED);
-        }
+        // 5、执行物理删除
+        userMapper.deleteById(userId);
     }
 }

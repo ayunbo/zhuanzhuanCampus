@@ -2,8 +2,9 @@ package com.zhuanzhuan.platform.account.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.zhuanzhuan.annotation.AuditRecord;
+import com.zhuanzhuan.constant.AuditOperationConstant;
 import com.zhuanzhuan.constant.MessageConstant;
-import com.zhuanzhuan.constant.PageConstant;
 import com.zhuanzhuan.constant.RoleConstant;
 import com.zhuanzhuan.constant.SellerAuthStatusConstant;
 import com.zhuanzhuan.constant.UserStatusConstant;
@@ -19,7 +20,6 @@ import com.zhuanzhuan.platform.account.mapper.SellerAuthMapper;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.account.service.SellerAuthService;
 import com.zhuanzhuan.result.PageResult;
-import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.SellerAuthResultVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,21 +43,19 @@ public class SellerAuthServiceImpl implements SellerAuthService {
     private UserMapper userMapper;
 
     /**
-     * 提交卖家认证。
+     * 用户提交卖家认证申请。
+     *
+     * @param sellerAuthApplyDTO 认证申请信息
      */
     @Override
     public void submitSellerAuth(SellerAuthApplyDTO sellerAuthApplyDTO) {
-        // 1、校验提交参数
-        if (sellerAuthApplyDTO == null) {
-            throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
-        }
-
-        // 2、获取当前登录用户
+        // 1、获取当前登录用户 ID，未登录则拒绝
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
 
+        // 2、查询当前用户，校验账号是否正常可用
         User currentUser = userMapper.getById(userId);
         if (currentUser == null) {
             throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
@@ -66,7 +64,8 @@ public class SellerAuthServiceImpl implements SellerAuthService {
             throw new BaseException(MessageConstant.ACCOUNT_LOCKED);
         }
 
-        // 3、校验是否允许发起卖家认证
+        // 3、校验当前角色是否允许发起卖家认证
+        //    已是卖家的账号无需重复申请，其他非普通用户账号也不允许申请
         if (!RoleConstant.NORMAL_USER.equals(currentUser.getRole())) {
             if (RoleConstant.SELLER.equals(currentUser.getRole())) {
                 throw new BaseException(MessageConstant.ALREADY_SELLER);
@@ -74,78 +73,49 @@ public class SellerAuthServiceImpl implements SellerAuthService {
             throw new BaseException(MessageConstant.ROLE_NOT_ALLOW_APPLY);
         }
 
-        // 4、整理申请字段，实名、手机号和认证材料后面都会作为审核依据
-        String realName = sellerAuthApplyDTO.getRealName();
-        if (!StringUtils.hasText(realName)) {
-            realName = null;
-        }
-
-        String phone = sellerAuthApplyDTO.getPhone();
-        if (StringUtils.hasText(phone)) {
-            phone = phone.trim();
-        } else {
-            phone = null;
-        }
-
-        String material = sellerAuthApplyDTO.getMaterial();
-        if (!StringUtils.hasText(material)) {
-            material = null;
-        }
-
-        // 5、校验申请信息
-        if (!StringUtils.hasText(realName)) {
-            throw new BaseException(MessageConstant.REAL_NAME_EMPTY);
-        }
-        if (!StringUtils.hasText(phone)) {
-            throw new BaseException(MessageConstant.PHONE_EMPTY);
-        }
-        if (!StringUtils.hasText(material)) {
-            throw new BaseException(MessageConstant.MATERIAL_EMPTY);
-        }
-
-        // 6、校验是否已有进行中的认证流程，同一用户不能同时提交多条待审核申请
+        // 4、查询该用户最新一条认证记录，防止重复提交
         SellerAuth latestAuth = sellerAuthMapper.getLatestByUserId(userId);
         if (latestAuth != null && SellerAuthStatusConstant.PENDING.equals(latestAuth.getStatus())) {
+            // 已有待审核申请，不允许再次提交
             throw new BaseException(MessageConstant.AUTH_ALREADY_PENDING);
         }
         if (latestAuth != null && SellerAuthStatusConstant.APPROVED.equals(latestAuth.getStatus())) {
+            // 认证已通过，无需重复申请
             throw new BaseException(MessageConstant.AUTH_ALREADY_APPROVED);
         }
 
-        // 7、保存认证申请
+        // 5、将 DTO 属性拷贝到认证实体，补充系统生成字段
         SellerAuth sellerAuth = new SellerAuth();
-        sellerAuth.setId(IdGenerator.nextId());
+        BeanUtils.copyProperties(sellerAuthApplyDTO, sellerAuth);
         sellerAuth.setUserId(userId);
-        sellerAuth.setRealName(realName);
+        // 学号从当前登录用户档案中取，防止前端篡改
         sellerAuth.setStudentNo(currentUser.getStudentNo());
-        sellerAuth.setPhone(phone);
-        sellerAuth.setMaterial(material);
         sellerAuth.setStatus(SellerAuthStatusConstant.PENDING);
 
-        int rows = sellerAuthMapper.insert(sellerAuth);
-        if (rows <= 0) {
-            throw new BaseException(MessageConstant.SELLER_AUTH_SUBMIT_FAILED);
-        }
+        // 6、执行数据库插入
+        sellerAuthMapper.insert(sellerAuth);
     }
 
     /**
-     * 查询当前认证结果。
+     * 查询当前用户最新的卖家认证结果。
+     *
+     * @return 认证结果视图对象
      */
     @Override
     public SellerAuthResultVO getCurrentSellerAuthResult() {
-        // 1、获取当前登录用户
+        // 1、获取当前登录用户 ID，未登录则拒绝
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
 
-        // 2、查询最新认证记录
+        // 2、查询最新认证记录，不存在则提示暂无记录
         SellerAuth latestAuth = sellerAuthMapper.getLatestByUserId(userId);
         if (latestAuth == null) {
             throw new BaseException(MessageConstant.NO_SELLER_AUTH_RECORD);
         }
 
-        // 3、转换返回结果
+        // 3、将实体属性拷贝到 VO，并补充状态文案后返回
         SellerAuthResultVO vo = new SellerAuthResultVO();
         BeanUtils.copyProperties(latestAuth, vo);
         vo.setStatusDesc(toStatusDesc(latestAuth.getStatus()));
@@ -153,17 +123,18 @@ public class SellerAuthServiceImpl implements SellerAuthService {
     }
 
     /**
-     * 校验当前用户是否为卖家。
+     * 校验当前登录用户是否具有卖家角色。
+     * 供其他服务调用，不满足则抛出业务异常。
      */
     @Override
     public void checkCurrentUserIsSeller() {
-        // 1、获取当前登录用户
+        // 1、获取当前登录用户 ID，未登录则拒绝
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
 
-        // 2、校验当前账号角色
+        // 2、查询用户并校验角色，非卖家角色不允许访问卖家专属接口
         User currentUser = userMapper.getById(userId);
         if (currentUser == null) {
             throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
@@ -174,113 +145,69 @@ public class SellerAuthServiceImpl implements SellerAuthService {
     }
 
     /**
-     * 分页查询卖家认证。
+     * 分页查询卖家认证申请列表（管理员侧）。
+     *
+     * @param pageQueryDTO 分页查询条件（page、pageSize 已有默认值）
+     * @return 分页结果
      */
     @Override
     public PageResult pageQuerySellerAuth(AdminSellerAuthPageQueryDTO pageQueryDTO) {
-        // 1、整理分页参数
-        AdminSellerAuthPageQueryDTO queryDTO = pageQueryDTO;
-        if (queryDTO == null) {
-            queryDTO = new AdminSellerAuthPageQueryDTO();
-        }
+        // 1、启动分页插件，page 和 pageSize 由 DTO 默认值保证非空
+        PageHelper.startPage(pageQueryDTO.getPage(), pageQueryDTO.getPageSize());
 
-        int page = PageConstant.DEFAULT_PAGE;
-        if (queryDTO.getPage() != null) {
-            page = queryDTO.getPage();
-        }
-        if (page < PageConstant.DEFAULT_PAGE) {
-            page = PageConstant.DEFAULT_PAGE;
-        }
-
-        int pageSize = PageConstant.DEFAULT_PAGE_SIZE;
-        if (queryDTO.getPageSize() != null) {
-            pageSize = queryDTO.getPageSize();
-        }
-        if (pageSize < PageConstant.DEFAULT_PAGE) {
-            pageSize = PageConstant.DEFAULT_PAGE_SIZE;
-        }
-
-        // 2、整理并校验查询条件，方便后台按姓名、手机号、学号筛选申请记录
-        if (StringUtils.hasText(queryDTO.getName())) {
-            queryDTO.setName(queryDTO.getName().trim());
-        } else {
-            queryDTO.setName(null);
-        }
-
-        if (StringUtils.hasText(queryDTO.getPhone())) {
-            queryDTO.setPhone(queryDTO.getPhone().trim());
-        } else {
-            queryDTO.setPhone(null);
-        }
-
-        if (StringUtils.hasText(queryDTO.getStudentNo())) {
-            queryDTO.setStudentNo(queryDTO.getStudentNo().trim());
-        } else {
-            queryDTO.setStudentNo(null);
-        }
-
-        if (queryDTO.getStatus() != null && !isValidSellerAuthStatus(queryDTO.getStatus())) {
-            throw new BaseException(MessageConstant.SELLER_AUTH_STATUS_INVALID);
-        }
-
-        // 3、执行分页查询
-        PageHelper.startPage(page, pageSize);
-        List<SellerAuthResultVO> records = sellerAuthMapper.pageQuery(queryDTO);
+        // 2、执行查询，PageHelper 自动拦截并追加 LIMIT
+        List<SellerAuthResultVO> records = sellerAuthMapper.pageQuery(pageQueryDTO);
         Page<SellerAuthResultVO> pageInfo = (Page<SellerAuthResultVO>) records;
 
-        // 4、补充状态文案
+        // 3、为每条记录补充状态文案，方便前端直接展示
         for (SellerAuthResultVO record : records) {
             record.setStatusDesc(toStatusDesc(record.getStatus()));
         }
 
+        // 4、封装总记录数和当前页数据返回
         return new PageResult(pageInfo.getTotal(), records);
     }
 
     /**
-     * 审核卖家认证。
+     * 管理员审核卖家认证（通过/驳回）。
+     * 涉及认证记录和用户角色两张表的写操作，使用事务保证一致性。
+     *
+     * @param sellerAuthAuditDTO 审核信息（authId、status、reason）
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
+    @AuditRecord(operationType = AuditOperationConstant.SELLER_AUTH_AUDIT)
     public void auditSellerAuth(SellerAuthAuditDTO sellerAuthAuditDTO) {
-        // 1、校验审核参数
-        if (sellerAuthAuditDTO == null
-                || sellerAuthAuditDTO.getAuthId() == null
-                || sellerAuthAuditDTO.getStatus() == null) {
-            throw new BaseException(MessageConstant.AUDIT_PARAM_INCOMPLETE);
-        }
-
+        // 1、校验审核结果合法性，只允许通过或驳回两种状态
         Integer targetStatus = sellerAuthAuditDTO.getStatus();
         if (!SellerAuthStatusConstant.APPROVED.equals(targetStatus)
                 && !SellerAuthStatusConstant.REJECTED.equals(targetStatus)) {
             throw new BaseException(MessageConstant.AUDIT_STATUS_INVALID);
         }
 
-        // 2、整理驳回原因，只有审核驳回时这个字段才允许落库并回显给用户
-        String rejectReason = sellerAuthAuditDTO.getReason();
-        if (!StringUtils.hasText(rejectReason)) {
-            rejectReason = null;
-        }
-
-        if (SellerAuthStatusConstant.REJECTED.equals(targetStatus) && !StringUtils.hasText(rejectReason)) {
+        // 2、驳回时必须填写驳回原因，便于用户了解未通过原因
+        if (SellerAuthStatusConstant.REJECTED.equals(targetStatus)
+                && !StringUtils.hasText(sellerAuthAuditDTO.getReason())) {
             throw new BaseException(MessageConstant.REJECT_REASON_REQUIRED);
         }
 
-        // 3、查询待审核记录
+        // 3、查询待审核记录，确认申请存在且处于待审核状态
         SellerAuth sellerAuth = sellerAuthMapper.getById(sellerAuthAuditDTO.getAuthId());
         if (sellerAuth == null) {
             throw new BaseException(MessageConstant.AUTH_NOT_FOUND);
         }
         if (!SellerAuthStatusConstant.PENDING.equals(sellerAuth.getStatus())) {
+            // 申请已被处理，防止重复操作
             throw new BaseException(MessageConstant.AUTH_ALREADY_AUDITED);
         }
 
-        // 4、获取当前登录管理员
+        // 4、获取当前登录管理员 ID，用于写入审核人信息
         Long adminId = BaseContext.getCurrentId();
         if (adminId == null) {
             throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
         }
 
-        // 5、审核通过前校验用户状态，只有正常账号才能升级成卖家角色
+        // 5、审核通过前额外校验申请人账号状态，被封禁账号不能升级为卖家
         if (SellerAuthStatusConstant.APPROVED.equals(targetStatus)) {
             User authUser = userMapper.getById(sellerAuth.getUserId());
             if (authUser == null) {
@@ -291,44 +218,27 @@ public class SellerAuthServiceImpl implements SellerAuthService {
             }
         }
 
-        // 6、更新认证记录，写入审核人、审核时间和最终审核结果
+        // 6、更新认证记录：写入审核结果、审核人、审核时间，驳回时附带原因
         SellerAuth updateEntity = new SellerAuth();
         updateEntity.setId(sellerAuthAuditDTO.getAuthId());
         updateEntity.setStatus(targetStatus);
-        if (SellerAuthStatusConstant.REJECTED.equals(targetStatus)) {
-            updateEntity.setReason(rejectReason);
-        } else {
-            updateEntity.setReason(null);
-        }
+        updateEntity.setReason(SellerAuthStatusConstant.REJECTED.equals(targetStatus)
+                ? sellerAuthAuditDTO.getReason() : null);
         updateEntity.setAuditAdminId(adminId);
         updateEntity.setAuditTime(LocalDateTime.now());
+        sellerAuthMapper.updateAuditById(updateEntity);
 
-        int rows = sellerAuthMapper.updateAuditById(updateEntity);
-        if (rows <= 0) {
-            throw new BaseException(MessageConstant.AUDIT_FAILED);
-        }
-
-        // 7、审核通过后同步更新用户角色，卖家权限从这里开始生效
+        // 7、审核通过后同步将用户角色升级为卖家，卖家权限从此刻生效
         if (SellerAuthStatusConstant.APPROVED.equals(targetStatus)) {
-            int roleRows = userMapper.updateRoleById(sellerAuth.getUserId(), RoleConstant.SELLER);
-            if (roleRows <= 0) {
-                throw new BaseException(MessageConstant.AUDIT_FAILED);
-            }
+            userMapper.updateRoleById(sellerAuth.getUserId(), RoleConstant.SELLER);
         }
     }
 
     /**
-     * 校验卖家认证状态是否合法。
-     */
-    private boolean isValidSellerAuthStatus(Integer status) {
-        return SellerAuthStatusConstant.PENDING.equals(status)
-                || SellerAuthStatusConstant.APPROVED.equals(status)
-                || SellerAuthStatusConstant.REJECTED.equals(status)
-                || SellerAuthStatusConstant.REVOKED.equals(status);
-    }
-
-    /**
-     * 转换卖家认证状态文案。
+     * 将卖家认证状态码转换为中文描述文案。
+     *
+     * @param status 状态码
+     * @return 对应的中文描述
      */
     private String toStatusDesc(Integer status) {
         if (SellerAuthStatusConstant.PENDING.equals(status)) {

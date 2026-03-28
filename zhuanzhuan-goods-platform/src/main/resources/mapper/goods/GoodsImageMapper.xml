@@ -7,11 +7,10 @@
     <!-- 批量新增商品图片 -->
     <insert id="insertBatch">
         insert into goodsimage (
-            id, goods_id, url, sort, is_cover, create_time, update_time, create_user, update_user
+            goods_id, url, sort, is_cover, create_time, update_time, create_user, update_user
         ) values
         <foreach collection="list" item="item" separator=",">
             (
-                #{item.id},
                 #{item.goodsId},
                 #{item.url},
                 #{item.sort},

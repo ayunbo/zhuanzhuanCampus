@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.audit.mapper.AuditLogMapper">
+
+    <!-- 插入审核流水记录（主键自增） -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO audit_log (admin_id, admin_name, operation_type, target_id, action, detail,
+                               create_time, update_time, create_user, update_user)
+        VALUES (#{adminId}, #{adminName}, #{operationType}, #{targetId}, #{action}, #{detail},
+                #{createTime}, #{updateTime}, #{createUser}, #{updateUser})
+    </insert>
+
+    <!-- 分页查询审核流水列表（动态条件） -->
+    <select id="pageQuery" resultType="com.zhuanzhuan.vo.AuditLogVO">
+        SELECT id, admin_id, admin_name, operation_type, target_id, action, detail, create_time
+        FROM audit_log
+        <where>
+            <if test="operationType != null">
+                AND operation_type = #{operationType}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

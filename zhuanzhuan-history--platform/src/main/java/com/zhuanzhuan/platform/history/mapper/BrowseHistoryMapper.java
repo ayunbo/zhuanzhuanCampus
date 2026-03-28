@@ -18,10 +18,10 @@ public interface BrowseHistoryMapper {
     @AutoFill(OperationType.INSERT)
     @Insert("""
             insert into browsehistory (
-                id, user_id, goods_id, browse_count, last_browse_time,
+                user_id, goods_id, browse_count, last_browse_time,
                 create_time, update_time, create_user, update_user
             ) values (
-                #{id}, #{userId}, #{goodsId}, #{browseCount}, #{lastBrowseTime},
+                #{userId}, #{goodsId}, #{browseCount}, #{lastBrowseTime},
                 #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
             )
             on duplicate key update

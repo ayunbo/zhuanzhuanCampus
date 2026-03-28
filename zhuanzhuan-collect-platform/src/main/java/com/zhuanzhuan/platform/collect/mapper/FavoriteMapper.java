@@ -18,9 +18,9 @@ public interface FavoriteMapper {
     @AutoFill(OperationType.INSERT)
     @Insert("""
             insert ignore into favorite (
-                id, user_id, goods_id, create_time, update_time, create_user, update_user
+                user_id, goods_id, create_time, update_time, create_user, update_user
             ) values (
-                #{id}, #{userId}, #{goodsId}, #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
+                #{userId}, #{goodsId}, #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
             )
             """)
     int insertIgnore(Favorite favorite);

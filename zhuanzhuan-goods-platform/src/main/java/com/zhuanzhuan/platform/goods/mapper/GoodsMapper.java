@@ -73,11 +73,11 @@ public interface GoodsMapper {
     @AutoFill(OperationType.INSERT)
     @Insert("""
             insert into goods (
-                id, seller_id, category_id, title, detail, price, old_price, quality, location, status, cover, reason,
+                seller_id, category_id, title, detail, price, old_price, quality, location, status, cover, reason,
                 audit_admin_id, audit_time, publish_time, view_count, favorite_count, lock_order_id, version,
                 create_time, update_time, create_user, update_user
             ) values (
-                #{id}, #{sellerId}, #{categoryId}, #{title}, #{detail}, #{price}, #{oldPrice}, #{quality}, #{location}, #{status}, #{cover}, #{reason},
+                #{sellerId}, #{categoryId}, #{title}, #{detail}, #{price}, #{oldPrice}, #{quality}, #{location}, #{status}, #{cover}, #{reason},
                 #{auditAdminId}, #{auditTime}, #{publishTime}, #{viewCount}, #{favoriteCount}, #{lockOrderId}, #{version},
                 #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
             )
