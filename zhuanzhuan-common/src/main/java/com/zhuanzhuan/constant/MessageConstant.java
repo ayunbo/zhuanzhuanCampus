@@ -120,6 +120,7 @@ public final class MessageConstant {
     public static final String CATEGORY_LEVEL_EXCEEDED = "分类层级不能超过3级";
     public static final String REVIEW_ORDER_ID_REQUIRED = "orderId is required";
     public static final String REVIEW_GOODS_ID_REQUIRED = "goodsId is required";
+    public static final String REVIEW_SELLER_ID_REQUIRED = "sellerId is required";
     public static final String REVIEW_SCORE_INVALID = "review score must be between 1 and 5";
     public static final String REVIEW_CONTENT_TOO_LONG = "review content cannot exceed 500 characters";
     public static final String REVIEW_ANONYMOUS_INVALID = "anonymous flag must be 0 or 1";

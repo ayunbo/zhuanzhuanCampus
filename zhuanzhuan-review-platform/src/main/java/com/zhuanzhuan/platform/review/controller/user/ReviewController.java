@@ -9,6 +9,7 @@ import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.result.Result;
 import com.zhuanzhuan.utils.AliOssUtil;
 import com.zhuanzhuan.vo.ReviewVO;
+import com.zhuanzhuan.vo.SellerReviewPageVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +84,12 @@ public class ReviewController {
     @GetMapping("/goods/{goodsId}")
     public Result<PageResult> pageByGoodsId(@PathVariable Long goodsId, ReviewPageQueryDTO dto) {
         return Result.success(reviewService.pageByGoodsId(goodsId, dto));
+    }
+
+    @Operation(summary = "分页查询卖家评价")
+    @GetMapping("/seller/{sellerId}")
+    public Result<SellerReviewPageVO> pageBySellerId(@PathVariable Long sellerId, ReviewPageQueryDTO dto) {
+        return Result.success(reviewService.pageBySellerId(sellerId, dto));
     }
 
     private String resolveFileSuffix(String filename) {
