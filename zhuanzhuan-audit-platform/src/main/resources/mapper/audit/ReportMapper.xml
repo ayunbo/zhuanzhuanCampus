@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.audit.mapper.ReportMapper">
+
+    <!-- 插入举报记录（主键自增） -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO report (report_user_id, target_type, target_id, reason, status,
+                            create_time, update_time, create_user, update_user)
+        VALUES (#{reportUserId}, #{targetType}, #{targetId}, #{reason}, #{status},
+                #{createTime}, #{updateTime}, #{createUser}, #{updateUser})
+    </insert>
+
+    <!-- 分页查询举报列表（动态条件） -->
+    <select id="pageQuery" resultType="com.zhuanzhuan.vo.ReportVO">
+        SELECT r.id, r.report_user_id, u.name AS report_user_name,
+               r.target_type, r.target_id, r.reason, r.status, r.create_time
+        FROM report r
+        LEFT JOIN user u ON r.report_user_id = u.id
+        <where>
+            <if test="status != null">
+                AND r.status = #{status}
+            </if>
+            <if test="targetType != null">
+                AND r.target_type = #{targetType}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+    </select>
+
+    <!-- 查询举报详情（关联举报人和处理管理员名称） -->
+    <select id="selectDetailById" resultType="com.zhuanzhuan.vo.ReportDetailVO">
+        SELECT r.id, r.report_user_id, u.name AS report_user_name,
+               r.target_type, r.target_id, r.reason, r.status,
+               r.handle_admin_id, a.name AS handle_admin_name,
+               r.handle_result, r.handle_time, r.create_time
+        FROM report r
+        LEFT JOIN user u ON r.report_user_id = u.id
+        LEFT JOIN admin a ON r.handle_admin_id = a.id
+        WHERE r.id = #{id}
+    </select>
+
+    <!-- 更新举报处理结果 -->
+    <update id="updateHandleResult">
+        UPDATE report
+        SET status = #{status},
+            handle_admin_id = #{handleAdminId},
+            handle_result = #{handleResult},
+            handle_time = #{handleTime},
+            update_time = #{updateTime},
+            update_user = #{updateUser}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -2,6 +2,8 @@ package com.zhuanzhuan.platform.goods.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.zhuanzhuan.annotation.AuditRecord;
+import com.zhuanzhuan.constant.AuditOperationConstant;
 import com.zhuanzhuan.constant.GoodsConstant;
 import com.zhuanzhuan.constant.MessageConstant;
 import com.zhuanzhuan.context.BaseContext;
@@ -92,6 +94,7 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
      */
     @Override
     @Transactional
+    @AuditRecord(operationType = AuditOperationConstant.GOODS_AUDIT)
     public void audit(Long goodsId, AdminGoodsAuditDTO dto) {
         // 1. 校验管理员登录信息和审核参数。
         Long currentAdminId = BaseContext.getCurrentId();

@@ -21,7 +21,6 @@ import com.zhuanzhuan.platform.goods.mapper.GoodsImageMapper;
 import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.platform.goods.service.SellerGoodsService;
 import com.zhuanzhuan.result.PageResult;
-import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.SellerGoodsDetailVO;
 import com.zhuanzhuan.vo.SellerGoodsPageVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,7 +80,6 @@ public class SellerGoodsServiceImpl implements SellerGoodsService {
 
         // 3. 保存商品草稿。
         Goods goods = Goods.builder()
-                .id(IdGenerator.nextId())
                 .sellerId(currentUserId)
                 .categoryId(saveDTO.getCategoryId() == null ? GoodsConstant.DEFAULT_CATEGORY_ID : saveDTO.getCategoryId())
                 .title(saveDTO.getTitle() == null ? "" : saveDTO.getTitle())
@@ -448,7 +446,6 @@ public class SellerGoodsServiceImpl implements SellerGoodsService {
                 continue;
             }
             GoodsImage goodsImage = GoodsImage.builder()
-                    .id(IdGenerator.nextId())
                     .goodsId(goodsId)
                     .url(imageUrl)
                     .sort(sort)

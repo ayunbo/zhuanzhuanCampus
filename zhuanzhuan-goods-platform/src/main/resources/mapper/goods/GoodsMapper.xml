@@ -86,7 +86,14 @@
         left join category c on g.category_id = c.id
         left join user u on g.seller_id = u.id
         <where>
-            g.status = 3
+            <choose>
+                <when test="status != null">
+                    g.status = #{status}
+                </when>
+                <otherwise>
+                    g.status = 3
+                </otherwise>
+            </choose>
             <if test="categoryId != null">
                 and g.category_id = #{categoryId}
             </if>

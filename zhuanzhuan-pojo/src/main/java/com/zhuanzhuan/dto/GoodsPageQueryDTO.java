@@ -36,6 +36,11 @@ public class GoodsPageQueryDTO {
     private Long sellerId;
 
     /**
+     * 商品状态（用户端仅支持查询在售或已售）。
+     */
+    private Integer status;
+
+    /**
      * 最低价格。
      */
     private BigDecimal minPrice;

@@ -78,12 +78,12 @@
         order by sa.create_time desc
     </select>
 
-    <insert id="insert">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         insert into sellerauth (
-        id, user_id, real_name, student_no, phone, material, status, reason, audit_admin_id, audit_time,
+        user_id, real_name, student_no, phone, material, status, reason, audit_admin_id, audit_time,
         create_time, update_time, create_user, update_user
         ) values (
-        #{id}, #{userId}, #{realName}, #{studentNo}, #{phone}, #{material}, #{status}, #{reason}, #{auditAdminId}, #{auditTime},
+        #{userId}, #{realName}, #{studentNo}, #{phone}, #{material}, #{status}, #{reason}, #{auditAdminId}, #{auditTime},
         #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
         )
     </insert>

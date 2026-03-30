@@ -48,11 +48,11 @@ zhuanzhuan:
     region: ${zhuanzhuan.alioss.region}
     bucket-name: ${zhuanzhuan.alioss.bucket-name}
   virtual-wallet:
-    scheme: ${zhuanzhuan.virtual-wallet.scheme}
-    app-id: ${zhuanzhuan.virtual-wallet.app-id}
-    callback-url: ${zhuanzhuan.virtual-wallet.callback-url}
-    return-url: ${zhuanzhuan.virtual-wallet.return-url}
-    sign-secret: ${zhuanzhuan.virtual-wallet.sign-secret}
+    scheme: virtualwallet://pay
+    app-id: zhuanzhuan-campus
+    callback-url: http://localhost:8080/wallet/pay/callback
+    return-url: zhuanzhuan://pay/result
+    sign-secret: virtual-wallet-secret
 
 springdoc:
   swagger-ui:

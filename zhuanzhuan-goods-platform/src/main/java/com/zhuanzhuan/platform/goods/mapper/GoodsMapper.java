@@ -73,11 +73,11 @@ public interface GoodsMapper {
     @AutoFill(OperationType.INSERT)
     @Insert("""
             insert into goods (
-                id, seller_id, category_id, title, detail, price, old_price, quality, location, status, cover, reason,
+                seller_id, category_id, title, detail, price, old_price, quality, location, status, cover, reason,
                 audit_admin_id, audit_time, publish_time, view_count, favorite_count, lock_order_id, version,
                 create_time, update_time, create_user, update_user
             ) values (
-                #{id}, #{sellerId}, #{categoryId}, #{title}, #{detail}, #{price}, #{oldPrice}, #{quality}, #{location}, #{status}, #{cover}, #{reason},
+                #{sellerId}, #{categoryId}, #{title}, #{detail}, #{price}, #{oldPrice}, #{quality}, #{location}, #{status}, #{cover}, #{reason},
                 #{auditAdminId}, #{auditTime}, #{publishTime}, #{viewCount}, #{favoriteCount}, #{lockOrderId}, #{version},
                 #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
             )
@@ -167,6 +167,12 @@ public interface GoodsMapper {
             where id = #{goodsId}
             """)
     int adjustFavoriteCount(@Param("goodsId") Long goodsId, @Param("delta") Integer delta);
+
+    /**
+     * 统计指定卖家指定状态的商品数量。
+     */
+    @Select("select count(1) from goods where seller_id = #{sellerId} and status = #{status}")
+    Long countBySellerIdAndStatus(@Param("sellerId") Long sellerId, @Param("status") Integer status);
 
     /**
      * 锁定商品，防止同一商品被重复下单。

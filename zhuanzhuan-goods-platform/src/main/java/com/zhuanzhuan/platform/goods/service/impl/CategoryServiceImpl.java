@@ -16,7 +16,6 @@ import com.zhuanzhuan.exception.BaseException;
 import com.zhuanzhuan.platform.goods.mapper.CategoryMapper;
 import com.zhuanzhuan.platform.goods.service.CategoryService;
 import com.zhuanzhuan.result.PageResult;
-import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.CategoryTreeVO;
 import com.zhuanzhuan.vo.CategoryVO;
 import org.springframework.beans.BeanUtils;
@@ -99,7 +98,6 @@ public class CategoryServiceImpl implements CategoryService {
 
         // 5、保存分类
         Category category = new Category();
-        category.setId(IdGenerator.nextId());
         category.setParentId(parentId);
         category.setName(name);
         category.setLevel(level);

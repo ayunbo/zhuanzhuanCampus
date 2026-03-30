@@ -6,15 +6,9 @@ zhuanzhuan:
     port: 3306
     database: zhuanzhuan
     username: root
-    password: "050416"
+    password: 20041021
   alioss:
     bucket-name: zhuanzhuancampus
     endpoint: https://oss-cn-beijing.aliyuncs.com
     region: cn-beijing
-  virtual-wallet:
-    scheme: virtualwallet://pay
-    app-id: zhuanzhuan-campus
-    callback-url: http://localhost:8080/wallet/pay/callback
-    return-url: zhuanzhuan://pay/result
-    sign-secret: virtual-wallet-secret
 
