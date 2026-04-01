@@ -16,4 +16,7 @@ public class NoticeMessageVO {
     private Integer readStatus;
     private LocalDateTime readTime;
     private LocalDateTime createTime;
+    private String actionText;
+    private String targetPage;
+    private Long targetId;
 }

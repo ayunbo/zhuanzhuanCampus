@@ -11,6 +11,7 @@ import com.zhuanzhuan.service.notify.NoticeService;
 import com.zhuanzhuan.vo.notify.NoticeMessageVO;
 import com.zhuanzhuan.vo.notify.NoticeSessionSummaryVO;
 import com.zhuanzhuan.vo.notify.NoticeUnreadCountVO;
+import com.zhuanzhuan.websocket.notify.NoticeWebSocketPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,12 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Autowired
     private NoticeMapper noticeMapper;
+
+    @Autowired
+    private NoticeViewSupport noticeViewSupport;
+
+    @Autowired
+    private NoticeWebSocketPublisher noticeWebSocketPublisher;
 
     @Override
     public NoticeSessionSummaryVO getSessionSummary() {
@@ -61,6 +68,9 @@ public class NoticeServiceImpl implements NoticeService {
         int pageSize = normalizePageSize(queryDTO.getPageSize());
         int offset = (pageNo - 1) * pageSize;
         List<NoticeMessageVO> noticeList = noticeMapper.listByUserId(getCurrentUserId(), readStatus, offset, pageSize);
+        if (noticeList != null) {
+            noticeList.forEach(noticeViewSupport::fillDisplayFields);
+        }
         return noticeList == null ? Collections.emptyList() : noticeList;
     }
 
@@ -81,12 +91,15 @@ public class NoticeServiceImpl implements NoticeService {
         }
 
         noticeMapper.markRead(notice.getId(), currentUserId, LocalDateTime.now());
+        noticeWebSocketPublisher.sendToUser(currentUserId, "notice.unread", getUnreadCountByUserId(currentUserId));
     }
 
     @Override
     @Transactional
     public void readAll() {
-        noticeMapper.markAllRead(getCurrentUserId(), LocalDateTime.now());
+        Long currentUserId = getCurrentUserId();
+        noticeMapper.markAllRead(currentUserId, LocalDateTime.now());
+        noticeWebSocketPublisher.sendToUser(currentUserId, "notice.unread", getUnreadCountByUserId(currentUserId));
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.mapper.chat.ChatMessageMapper;
 import com.zhuanzhuan.mapper.chat.ChatSessionMapper;
 import com.zhuanzhuan.service.chat.ChatService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import com.zhuanzhuan.utils.IdGenerator;
 import com.zhuanzhuan.vo.chat.ChatMessageVO;
 import com.zhuanzhuan.vo.chat.ChatPushMessageVO;
@@ -52,6 +53,9 @@ public class ChatServiceImpl implements ChatService {
 
     @Autowired
     private ChatWebSocketPublisher chatWebSocketPublisher;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     @Override
     @Transactional
@@ -198,6 +202,12 @@ public class ChatServiceImpl implements ChatService {
         chatWebSocketPublisher.sendToUser(receiverId, new ChatPushMessageVO<>("chat.message", buildMessageVO(chatMessage, false)));
         chatWebSocketPublisher.sendToUser(receiverId, new ChatPushMessageVO<>("chat.unread", getUnreadCountByUserId(receiverId)));
         chatWebSocketPublisher.sendToUser(currentUserId, new ChatPushMessageVO<>("chat.unread", getUnreadCountByUserId(currentUserId)));
+        noticePublishService.publishChatMessageNotice(
+                receiverId,
+                session.getId(),
+                "新的聊天消息",
+                buildChatNoticeContent(session.getGoodsTitle(), content)
+        );
         return senderMessageVO;
     }
 
@@ -216,6 +226,7 @@ public class ChatServiceImpl implements ChatService {
         chatMessageMapper.markReadBySession(session.getId(), currentUserId, now);
         chatSessionMapper.clearUnreadForUser(session.getId(), currentUserId, currentUserId);
         chatWebSocketPublisher.sendToUser(currentUserId, new ChatPushMessageVO<>("chat.unread", getUnreadCountByUserId(currentUserId)));
+        noticePublishService.readChatMessageNotices(currentUserId, session.getId());
         if (unreadMessageIds != null && !unreadMessageIds.isEmpty()) {
             Long otherUserId = session.getSellerId().equals(currentUserId) ? session.getBuyerId() : session.getSellerId();
             ChatReadReceiptVO receiptVO = new ChatReadReceiptVO(session.getId(), currentUserId, now, unreadMessageIds);
@@ -319,6 +330,14 @@ public class ChatServiceImpl implements ChatService {
     private String buildLastMsg(String content) {
         // 会话摘要只保留较短文本，便于列表展示。
         return content.length() > 100 ? content.substring(0, 100) : content;
+    }
+
+    private String buildChatNoticeContent(String goodsTitle, String content) {
+        String summary = buildLastMsg(content);
+        if (StringUtils.hasText(goodsTitle)) {
+            return "关于[" + goodsTitle.trim() + "]的新消息: " + summary;
+        }
+        return "你收到一条新的聊天消息: " + summary;
     }
 
     private String trimToNull(String value) {

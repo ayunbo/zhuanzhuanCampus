@@ -11,6 +11,8 @@ import java.util.List;
 @Mapper
 public interface NoticeMapper {
 
+    int insert(Notice notice);
+
     Notice getLatestByUserId(@Param("userId") Long userId);
 
     List<NoticeMessageVO> listByUserId(@Param("userId") Long userId,
@@ -28,4 +30,8 @@ public interface NoticeMapper {
 
     int markAllRead(@Param("userId") Long userId,
                     @Param("readTime") LocalDateTime readTime);
+
+    int markChatNoticesReadByBizId(@Param("userId") Long userId,
+                                   @Param("bizId") Long bizId,
+                                   @Param("readTime") LocalDateTime readTime);
 }

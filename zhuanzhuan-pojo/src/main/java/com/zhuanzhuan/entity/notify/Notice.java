@@ -13,6 +13,18 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Notice {
 
+    public static final Integer TYPE_ORDER = 1;
+    public static final Integer TYPE_AUDIT = 2;
+    public static final Integer TYPE_REPORT = 3;
+    public static final Integer TYPE_SYSTEM = 4;
+    public static final Integer TYPE_CHAT = 5;
+
+    public static final Integer BIZ_TYPE_GOODS = 1;
+    public static final Integer BIZ_TYPE_ORDER = 2;
+    public static final Integer BIZ_TYPE_SELLER_AUTH = 3;
+    public static final Integer BIZ_TYPE_CHAT = 4;
+    public static final Integer BIZ_TYPE_REPORT = 5;
+
     public static final Integer READ_UNREAD = 0;
     public static final Integer READ_READ = 1;
 

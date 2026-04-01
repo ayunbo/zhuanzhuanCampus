@@ -666,6 +666,66 @@ POST /user/notice/read-all
 
 ---
 
+## 7.7.6 开发期手动发布通知
+
+这个接口只用于联调通知生成与实时推送，方便在没有真实业务触发方时手动造一条通知。
+
+接口：
+```http
+POST /user/notice/mock/publish
+```
+
+请求体：
+```json
+{
+  "receiverUserId": 6,
+  "scene": "order_status_change",
+  "bizId": 20260330001,
+  "title": "订单状态更新",
+  "content": "你的订单已发货, 点击查看订单进度."
+}
+```
+
+`scene` 当前支持：
+
+- `seller_auth_result`
+- `goods_audit_result`
+- `order_status_change`
+- `report_result`
+- `chat_message_notice`
+
+说明：
+
+- `receiverUserId`：接收通知的用户 id
+- `bizId`：业务主键；卖家认证用认证 id，商品审核用商品 id，订单用订单 id，举报用举报 id，聊天通知用 `sessionId`
+- `title` 和 `content` 可选；不传时后端按 `scene` 自动补默认文案
+- 调用成功后会立即写入 `notice` 表，并尝试给在线用户推送 `notice.message` 和 `notice.unread`
+
+---
+
+## 7.7.7 通知消息新增字段
+
+通知列表和 `notice.message` WebSocket 事件现在都会返回下面这 3 个字段，前端可以直接据此做卡片按钮和跳转：
+
+- `actionText`
+- `targetPage`
+- `targetId`
+
+当前约定的 `targetPage`：
+
+- `sellerAuth`
+- `goodsAudit`
+- `order`
+- `report`
+- `chat`
+
+说明：
+
+- `targetId` 默认等于后端返回的 `bizId`
+- 前端不要把真实前端路由存到数据库；统一根据 `targetPage + targetId` 做页面跳转
+
+---
+
 ## 8. WebSocket 对接
 
 ## 8.1 连接方式
@@ -738,6 +798,13 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 ```
 
 ---
+
+补充更新（2026-03-30）：
+
+- 通知模块现在也会复用同一条 `/ws/chat` WebSocket 通道
+- 新增通知事件：`notice.message`、`notice.unread`
+- 聊天消息发送后，后端会自动生成一条聊天类通知
+- 进入聊天会话并执行已读时，后端会同步清理该会话对应的未读聊天通知
 
 ## 8.3 `chat.message`
 
@@ -814,6 +881,60 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 - 只处理当前登录用户作为“发送方”的消息
 - 根据 `messageIds` 精确更新本地消息列表中的 `readStatus` 和 `readTime`
 - 如果当前就在对应会话页，可直接把这些消息更新为已读态
+
+---
+
+## 8.6 `notice.message`
+
+表示当前用户收到了一条新的通知消息。
+
+示例：
+```json
+{
+  "event": "notice.message",
+  "data": {
+    "id": 174340000001,
+    "type": 1,
+    "title": "订单状态更新",
+    "content": "你的订单已发货, 点击查看订单进度.",
+    "bizType": 2,
+    "bizId": 20260330001,
+    "readStatus": 0,
+    "readTime": null,
+    "createTime": "2026-03-30T12:00:00",
+    "actionText": "查看订单进度",
+    "targetPage": "order",
+    "targetId": 20260330001
+  }
+}
+```
+
+前端处理建议：
+- 直接把这条消息插入“通知消息”会话
+- 同步更新左侧该会话的最后一条摘要和时间
+- 根据 `actionText + targetPage + targetId` 渲染按钮和点击跳转
+- 如果要做顶部胶囊弹窗，可以直接复用这条载荷
+
+---
+
+## 8.7 `notice.unread`
+
+表示通知未读总数发生变化。
+
+示例：
+```json
+{
+  "event": "notice.unread",
+  "data": {
+    "totalUnreadCount": 4
+  }
+}
+```
+
+前端处理建议：
+- 全局 store 里维护通知未读总数
+- 左侧“通知消息”会话红点和消息中心总红点都直接使用这个值
+- 调用已读接口成功后，也可以等这条事件回写 UI
 
 ---
 
@@ -914,6 +1035,22 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 
 ---
 
+### 10.3 补充更新（2026-03-30）
+
+当前通知模块已经不再只是“只查不推”的原型，而是具备了最小可联调闭环：
+
+- 已支持 `/user/notice/...` 的查询、未读统计、单条已读、全部已读
+- 已支持通知 WebSocket 事件：`notice.message`、`notice.unread`
+- 已支持开发期 mock 发布接口：`POST /user/notice/mock/publish`
+- 已支持通知列表和通知推送返回 `actionText`、`targetPage`、`targetId`
+- 已支持聊天发送消息时自动生成聊天类通知
+
+当前仍未做完的点：
+
+- 订单、商品审核、卖家认证、举报等真实业务模块还没有全部接入统一通知发布服务
+- 顶部胶囊弹窗仍属于前端表现层，需要前端自行消费 `notice.message`
+- 更复杂的通知模板管理、批量聚合通知暂未实现
+
 ## 10.4 Swagger 注解中文乱码
 
 如果你在某些查看工具里看到个别注解说明乱码，那是终端显示问题，不影响接口实际调用和字段命名。
@@ -999,11 +1136,15 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 通知控制器：
 
 - `zhuanzhuan-server/src/main/java/com/zhuanzhuan/controller/user/notify/UserNoticeController.java`
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/controller/user/notify/UserNoticeMockController.java`
 
 通知业务：
 
 - `zhuanzhuan-server/src/main/java/com/zhuanzhuan/service/notify/NoticeService.java`
 - `zhuanzhuan-server/src/main/java/com/zhuanzhuan/service/impl/notify/NoticeServiceImpl.java`
+- `zhuanzhuan-common/src/main/java/com/zhuanzhuan/service/notify/NoticePublishService.java`
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/service/impl/notify/NoticePublishServiceImpl.java`
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/service/impl/notify/NoticeViewSupport.java`
 
 通知 Mapper：
 
@@ -1018,6 +1159,9 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 - `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/dto/notify/...`
 - `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/vo/notify/...`
 - `zhuanzhuan-pojo/src/main/java/com/zhuanzhuan/entity/notify/...`
+
+閫氱煡 WebSocket 鎺ㄩ€侊細
+- `zhuanzhuan-server/src/main/java/com/zhuanzhuan/websocket/notify/NoticeWebSocketPublisher.java`
 
 ---
 
@@ -1041,3 +1185,44 @@ const socket = new WebSocket(`${protocol}://localhost:8080/ws/chat?token=${token
 - 聊天消息顺序优化
 - 图片消息
 - 会话分页
+# 开发期通知调试面板补充
+
+前端在开发环境可以实现一个悬浮通知调试面板，用来手动触发通知生成和实时推送联调。
+
+强约束：
+
+- 只在开发环境或显式调试开关下显示
+- 不要在生产环境暴露这个面板
+- 面板必须直接调用后端现有接口：`POST /user/notice/mock/publish`
+- 不要自己伪造一套本地通知推送逻辑
+
+推荐按钮：
+
+- 卖家认证审核结果
+- 商品审核结果
+- 订单状态变化
+- 举报处理结果
+- 可选：聊天消息通知
+
+推荐表单字段：
+
+- `receiverUserId`
+- `bizId`
+- `title`
+- `content`
+- `scene`
+
+交互建议：
+
+1. 点击某个通知类型按钮后，自动带出对应 `scene`
+2. 允许编辑 `receiverUserId`、`bizId`、`title`、`content`
+3. 点击“推送”后调用 `POST /user/notice/mock/publish`
+4. 请求成功后显示响应结果
+5. 同时观察 WS 是否收到 `notice.message` 和 `notice.unread`
+
+验收标准：
+
+- 目标用户在线时，浏览器 WS 帧里应收到 `notice.message`
+- 同时应收到 `notice.unread`
+- “通知消息”会话应立即出现新的通知气泡
+- 如果实现了顶部胶囊弹窗，也应能直接基于这次推送数据显示
