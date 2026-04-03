@@ -15,6 +15,7 @@ import com.zhuanzhuan.vo.UserGoodsPageVO;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -71,6 +72,7 @@ public interface GoodsMapper {
      * @return 影响行数
      */
     @AutoFill(OperationType.INSERT)
+    @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     @Insert("""
             insert into goods (
                 seller_id, category_id, title, detail, price, old_price, quality, location, status, cover, reason,
