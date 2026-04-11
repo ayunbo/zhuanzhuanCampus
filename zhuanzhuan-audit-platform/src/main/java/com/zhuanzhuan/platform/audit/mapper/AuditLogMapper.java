@@ -30,4 +30,12 @@ public interface AuditLogMapper {
      * @return 审核流水列表
      */
     List<AuditLogVO> pageQuery(AdminAuditLogPageQueryDTO dto);
+
+    /**
+     * 根据日志 ID 查询单条日志视图信息。
+     *
+     * @param id 日志 ID
+     * @return 日志视图
+     */
+    AuditLogVO getById(Long id);
 }

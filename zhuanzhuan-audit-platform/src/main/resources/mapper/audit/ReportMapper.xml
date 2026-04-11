@@ -30,13 +30,30 @@
 
     <!-- 查询举报详情（关联举报人和处理管理员名称） -->
     <select id="selectDetailById" resultType="com.zhuanzhuan.vo.ReportDetailVO">
-        SELECT r.id, r.report_user_id, u.name AS report_user_name,
-               r.target_type, r.target_id, r.reason, r.status,
-               r.handle_admin_id, a.name AS handle_admin_name,
-               r.handle_result, r.handle_time, r.create_time
+        SELECT r.id,
+               r.report_user_id,
+               u.name AS report_user_name,
+               r.target_type,
+               r.target_id,
+               case r.target_type
+                   when 1 then g.title
+                   when 2 then tu.name
+                   when 3 then left(cm.content, 100)
+                   else null
+               end AS target_name,
+               r.reason,
+               r.status,
+               r.handle_admin_id,
+               a.name AS handle_admin_name,
+               r.handle_result,
+               r.handle_time,
+               r.create_time
         FROM report r
         LEFT JOIN user u ON r.report_user_id = u.id
         LEFT JOIN admin a ON r.handle_admin_id = a.id
+        LEFT JOIN goods g ON r.target_type = 1 AND r.target_id = g.id
+        LEFT JOIN user tu ON r.target_type = 2 AND r.target_id = tu.id
+        LEFT JOIN chatmessage cm ON r.target_type = 3 AND r.target_id = cm.id
         WHERE r.id = #{id}
     </select>
 

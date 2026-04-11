@@ -22,8 +22,14 @@ public class AuditLogVO {
     /** 操作类型：1商品审核 2卖家认证审核 3举报处理。 */
     private Integer operationType;
 
+    /** 操作类型描述。 */
+    private String operationTypeDesc;
+
     /** 操作对象id。 */
     private Long targetId;
+
+    /** 审核对象摘要。 */
+    private String targetSummary;
 
     /** 操作动作。 */
     private String action;

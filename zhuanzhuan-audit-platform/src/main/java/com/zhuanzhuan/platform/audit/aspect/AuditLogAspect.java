@@ -2,7 +2,9 @@ package com.zhuanzhuan.platform.audit.aspect;
 
 import com.zhuanzhuan.annotation.AuditRecord;
 import com.zhuanzhuan.context.BaseContext;
+import com.zhuanzhuan.entity.Admin;
 import com.zhuanzhuan.entity.AuditLog;
+import com.zhuanzhuan.platform.account.mapper.AdminMapper;
 import com.zhuanzhuan.platform.audit.mapper.AuditLogMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -25,6 +27,9 @@ public class AuditLogAspect {
 
     @Autowired
     private AuditLogMapper auditLogMapper;
+
+    @Autowired
+    private AdminMapper adminMapper;
 
     /**
      * 切入点：匹配所有标注了 @AuditRecord 注解的方法。
@@ -51,6 +56,7 @@ public class AuditLogAspect {
 
             // 3、获取当前登录管理员信息
             Long adminId = BaseContext.getCurrentId();
+            Admin currentAdmin = adminId == null ? null : adminMapper.getById(adminId);
 
             // 4、从方法参数中提取操作动作和详情
             String action = extractAction(joinPoint.getArgs(), operationType);
@@ -59,7 +65,7 @@ public class AuditLogAspect {
             // 5、构建审核流水实体并写入数据库
             AuditLog auditLog = AuditLog.builder()
                     .adminId(adminId != null ? adminId : 0L)
-                    .adminName("") // 名称由AutoFill或后续查询补充
+                    .adminName(currentAdmin != null ? currentAdmin.getName() : "")
                     .operationType(operationType)
                     .targetId(targetId != null ? targetId : 0L)
                     .action(action)

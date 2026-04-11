@@ -84,6 +84,14 @@ const routes = [
           title: '分类管理',
         },
       },
+      {
+        path: 'audit-log',
+        name: 'auditLog',
+        component: () => import('@/views/admin/AuditLogView.vue'),
+        meta: {
+          title: '日志管理',
+        },
+      },
     ],
   },
   {

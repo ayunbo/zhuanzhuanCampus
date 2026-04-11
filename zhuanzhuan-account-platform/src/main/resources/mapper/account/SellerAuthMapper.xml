@@ -43,6 +43,36 @@
         limit 1
     </select>
 
+    <select id="selectDetailById" resultType="com.zhuanzhuan.vo.AuditSellerAuthDetailVO">
+        select
+            sa.id as id,
+            sa.user_id as userId,
+            u.name as userName,
+            sa.real_name as realName,
+            sa.student_no as studentNo,
+            sa.phone as phone,
+            sa.material as material,
+            sa.status as status,
+            case sa.status
+                when 0 then '待审核'
+                when 1 then '已通过'
+                when 2 then '已驳回'
+                when 3 then '已撤回'
+                else '未知状态'
+            end as statusDesc,
+            sa.reason as reason,
+            sa.audit_admin_id as auditAdminId,
+            a.name as auditAdminName,
+            sa.audit_time as auditTime,
+            sa.create_time as createTime,
+            sa.update_time as updateTime
+        from sellerauth sa
+        left join `user` u on sa.user_id = u.id
+        left join admin a on sa.audit_admin_id = a.id
+        where sa.id = #{id}
+        limit 1
+    </select>
+
     <select id="pageQuery" resultType="com.zhuanzhuan.vo.SellerAuthResultVO">
         select
             sa.id,

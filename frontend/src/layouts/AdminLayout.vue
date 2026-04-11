@@ -114,6 +114,18 @@ const primaryGroups = [
         icon: Grid,
         tasks: [{ label: '分类总览', path: '/category-manage' }],
       },
+      {
+        key: 'auditLog',
+        label: '日志',
+        path: '/audit-log',
+        icon: Document,
+        tasks: [
+          { label: '全部日志', path: '/audit-log' },
+          { label: '商品审核', path: '/audit-log', query: { operationType: '1' } },
+          { label: '认证审核', path: '/audit-log', query: { operationType: '2' } },
+          { label: '举报处理', path: '/audit-log', query: { operationType: '3' } },
+        ],
+      },
     ],
   },
 ]
