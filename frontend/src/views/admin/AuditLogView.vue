@@ -72,179 +72,180 @@
   </div>
 
   <el-drawer v-model="detailVisible" title="日志详情" size="55%">
-    <el-skeleton :loading="detailLoading" animated :rows="10">
-      <template #default>
-        <el-space direction="vertical" fill>
-          <el-card shadow="never">
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="日志ID">{{ detailData?.id || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="操作管理员">
-                {{ detailData?.adminName || (detailData?.adminId ? `管理员 #${detailData.adminId}` : '-') }}
-              </el-descriptions-item>
-              <el-descriptions-item label="操作类型">
-                {{ detailData?.operationTypeDesc || operationTypeLabel(detailData?.operationType) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="操作动作">{{ detailData?.action || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="审核对象" :span="2">
-                {{ detailData?.targetSummary || (detailData?.targetId ? `对象 #${detailData.targetId}` : '-') }}
-              </el-descriptions-item>
-              <el-descriptions-item label="备注" :span="2">{{ detailData?.detail || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="操作时间" :span="2">
-                {{ formatDateTime(detailData?.createTime) }}
-              </el-descriptions-item>
-            </el-descriptions>
-          </el-card>
+    <el-scrollbar>
+      <el-skeleton :loading="detailLoading" animated :rows="10">
+        <template #default>
+          <div class="audit-log-detail-content">
+            <el-card shadow="never">
+              <template #header>日志信息</template>
 
-          <el-card v-if="detailData?.goodsDetail" shadow="never">
-            <template #header>商品审核内容</template>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="日志ID">{{ detailData?.id || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="操作管理员">
+                  {{ detailData?.adminName || (detailData?.adminId ? `管理员 #${detailData.adminId}` : '-') }}
+                </el-descriptions-item>
+                <el-descriptions-item label="操作类型">
+                  {{ detailData?.operationTypeDesc || operationTypeLabel(detailData?.operationType) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="操作动作">{{ detailData?.action || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="审核对象" :span="2">
+                  {{ detailData?.targetSummary || (detailData?.targetId ? `对象 #${detailData.targetId}` : '-') }}
+                </el-descriptions-item>
+                <el-descriptions-item label="备注" :span="2">{{ detailData?.detail || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="操作时间" :span="2">
+                  {{ formatDateTime(detailData?.createTime) }}
+                </el-descriptions-item>
+              </el-descriptions>
+            </el-card>
 
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="商品ID">{{ detailData.goodsDetail.id }}</el-descriptions-item>
-              <el-descriptions-item label="商品标题">{{ detailData.goodsDetail.title || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="发布人">{{ detailData.goodsDetail.sellerName || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="卖家学号">
-                {{ detailData.goodsDetail.sellerStudentNo || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="分类">{{ detailData.goodsDetail.categoryName || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="状态">
-                {{ detailData.goodsDetail.statusDesc || goodsStatusLabel(detailData.goodsDetail.status) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="价格">
-                {{ formatPrice(detailData.goodsDetail.price) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="原价">
-                {{ formatPrice(detailData.goodsDetail.oldPrice) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="面交地点" :span="2">
-                {{ detailData.goodsDetail.location || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="商品描述" :span="2">
-                {{ detailData.goodsDetail.detail || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="审核备注" :span="2">
-                {{ detailData.goodsDetail.reason || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="发布时间">
-                {{ formatDateTime(detailData.goodsDetail.publishTime) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="审核时间">
-                {{ formatDateTime(detailData.goodsDetail.auditTime) }}
-              </el-descriptions-item>
-            </el-descriptions>
+            <el-card v-if="detailData?.goodsDetail" shadow="never">
+              <template #header>商品审核内容</template>
 
-            <el-divider content-position="left">商品图片</el-divider>
-            <el-space wrap>
-              <el-link
-                v-for="(image, index) in detailData.goodsDetail.images || []"
-                :key="image.url"
-                :underline="false"
-                type="primary"
-                @click="previewImage(index)"
-              >
-                查看图片 {{ index + 1 }}
-              </el-link>
-              <el-empty v-if="goodsImageList.length === 0" description="暂无图片" />
-            </el-space>
-          </el-card>
+              <div class="audit-log-section">
+                <el-carousel v-if="goodsImageList.length > 0" height="260px" indicator-position="outside">
+                  <el-carousel-item v-for="image in goodsImageList" :key="image">
+                    <el-image :src="image" :preview-src-list="goodsImageList" fit="contain" />
+                  </el-carousel-item>
+                </el-carousel>
+                <el-empty v-else description="暂无图片" />
 
-          <el-card v-if="detailData?.sellerAuthDetail" shadow="never">
-            <template #header>卖家认证审核内容</template>
+                <el-descriptions :column="2" border>
+                  <el-descriptions-item label="商品ID">{{ detailData.goodsDetail.id }}</el-descriptions-item>
+                  <el-descriptions-item label="商品标题">{{ detailData.goodsDetail.title || '-' }}</el-descriptions-item>
+                  <el-descriptions-item label="发布人">{{ detailData.goodsDetail.sellerName || '-' }}</el-descriptions-item>
+                  <el-descriptions-item label="卖家学号">
+                    {{ detailData.goodsDetail.sellerStudentNo || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="分类">{{ detailData.goodsDetail.categoryName || '-' }}</el-descriptions-item>
+                  <el-descriptions-item label="状态">
+                    {{ detailData.goodsDetail.statusDesc || goodsStatusLabel(detailData.goodsDetail.status) }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="价格">
+                    {{ formatPrice(detailData.goodsDetail.price) }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="原价">
+                    {{ formatPrice(detailData.goodsDetail.oldPrice) }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="面交地点" :span="2">
+                    {{ detailData.goodsDetail.location || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="商品描述" :span="2">
+                    {{ detailData.goodsDetail.detail || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="审核备注" :span="2">
+                    {{ detailData.goodsDetail.reason || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="发布时间">
+                    {{ formatDateTime(detailData.goodsDetail.publishTime) }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="审核时间">
+                    {{ formatDateTime(detailData.goodsDetail.auditTime) }}
+                  </el-descriptions-item>
+                </el-descriptions>
+              </div>
+            </el-card>
 
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="申请ID">{{ detailData.sellerAuthDetail.id }}</el-descriptions-item>
-              <el-descriptions-item label="申请用户">
-                {{ detailData.sellerAuthDetail.userName || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="真实姓名">
-                {{ detailData.sellerAuthDetail.realName || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="学号">
-                {{ detailData.sellerAuthDetail.studentNo || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="手机号">
-                {{ detailData.sellerAuthDetail.phone || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="状态">
-                {{ detailData.sellerAuthDetail.statusDesc || sellerAuthStatusLabel(detailData.sellerAuthDetail.status) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="审核人">
-                {{ detailData.sellerAuthDetail.auditAdminName || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="审核时间">
-                {{ formatDateTime(detailData.sellerAuthDetail.auditTime) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="认证材料" :span="2">
+            <el-card v-if="detailData?.sellerAuthDetail" shadow="never">
+              <template #header>卖家认证审核内容</template>
+
+              <div class="audit-log-section">
+                <el-image
+                  v-if="sellerAuthImageList.length > 0"
+                  :src="sellerAuthImageList[0]"
+                  :preview-src-list="sellerAuthImageList"
+                  fit="contain"
+                />
                 <el-link
-                  v-if="isUrl(detailData.sellerAuthDetail.material)"
+                  v-else-if="isUrl(detailData.sellerAuthDetail.material)"
                   :href="detailData.sellerAuthDetail.material"
                   target="_blank"
                   type="primary"
                 >
-                  查看材料
+                  打开认证材料
                 </el-link>
-                <span v-else>{{ detailData.sellerAuthDetail.material || '-' }}</span>
-              </el-descriptions-item>
-              <el-descriptions-item label="审核备注" :span="2">
-                {{ detailData.sellerAuthDetail.reason || '-' }}
-              </el-descriptions-item>
-            </el-descriptions>
-          </el-card>
 
-          <el-card v-if="detailData?.reportDetail" shadow="never">
-            <template #header>举报处理内容</template>
+                <el-descriptions :column="2" border>
+                  <el-descriptions-item label="申请ID">{{ detailData.sellerAuthDetail.id }}</el-descriptions-item>
+                  <el-descriptions-item label="申请用户">
+                    {{ detailData.sellerAuthDetail.userName || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="真实姓名">
+                    {{ detailData.sellerAuthDetail.realName || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="学号">
+                    {{ detailData.sellerAuthDetail.studentNo || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="手机号">
+                    {{ detailData.sellerAuthDetail.phone || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="状态">
+                    {{ detailData.sellerAuthDetail.statusDesc || sellerAuthStatusLabel(detailData.sellerAuthDetail.status) }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="审核人">
+                    {{ detailData.sellerAuthDetail.auditAdminName || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="审核时间">
+                    {{ formatDateTime(detailData.sellerAuthDetail.auditTime) }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="认证材料" :span="2">
+                    {{ detailData.sellerAuthDetail.material || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="审核备注" :span="2">
+                    {{ detailData.sellerAuthDetail.reason || '-' }}
+                  </el-descriptions-item>
+                </el-descriptions>
+              </div>
+            </el-card>
 
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="举报ID">{{ detailData.reportDetail.id }}</el-descriptions-item>
-              <el-descriptions-item label="举报人">
-                {{ detailData.reportDetail.reportUserName || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="举报对象类型">
-                {{ reportTargetTypeLabel(detailData.reportDetail.targetType) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="举报对象ID">
-                {{ detailData.reportDetail.targetId || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="举报对象内容" :span="2">
-                {{ detailData.reportDetail.targetName || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="举报原因" :span="2">
-                {{ detailData.reportDetail.reason || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="处理状态">
-                {{ reportStatusLabel(detailData.reportDetail.status) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="处理管理员">
-                {{ detailData.reportDetail.handleAdminName || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="处理结果" :span="2">
-                {{ detailData.reportDetail.handleResult || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="处理时间">
-                {{ formatDateTime(detailData.reportDetail.handleTime) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="举报时间">
-                {{ formatDateTime(detailData.reportDetail.createTime) }}
-              </el-descriptions-item>
-            </el-descriptions>
-          </el-card>
-        </el-space>
-      </template>
-    </el-skeleton>
+            <el-card v-if="detailData?.reportDetail" shadow="never">
+              <template #header>举报处理内容</template>
+
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="举报ID">{{ detailData.reportDetail.id }}</el-descriptions-item>
+                <el-descriptions-item label="举报人">
+                  {{ detailData.reportDetail.reportUserName || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="举报对象类型">
+                  {{ reportTargetTypeLabel(detailData.reportDetail.targetType) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="举报对象ID">
+                  {{ detailData.reportDetail.targetId || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="举报对象内容" :span="2">
+                  {{ detailData.reportDetail.targetName || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="举报原因" :span="2">
+                  {{ detailData.reportDetail.reason || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="处理状态">
+                  {{ reportStatusLabel(detailData.reportDetail.status) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="处理管理员">
+                  {{ detailData.reportDetail.handleAdminName || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="处理结果" :span="2">
+                  {{ detailData.reportDetail.handleResult || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="处理时间">
+                  {{ formatDateTime(detailData.reportDetail.handleTime) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="举报时间">
+                  {{ formatDateTime(detailData.reportDetail.createTime) }}
+                </el-descriptions-item>
+              </el-descriptions>
+            </el-card>
+          </div>
+        </template>
+      </el-skeleton>
+    </el-scrollbar>
   </el-drawer>
 
-  <el-image-viewer
-    v-if="imageViewerVisible"
-    :url-list="goodsImageList"
-    :initial-index="imageViewerIndex"
-    @close="closeImageViewer"
-  />
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ElImageViewer } from 'element-plus'
 import { Document, RefreshRight, View } from '@element-plus/icons-vue'
 import { fetchAuditLogDetail, fetchAuditLogPage } from '@/api/admin'
 import {
@@ -259,8 +260,6 @@ const route = useRoute()
 const loading = ref(false)
 const detailLoading = ref(false)
 const detailVisible = ref(false)
-const imageViewerVisible = ref(false)
-const imageViewerIndex = ref(0)
 const records = ref([])
 const detailData = ref(null)
 
@@ -291,6 +290,18 @@ const goodsImageList = computed(() =>
     ? detailData.value.goodsDetail.images.map((item) => item.url).filter(Boolean)
     : [],
 )
+
+const sellerAuthImageList = computed(() => {
+  const material = detailData.value?.sellerAuthDetail?.material
+  if (typeof material !== 'string' || !material.trim()) {
+    return []
+  }
+
+  return material
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter((item) => isImageUrl(item))
+})
 
 function resolveOperationType(value) {
   const raw = Array.isArray(value) ? value[0] : value
@@ -360,13 +371,8 @@ function isUrl(value) {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
 }
 
-function previewImage(index) {
-  imageViewerIndex.value = index
-  imageViewerVisible.value = true
-}
-
-function closeImageViewer() {
-  imageViewerVisible.value = false
+function isImageUrl(value) {
+  return isUrl(value) && /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(value)
 }
 
 async function fetchList() {
@@ -447,10 +453,38 @@ watch(
   z-index: 1;
 }
 
+.audit-log-detail-content {
+  width: 100%;
+  display: grid;
+  gap: 16px;
+}
+
+.audit-log-section {
+  width: 100%;
+  display: grid;
+  gap: 16px;
+}
+
 .audit-log-page :deep(.el-card),
 .audit-log-page :deep(.el-message-box),
 .audit-log-page :deep(.el-drawer__body .el-card) {
   border-radius: 0 !important;
+}
+
+.audit-log-page :deep(.el-drawer__body) {
+  overflow: hidden;
+}
+
+.audit-log-page :deep(.el-scrollbar),
+.audit-log-page :deep(.el-scrollbar__view) {
+  width: 100%;
+}
+
+.audit-log-page :deep(.el-drawer__body .el-card),
+.audit-log-page :deep(.el-drawer__body .el-descriptions),
+.audit-log-page :deep(.el-drawer__body .el-carousel),
+.audit-log-page :deep(.el-drawer__body .el-image) {
+  width: 100%;
 }
 
 .audit-log-page :deep(.el-card__body) {
