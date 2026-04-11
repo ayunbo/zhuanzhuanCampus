@@ -1,31 +1,16 @@
 <template>
-  <el-container direction="vertical">
-    <el-header height="auto">
-      <el-card shadow="never">
-        <el-form :inline="true" @submit.prevent="handleSearch">
-          <el-form-item label="操作类型">
-            <el-select v-model="queryForm.operationType" clearable placeholder="全部">
-              <el-option
-                v-for="item in AUDIT_LOG_OPERATION_TYPE_OPTIONS"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </el-form-item>
+  <div class="audit-log-page">
+    <el-card class="audit-log-card" shadow="never">
+      <template #header>
+        <el-space>
+          <el-icon><Document /></el-icon>
+          <span>日志列表</span>
+          <el-button :icon="RefreshRight" :loading="loading" @click="fetchList">刷新</el-button>
+        </el-space>
+      </template>
 
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">查询</el-button>
-            <el-button @click="handleReset">重置</el-button>
-            <el-button :loading="loading" @click="fetchList">刷新</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-    </el-header>
-
-    <el-main>
-      <el-card shadow="never">
-        <el-table v-loading="loading" :data="records" border>
+      <div class="audit-log-table-wrap">
+        <el-table v-loading="loading" :data="records" border height="100%">
           <el-table-column prop="id" label="日志ID" min-width="90" />
           <el-table-column label="操作管理员" min-width="140">
             <template #default="{ row }">
@@ -59,9 +44,9 @@
               {{ formatDateTime(row.createTime) }}
             </template>
           </el-table-column>
-          <el-table-column label="详情" fixed="right" min-width="100">
+          <el-table-column label="详情" fixed="right" min-width="110">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openDetail(row.id)">查看详情</el-button>
+              <el-button link type="primary" :icon="View" @click="openDetail(row.id)">查看详情</el-button>
             </template>
           </el-table-column>
 
@@ -69,26 +54,22 @@
             <el-empty description="暂无日志数据" />
           </template>
         </el-table>
-      </el-card>
-    </el-main>
+      </div>
 
-    <el-footer height="auto">
-      <el-affix position="bottom" :offset="0">
-        <el-card shadow="never">
-          <el-pagination
-            v-model:current-page="pager.page"
-            v-model:page-size="pager.pageSize"
-            :total="pager.total"
-            :page-sizes="[10, 20, 30, 50]"
-            background
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="handleCurrentChange"
-            @size-change="handleSizeChange"
-          />
-        </el-card>
-      </el-affix>
-    </el-footer>
-  </el-container>
+      <div class="audit-log-pagination">
+        <el-pagination
+          v-model:current-page="pager.page"
+          v-model:page-size="pager.pageSize"
+          :total="pager.total"
+          :page-sizes="[10, 20, 30, 50]"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="handleCurrentChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-drawer v-model="detailVisible" title="日志详情" size="55%">
     <el-skeleton :loading="detailLoading" animated :rows="10">
@@ -261,21 +242,20 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ElImageViewer } from 'element-plus'
+import { Document, RefreshRight, View } from '@element-plus/icons-vue'
 import { fetchAuditLogDetail, fetchAuditLogPage } from '@/api/admin'
 import {
   AUDIT_LOG_OPERATION_TYPE,
   AUDIT_LOG_OPERATION_TYPE_LABEL_MAP,
-  AUDIT_LOG_OPERATION_TYPE_OPTIONS,
 } from '@/constants/auditLog'
 import { GOODS_STATUS_LABEL_MAP } from '@/constants/goods'
 import { SELLER_AUTH_STATUS_LABEL_MAP } from '@/constants/sellerAuth'
 import { formatDateTime } from '@/utils/format'
 
 const route = useRoute()
-const router = useRouter()
 const loading = ref(false)
 const detailLoading = ref(false)
 const detailVisible = ref(false)
@@ -418,41 +398,6 @@ async function openDetail(id) {
   }
 }
 
-function handleSearch() {
-  pager.page = 1
-  const currentOperationType = resolveOperationType(route.query.operationType)
-  const nextOperationType = resolveOperationType(queryForm.operationType)
-
-  if (currentOperationType === nextOperationType) {
-    fetchList()
-    return
-  }
-
-  if (nextOperationType === '') {
-    router.replace({ path: route.path })
-    return
-  }
-
-  router.replace({
-    path: route.path,
-    query: {
-      operationType: String(nextOperationType),
-    },
-  })
-}
-
-function handleReset() {
-  pager.page = 1
-  queryForm.operationType = ''
-
-  if (resolveOperationType(route.query.operationType) === '') {
-    fetchList()
-    return
-  }
-
-  router.replace({ path: route.path })
-}
-
 function handleCurrentChange(page) {
   pager.page = page
   fetchList()
@@ -474,3 +419,71 @@ watch(
   { immediate: true },
 )
 </script>
+
+<style scoped>
+.audit-log-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+}
+
+.audit-log-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.audit-log-table-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.audit-log-pagination {
+  position: sticky;
+  bottom: 0;
+  padding-top: 12px;
+  margin-top: 12px;
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color-lighter);
+  z-index: 1;
+}
+
+.audit-log-page :deep(.el-card),
+.audit-log-page :deep(.el-message-box),
+.audit-log-page :deep(.el-drawer__body .el-card) {
+  border-radius: 0 !important;
+}
+
+.audit-log-page :deep(.el-card__body) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.audit-log-page :deep(.el-button) {
+  border-radius: var(--el-border-radius-base) !important;
+  font-weight: var(--el-font-weight-primary) !important;
+  box-shadow: none !important;
+}
+
+.audit-log-page :deep(.el-button--primary) {
+  box-shadow: none !important;
+}
+
+.audit-log-page :deep(.el-table) {
+  --el-table-header-bg-color: var(--el-fill-color-light) !important;
+  --el-table-border-color: var(--el-border-color-lighter) !important;
+  --el-table-row-hover-bg-color: var(--el-fill-color-lighter) !important;
+}
+
+.audit-log-page :deep(.el-table th.el-table__cell) {
+  color: var(--el-text-color-primary) !important;
+  font-weight: var(--el-font-weight-primary) !important;
+}
+
+.audit-log-page :deep(.el-pagination.is-background .el-pager li),
+.audit-log-page :deep(.el-pagination.is-background .btn-next),
+.audit-log-page :deep(.el-pagination.is-background .btn-prev) {
+  border-radius: var(--el-border-radius-base) !important;
+}
+</style>
