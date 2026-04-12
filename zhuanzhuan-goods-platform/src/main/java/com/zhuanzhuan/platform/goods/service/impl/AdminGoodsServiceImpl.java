@@ -129,4 +129,70 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
             throw new BaseException(MessageConstant.GOODS_AUDIT_FAILED);
         }
     }
+
+    /**
+     * 管理员下架商品。
+     *
+     * @param goodsId 商品 ID
+     */
+    @Override
+    @Transactional
+    public void offShelf(Long goodsId) {
+        Long currentAdminId = BaseContext.getCurrentId();
+        if (currentAdminId == null) {
+            throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
+        }
+
+        Goods currentGoods = goodsMapper.selectById(goodsId);
+        if (currentGoods == null) {
+            throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
+        }
+        if (!GoodsConstant.STATUS_ON_SALE.equals(currentGoods.getStatus())) {
+            throw new BaseException(MessageConstant.GOODS_OFF_SHELF_STATUS_INVALID);
+        }
+
+        Goods updateGoods = Goods.builder()
+                .id(goodsId)
+                .status(GoodsConstant.STATUS_OFF_SHELF)
+                .reason(currentGoods.getReason())
+                .auditAdminId(currentGoods.getAuditAdminId())
+                .auditTime(currentGoods.getAuditTime())
+                .publishTime(currentGoods.getPublishTime())
+                .lockOrderId(currentGoods.getLockOrderId())
+                .version(currentGoods.getVersion())
+                .build();
+        int rows = goodsMapper.updateStatusById(updateGoods);
+        if (rows <= 0) {
+            throw new BaseException(MessageConstant.GOODS_OFF_SHELF_FAILED);
+        }
+    }
+
+    /**
+     * 管理员删除商品。
+     *
+     * @param goodsId 商品 ID
+     */
+    @Override
+    @Transactional
+    public void delete(Long goodsId) {
+        Long currentAdminId = BaseContext.getCurrentId();
+        if (currentAdminId == null) {
+            throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
+        }
+
+        Goods currentGoods = goodsMapper.selectById(goodsId);
+        if (currentGoods == null) {
+            throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
+        }
+        if (GoodsConstant.STATUS_LOCKED.equals(currentGoods.getStatus())
+                || GoodsConstant.STATUS_SOLD.equals(currentGoods.getStatus())) {
+            throw new BaseException(MessageConstant.GOODS_DELETE_STATUS_INVALID);
+        }
+
+        goodsImageMapper.deleteByGoodsId(goodsId);
+        int rows = goodsMapper.deleteById(goodsId);
+        if (rows <= 0) {
+            throw new BaseException(MessageConstant.GOODS_DELETE_FAILED);
+        }
+    }
 }

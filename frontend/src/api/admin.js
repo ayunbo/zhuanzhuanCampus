@@ -123,3 +123,11 @@ export function auditAdminGoods(data) {
 
   return request.put(`/admin/goods/${goodsId}/audit`, payload)
 }
+
+export function offShelfAdminGoods(id) {
+  return request.put(`/admin/goods/${id}/off-shelf`)
+}
+
+export function deleteAdminGoods(id) {
+  return request.delete(`/admin/goods/${id}`)
+}

@@ -132,10 +132,18 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" fixed="right" min-width="210">
+            <el-table-column label="操作" fixed="right" min-width="300">
               <template #default="{ row }">
                 <el-space wrap>
                   <el-button size="small" @click="openDetail(row.id)">详情</el-button>
+                  <el-button
+                    size="small"
+                    type="warning"
+                    :disabled="!canOffShelf(row) || actionLoadingId === String(row.id)"
+                    @click="handleOffShelf(row)"
+                  >
+                    下架
+                  </el-button>
                   <el-button
                     size="small"
                     type="primary"
@@ -151,6 +159,14 @@
                     @click="handleReject(row)"
                   >
                     驳回
+                  </el-button>
+                  <el-button
+                    size="small"
+                    type="danger"
+                    :disabled="!canDelete(row) || actionLoadingId === String(row.id)"
+                    @click="handleDelete(row)"
+                  >
+                    删除
                   </el-button>
                 </el-space>
               </template>
@@ -227,7 +243,13 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute } from 'vue-router'
-import { auditAdminGoods, fetchAdminGoodsDetail, fetchAdminGoodsPage } from '@/api/admin'
+import {
+  auditAdminGoods,
+  deleteAdminGoods,
+  fetchAdminGoodsDetail,
+  fetchAdminGoodsPage,
+  offShelfAdminGoods,
+} from '@/api/admin'
 import { GOODS_STATUS, GOODS_STATUS_LABEL_MAP, GOODS_STATUS_OPTIONS } from '@/constants/goods'
 import { formatDateTime } from '@/utils/format'
 
@@ -284,6 +306,14 @@ function statusTagType(status) {
 
 function canAudit(record) {
   return record.status === GOODS_STATUS.WAIT_AUDIT
+}
+
+function canOffShelf(record) {
+  return record.status === GOODS_STATUS.ON_SALE
+}
+
+function canDelete(record) {
+  return record.status !== GOODS_STATUS.LOCKED && record.status !== GOODS_STATUS.SOLD
 }
 
 function syncRouteFilters() {
@@ -401,6 +431,36 @@ async function submitAudit(goodsId, status, reason = '') {
   }
 }
 
+async function handleOffShelf(record) {
+  if (!canOffShelf(record)) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认下架商品 #${record.id} 吗？`, '提示', {
+      type: 'warning',
+      confirmButtonText: '确认下架',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  actionLoadingId.value = String(record.id)
+  try {
+    await offShelfAdminGoods(record.id)
+    ElMessage.success('商品已下架')
+    await fetchList()
+    if (detailVisible.value && detailData.value?.id === record.id) {
+      detailData.value = await fetchAdminGoodsDetail(record.id)
+    }
+  } catch (error) {
+    ElMessage.error(error.message || '商品下架失败')
+  } finally {
+    actionLoadingId.value = null
+  }
+}
+
 async function handleApprove(record) {
   if (!canAudit(record)) {
     return
@@ -434,6 +494,40 @@ async function handleReject(record) {
     await submitAudit(record.id, GOODS_STATUS.REJECTED, value)
   } catch {
     // ignore cancel
+  }
+}
+
+async function handleDelete(record) {
+  if (!canDelete(record)) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除商品 #${record.id} 吗？此操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  actionLoadingId.value = String(record.id)
+  try {
+    await deleteAdminGoods(record.id)
+    ElMessage.success('商品删除成功')
+    if (records.value.length === 1 && pager.page > 1) {
+      pager.page -= 1
+    }
+    await fetchList()
+    if (detailVisible.value && detailData.value?.id === record.id) {
+      detailVisible.value = false
+      detailData.value = null
+    }
+  } catch (error) {
+    ElMessage.error(error.message || '商品删除失败')
+  } finally {
+    actionLoadingId.value = null
   }
 }
 

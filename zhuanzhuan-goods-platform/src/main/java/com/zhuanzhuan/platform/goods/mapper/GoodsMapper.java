@@ -66,6 +66,15 @@ public interface GoodsMapper {
     int deleteByIdAndSellerId(@Param("id") Long id, @Param("sellerId") Long sellerId);
 
     /**
+     * 管理员根据商品 ID 删除商品。
+     *
+     * @param id 商品 ID
+     * @return 影响行数
+     */
+    @Delete("delete from goods where id = #{id}")
+    int deleteById(Long id);
+
+    /**
      * 新增商品。
      *
      * @param goods 商品实体
