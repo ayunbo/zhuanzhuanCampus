@@ -1,55 +1,40 @@
 ﻿<template>
-  <div class="dashboard-page">
-    <section v-if="showPendingPanel" class="panel app-card">
-      <header class="panel-head">
-        <h3>{{ pendingTitle }}</h3>
-        <button class="app-btn primary" :disabled="loading" @click="loadStats">
-          {{ loading ? '刷新中...' : '刷新数据' }}
-        </button>
-      </header>
-      <div class="card-grid four">
-        <article v-for="item in mergedCards" :key="item.key" class="stat-item">
-          <p>{{ item.title }}</p>
-          <strong>{{ formatCount(item.value) }}</strong>
-        </article>
-      </div>
-    </section>
+  <el-card shadow="never">
+    <el-space direction="vertical" fill style="width: 100%">
+      <el-form :inline="true">
+        <el-form-item>
+          <el-button type="primary" :loading="loading" @click="loadStats">刷新</el-button>
+        </el-form-item>
+      </el-form>
 
-    <section v-if="showGoodsPanel" class="panel app-card">
-      <header class="panel-head">
-        <h3>商品统计</h3>
-      </header>
-      <div class="card-grid four">
-        <article v-for="item in goodsCards" :key="item.key" class="stat-item compact">
-          <p>{{ item.title }}</p>
-          <strong>{{ formatCount(item.value) }}</strong>
-        </article>
-      </div>
-    </section>
+      <el-descriptions v-if="showPendingPanel" :title="pendingTitle" :column="4" border>
+        <el-descriptions-item v-for="item in mergedCards" :key="item.key" :label="item.title">
+          {{ formatCount(item.value) }}
+        </el-descriptions-item>
+      </el-descriptions>
 
-    <section v-if="showOrderPanel" class="panel app-card">
-      <header class="panel-head">
-        <h3>订单统计</h3>
-      </header>
-      <div class="card-grid four">
-        <article v-for="item in orderCards" :key="item.key" class="stat-item compact">
-          <p>{{ item.title }}</p>
-          <strong>{{ formatCount(item.value) }}</strong>
-        </article>
-      </div>
-    </section>
+      <el-descriptions v-if="showGoodsPanel" title="商品统计" :column="4" border>
+        <el-descriptions-item v-for="item in goodsCards" :key="item.key" :label="item.title">
+          {{ formatCount(item.value) }}
+        </el-descriptions-item>
+      </el-descriptions>
 
-    <section v-if="showQuickPanel" class="panel app-card">
-      <header class="panel-head">
-        <h3>常用功能</h3>
-      </header>
-      <div class="quick-grid">
-        <RouterLink v-for="item in quickActions" :key="item.to" :to="item.to" class="quick-item">
-          <h4>{{ item.title }}</h4>
-        </RouterLink>
-      </div>
-    </section>
-  </div>
+      <el-descriptions v-if="showOrderPanel" title="订单统计" :column="4" border>
+        <el-descriptions-item v-for="item in orderCards" :key="item.key" :label="item.title">
+          {{ formatCount(item.value) }}
+        </el-descriptions-item>
+      </el-descriptions>
+
+      <el-card v-if="showQuickPanel" shadow="never">
+        <template #header>常用功能</template>
+        <el-space wrap>
+          <el-button v-for="item in quickActions" :key="item.to" tag="router-link" :to="item.to">
+            {{ item.title }}
+          </el-button>
+        </el-space>
+      </el-card>
+    </el-space>
+  </el-card>
 </template>
 
 <script setup>
@@ -208,112 +193,3 @@ onMounted(() => {
   loadStats()
 })
 </script>
-
-<style scoped>
-.dashboard-page {
-  display: grid;
-  gap: 12px;
-}
-
-.panel {
-  padding: 14px;
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.panel-head h3 {
-  margin: 0;
-  font-size: 24px;
-  color: #2c4f82;
-}
-
-.card-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.card-grid.four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stat-item {
-  border: 1px solid #dbe9fb;
-  border-radius: 14px;
-  background: #fbfdff;
-  padding: 12px;
-  display: grid;
-  gap: 5px;
-}
-
-.stat-item p {
-  margin: 0;
-  color: #60769b;
-  font-size: 13px;
-}
-
-.stat-item strong {
-  font-family: 'Lexend', sans-serif;
-  font-size: 34px;
-  line-height: 1;
-  color: #253f66;
-}
-
-.stat-item span {
-  color: #7f90ab;
-  font-size: 12px;
-}
-
-.stat-item.compact strong {
-  font-size: 30px;
-}
-
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.quick-item {
-  border: 1px solid #d8e8fb;
-  border-radius: 14px;
-  background: #f4f9ff;
-  padding: 12px;
-  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.quick-item h4 {
-  margin: 0;
-  color: #2b4f80;
-}
-
-.quick-item:hover {
-  transform: translateY(-2px);
-  border-color: #b8d5fb;
-  background: #ecf5ff;
-}
-
-@media (max-width: 1220px) {
-  .card-grid.four,
-  .quick-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .panel-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .card-grid.four,
-  .quick-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

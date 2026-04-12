@@ -1,15 +1,15 @@
 <template>
-  <div class="audit-log-page">
-    <el-card class="audit-log-card" shadow="never">
-      <template #header>
-        <el-space>
-          <el-icon><Document /></el-icon>
-          <span>日志列表</span>
-          <el-button :icon="RefreshRight" :loading="loading" @click="fetchList">刷新</el-button>
-        </el-space>
-      </template>
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-header style="height: auto; padding-bottom: 18px">
+        <el-form :inline="true" :model="queryForm">
+          <el-form-item>
+            <el-button :icon="RefreshRight" :loading="loading" @click="fetchList">刷新</el-button>
+          </el-form-item>
+        </el-form>
+      </el-header>
 
-      <div class="audit-log-table-wrap">
+      <el-main style="padding-top: 0; padding-bottom: 0; min-height: 0">
         <el-table v-loading="loading" :data="records" border height="100%">
           <el-table-column prop="id" label="日志ID" min-width="90" />
           <el-table-column label="操作管理员" min-width="140">
@@ -51,12 +51,12 @@
           </el-table-column>
 
           <template #empty>
-            <el-empty description="暂无日志数据" />
+            <el-empty />
           </template>
         </el-table>
-      </div>
+      </el-main>
 
-      <div class="audit-log-pagination">
+      <el-footer style="height: auto; padding-top: 16px; padding-bottom: 0">
         <el-pagination
           v-model:current-page="pager.page"
           v-model:page-size="pager.pageSize"
@@ -67,15 +67,15 @@
           @current-change="handleCurrentChange"
           @size-change="handleSizeChange"
         />
-      </div>
-    </el-card>
-  </div>
+      </el-footer>
+    </el-container>
+  </el-card>
 
   <el-drawer v-model="detailVisible" title="日志详情" size="55%">
     <el-scrollbar>
       <el-skeleton :loading="detailLoading" animated :rows="10">
         <template #default>
-          <div class="audit-log-detail-content">
+          <el-space direction="vertical" fill style="width: 100%">
             <el-card shadow="never">
               <template #header>日志信息</template>
 
@@ -101,13 +101,13 @@
             <el-card v-if="detailData?.goodsDetail" shadow="never">
               <template #header>商品审核内容</template>
 
-              <div class="audit-log-section">
+              <el-space direction="vertical" fill style="width: 100%">
                 <el-carousel v-if="goodsImageList.length > 0" height="260px" indicator-position="outside">
                   <el-carousel-item v-for="image in goodsImageList" :key="image">
                     <el-image :src="image" :preview-src-list="goodsImageList" fit="contain" />
                   </el-carousel-item>
                 </el-carousel>
-                <el-empty v-else description="暂无图片" />
+                <el-empty v-else />
 
                 <el-descriptions :column="2" border>
                   <el-descriptions-item label="商品ID">{{ detailData.goodsDetail.id }}</el-descriptions-item>
@@ -142,13 +142,13 @@
                     {{ formatDateTime(detailData.goodsDetail.auditTime) }}
                   </el-descriptions-item>
                 </el-descriptions>
-              </div>
+              </el-space>
             </el-card>
 
             <el-card v-if="detailData?.sellerAuthDetail" shadow="never">
               <template #header>卖家认证审核内容</template>
 
-              <div class="audit-log-section">
+              <el-space direction="vertical" fill style="width: 100%">
                 <el-image
                   v-if="sellerAuthImageList.length > 0"
                   :src="sellerAuthImageList[0]"
@@ -194,7 +194,7 @@
                     {{ detailData.sellerAuthDetail.reason || '-' }}
                   </el-descriptions-item>
                 </el-descriptions>
-              </div>
+              </el-space>
             </el-card>
 
             <el-card v-if="detailData?.reportDetail" shadow="never">
@@ -234,7 +234,7 @@
                 </el-descriptions-item>
               </el-descriptions>
             </el-card>
-          </div>
+          </el-space>
         </template>
       </el-skeleton>
     </el-scrollbar>
@@ -246,7 +246,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Document, RefreshRight, View } from '@element-plus/icons-vue'
+import { RefreshRight, View } from '@element-plus/icons-vue'
 import { fetchAuditLogDetail, fetchAuditLogPage } from '@/api/admin'
 import {
   AUDIT_LOG_OPERATION_TYPE,
@@ -425,99 +425,3 @@ watch(
   { immediate: true },
 )
 </script>
-
-<style scoped>
-.audit-log-page {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-}
-
-.audit-log-card {
-  flex: 1;
-  min-height: 0;
-}
-
-.audit-log-table-wrap {
-  flex: 1;
-  min-height: 0;
-}
-
-.audit-log-pagination {
-  position: sticky;
-  bottom: 0;
-  padding-top: 12px;
-  margin-top: 12px;
-  background: var(--el-bg-color);
-  border-top: 1px solid var(--el-border-color-lighter);
-  z-index: 1;
-}
-
-.audit-log-detail-content {
-  width: 100%;
-  display: grid;
-  gap: 16px;
-}
-
-.audit-log-section {
-  width: 100%;
-  display: grid;
-  gap: 16px;
-}
-
-.audit-log-page :deep(.el-card),
-.audit-log-page :deep(.el-message-box),
-.audit-log-page :deep(.el-drawer__body .el-card) {
-  border-radius: 0 !important;
-}
-
-.audit-log-page :deep(.el-drawer__body) {
-  overflow: hidden;
-}
-
-.audit-log-page :deep(.el-scrollbar),
-.audit-log-page :deep(.el-scrollbar__view) {
-  width: 100%;
-}
-
-.audit-log-page :deep(.el-drawer__body .el-card),
-.audit-log-page :deep(.el-drawer__body .el-descriptions),
-.audit-log-page :deep(.el-drawer__body .el-carousel),
-.audit-log-page :deep(.el-drawer__body .el-image) {
-  width: 100%;
-}
-
-.audit-log-page :deep(.el-card__body) {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.audit-log-page :deep(.el-button) {
-  border-radius: var(--el-border-radius-base) !important;
-  font-weight: var(--el-font-weight-primary) !important;
-  box-shadow: none !important;
-}
-
-.audit-log-page :deep(.el-button--primary) {
-  box-shadow: none !important;
-}
-
-.audit-log-page :deep(.el-table) {
-  --el-table-header-bg-color: var(--el-fill-color-light) !important;
-  --el-table-border-color: var(--el-border-color-lighter) !important;
-  --el-table-row-hover-bg-color: var(--el-fill-color-lighter) !important;
-}
-
-.audit-log-page :deep(.el-table th.el-table__cell) {
-  color: var(--el-text-color-primary) !important;
-  font-weight: var(--el-font-weight-primary) !important;
-}
-
-.audit-log-page :deep(.el-pagination.is-background .el-pager li),
-.audit-log-page :deep(.el-pagination.is-background .btn-next),
-.audit-log-page :deep(.el-pagination.is-background .btn-prev) {
-  border-radius: var(--el-border-radius-base) !important;
-}
-</style>

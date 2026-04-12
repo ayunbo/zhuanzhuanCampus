@@ -1,7 +1,8 @@
 <template>
-  <div class="admin-goods-page">
-    <el-card class="filter-card" shadow="never">
-      <el-form :inline="true" :model="queryForm" size="small" @submit.prevent>
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-header style="height: auto; padding-bottom: 18px">
+        <el-form :inline="true" :model="queryForm" @submit.prevent>
         <el-form-item label="关键字">
           <el-input
             v-model="queryForm.keyword"
@@ -70,12 +71,10 @@
           <el-button :loading="loading" @click="fetchList">刷新</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+      </el-header>
 
-    <el-card class="table-card" shadow="never">
-      <div class="table-card-body">
-        <div class="table-box">
-          <el-table :data="records" v-loading="loading" border stripe height="100%">
+      <el-main style="padding-top: 0; padding-bottom: 0; min-height: 0">
+        <el-table :data="records" v-loading="loading" border stripe height="100%">
             <el-table-column prop="id" label="ID" min-width="90" />
 
             <el-table-column label="卖家" min-width="170">
@@ -173,31 +172,30 @@
             </el-table-column>
 
             <template #empty>
-              <el-empty description="暂无商品数据" />
+              <el-empty />
             </template>
           </el-table>
-        </div>
+      </el-main>
 
-        <footer class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pager.page"
-            v-model:page-size="pager.pageSize"
-            :background="true"
-            layout="total, sizes, prev, pager, next"
-            :page-sizes="[10, 20, 30]"
-            :pager-count="5"
-            :total="pager.total"
-            @current-change="handleCurrentChange"
-            @size-change="handleSizeChange"
-          />
-        </footer>
-      </div>
-    </el-card>
+      <el-footer style="height: auto; padding-top: 16px; padding-bottom: 0">
+        <el-pagination
+          v-model:current-page="pager.page"
+          v-model:page-size="pager.pageSize"
+          :background="true"
+          layout="total, sizes, prev, pager, next"
+          :page-sizes="[10, 20, 30]"
+          :pager-count="5"
+          :total="pager.total"
+          @current-change="handleCurrentChange"
+          @size-change="handleSizeChange"
+        />
+      </el-footer>
+    </el-container>
 
     <el-dialog v-model="detailVisible" title="商品详情" width="760px" destroy-on-close class="goods-detail-dialog">
-      <div v-if="detailLoading" class="detail-empty">详情加载中...</div>
+      <el-skeleton v-if="detailLoading" animated :rows="8" />
 
-      <div v-else-if="detailData" class="detail-panel">
+      <el-space v-else-if="detailData" direction="vertical" fill style="width: 100%">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="商品 ID">{{ detailData.id }}</el-descriptions-item>
           <el-descriptions-item label="卖家">{{ detailData.sellerName || '-' }}</el-descriptions-item>
@@ -230,13 +228,14 @@
             :src="image.url"
             :preview-src-list="detailData.images.map((item) => item.url)"
             fit="cover"
+            style="width: 100%"
           />
         </div>
-      </div>
+      </el-space>
 
-      <div v-else class="detail-empty">暂无详情数据</div>
+      <el-empty v-else />
     </el-dialog>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
@@ -545,114 +544,3 @@ watch(
   },
 )
 </script>
-
-<style scoped>
-.admin-goods-page {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.admin-goods-page :deep(.el-card),
-.admin-goods-page :deep(.el-card__body),
-.admin-goods-page :deep(.el-input__wrapper),
-.admin-goods-page :deep(.el-select__wrapper),
-.admin-goods-page :deep(.el-input-number),
-.admin-goods-page :deep(.el-input-number__decrease),
-.admin-goods-page :deep(.el-input-number__increase),
-.admin-goods-page :deep(.el-button),
-.admin-goods-page :deep(.el-table),
-.admin-goods-page :deep(.el-table__inner-wrapper),
-.admin-goods-page :deep(.el-table__cell),
-.admin-goods-page :deep(.el-tag),
-.admin-goods-page :deep(.el-pagination button),
-.admin-goods-page :deep(.el-pager li),
-.admin-goods-page :deep(.el-image),
-.admin-goods-page :deep(.el-image__inner) {
-  border-radius: 0 !important;
-}
-
-:deep(.goods-detail-dialog .el-dialog),
-:deep(.goods-detail-dialog .el-dialog__header),
-:deep(.goods-detail-dialog .el-dialog__body),
-:deep(.goods-detail-dialog .el-descriptions__table),
-:deep(.goods-detail-dialog .el-tag) {
-  border-radius: 0 !important;
-}
-
-.filter-card :deep(.el-card__body) {
-  padding-bottom: 8px;
-}
-
-.table-card {
-  flex: 1;
-  min-height: 0;
-}
-
-.table-card :deep(.el-card__body) {
-  height: 100%;
-  padding: 0;
-}
-
-.table-card-body {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.table-box {
-  flex: 1;
-  min-height: 0;
-}
-
-.pagination-wrap {
-  flex: 0 0 auto;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  display: flex;
-  justify-content: flex-end;
-  background: var(--el-bg-color);
-}
-
-.cell-stack {
-  display: grid;
-  gap: 4px;
-}
-
-.cell-stack small {
-  color: var(--el-text-color-secondary);
-}
-
-.detail-panel {
-  display: grid;
-  gap: 16px;
-}
-
-.detail-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.detail-images :deep(.el-image) {
-  width: 100%;
-  height: 120px;
-  overflow: hidden;
-}
-
-.detail-empty {
-  padding: 24px 0;
-  text-align: center;
-  color: var(--el-text-color-secondary);
-}
-
-@media (max-width: 760px) {
-  .pagination-wrap {
-    justify-content: center;
-    overflow-x: auto;
-  }
-}
-</style>

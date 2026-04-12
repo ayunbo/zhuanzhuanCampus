@@ -1,15 +1,12 @@
 ﻿<template>
-  <div class="category-page">
-    <el-row :gutter="12" class="content-row">
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-main style="padding: 0; min-height: 0">
+        <el-row :gutter="12" style="height: 100%; margin: 0">
       <el-col :xs="24" :lg="6" :xl="5">
-        <el-card class="side-card">
+        <el-card shadow="never" style="height: 100%">
           <template #header>
-            <div class="card-header">
-              <div>
-                <h3>分类树</h3>
-                <p>{{ currentTreeLabel }}</p>
-              </div>
-            </div>
+            <span>{{ currentTreeLabel }}</span>
           </template>
 
           <el-input v-model="treeKeyword" clearable placeholder="筛选分类名称">
@@ -18,13 +15,13 @@
             </template>
           </el-input>
 
-          <div class="tree-tools">
+          <el-space style="margin-top: 12px">
             <el-button size="small" text @click="viewAllFromTree">全部</el-button>
             <el-button size="small" text @click="expandTree">展开</el-button>
             <el-button size="small" text @click="collapseTree">收起</el-button>
-          </div>
+          </el-space>
 
-          <el-scrollbar class="tree-scroll">
+          <el-scrollbar height="calc(100vh - 300px)" style="margin-top: 12px">
             <el-tree
               :key="treeRenderKey"
               ref="treeRef"
@@ -38,12 +35,12 @@
               @node-click="handleTreeNodeClick"
             >
               <template #default="{ data }">
-                <div class="tree-node">
-                  <span class="tree-node-name">{{ data.name }}</span>
+                <el-space>
+                  <span>{{ data.name }}</span>
                   <el-tag size="small" :type="Number(data.status) === 1 ? 'success' : 'info'">
                     {{ Number(data.status) === 1 ? '启用' : '禁用' }}
                   </el-tag>
-                </div>
+                </el-space>
               </template>
             </el-tree>
           </el-scrollbar>
@@ -51,17 +48,14 @@
       </el-col>
 
       <el-col :xs="24" :lg="18" :xl="19">
-        <el-card class="main-card">
+        <el-card shadow="never" style="height: 100%">
           <template #header>
-            <div class="card-header">
-              <div>
-                <h3>分类列表</h3>
-                <p>{{ currentFilterLabel }}</p>
-              </div>
-            </div>
+            <span>{{ currentFilterLabel }}</span>
           </template>
 
-          <el-form class="query-bar" :inline="true" :model="query">
+          <el-container style="height: 100%">
+            <el-header style="height: auto; padding: 0 0 18px">
+          <el-form :inline="true" :model="query">
             <el-form-item label="状态">
               <el-select v-model="query.status" placeholder="全部" style="width: 160px">
                 <el-option label="全部" value="" />
@@ -77,16 +71,15 @@
               <el-button :loading="loading" @click="refreshAll">刷新</el-button>
             </el-form-item>
           </el-form>
+            </el-header>
 
-          <div class="table-area">
-            <div class="table-wrap">
+            <el-main style="padding: 0; min-height: 0">
               <el-table
                 v-loading="loading"
                 :data="tableData"
                 border
                 stripe
                 row-key="id"
-                class="category-table"
                 empty-text="暂无数据"
                 height="100%"
               >
@@ -117,7 +110,7 @@
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" min-width="290">
                   <template #default="{ row }">
-                    <div class="action-row">
+                    <el-space wrap>
                       <el-button size="small" type="primary" :loading="isActionLoading(row)" @click="openEditDialog(row)">
                         编辑
                       </el-button>
@@ -128,34 +121,34 @@
                       <el-button size="small" type="danger" :loading="isActionLoading(row)" @click="handleDelete(row)">
                         删除
                       </el-button>
-                    </div>
+                    </el-space>
                   </template>
                 </el-table-column>
 
                 <template #empty>
-                  <div class="table-empty">
-                    <el-icon><Box /></el-icon>
-                    <span>暂无数据</span>
-                  </div>
+                  <el-empty />
                 </template>
               </el-table>
-            </div>
+            </el-main>
 
-            <div class="pagination-wrap">
+            <el-footer style="height: auto; padding: 16px 0 0">
               <el-pagination
                 v-model:current-page="query.page"
                 v-model:page-size="query.pageSize"
                 :total="total"
                 :page-sizes="[10, 20, 30]"
+                background
                 layout="total, sizes, prev, pager, next"
                 @current-change="loadPage"
                 @size-change="handleSizeChange"
               />
-            </div>
-          </div>
+            </el-footer>
+          </el-container>
         </el-card>
       </el-col>
     </el-row>
+      </el-main>
+    </el-container>
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" destroy-on-close>
       <el-form ref="dialogFormRef" :model="dialogForm" :rules="dialogRules" label-width="88px" status-icon>
@@ -190,21 +183,19 @@
       </el-form>
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitLoading" @click="submitDialog">
-            {{ dialogMode === 'create' ? '确认新增' : '确认保存' }}
-          </el-button>
-        </div>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="submitDialog">
+          {{ dialogMode === 'create' ? '确认新增' : '确认保存' }}
+        </el-button>
       </template>
     </el-dialog>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Box, Search } from '@element-plus/icons-vue'
+import { Search } from '@element-plus/icons-vue'
 import {
   createCategory,
   deleteCategory,
@@ -718,179 +709,3 @@ onMounted(() => {
   refreshAll()
 })
 </script>
-
-<style scoped>
-.category-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.content-row {
-  height: 100%;
-  flex: 1;
-  min-height: 0;
-}
-
-.content-row :deep(.el-col) {
-  display: flex;
-  min-height: 0;
-}
-
-.side-card,
-.main-card {
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-  box-shadow: var(--shadow-card);
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.side-card :deep(.el-card__body),
-.main-card :deep(.el-card__body) {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.card-header h3 {
-  margin: 0;
-  color: #2e5286;
-  font-size: 17px;
-}
-
-.card-header p {
-  margin: 4px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.tree-tools {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-}
-
-.tree-scroll {
-  margin-top: 8px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #fbfdff;
-  padding: 8px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.tree-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.tree-node {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding-right: 6px;
-}
-
-.tree-node-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.query-bar {
-  padding: 12px 12px 2px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #fbfdff;
-}
-
-.query-bar :deep(.el-form-item:last-child) {
-  margin-left: auto;
-  margin-right: 0;
-}
-
-.category-table {
-  margin-top: 0;
-  width: 100%;
-  min-width: 100%;
-}
-
-.table-wrap {
-  display: flex;
-  flex: 1 1 auto;
-  height: 0;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #ffffff;
-}
-
-.table-area {
-  margin-top: 12px;
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.action-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.pagination-wrap {
-  margin-top: 0;
-  padding-top: 12px;
-  padding-bottom: 4px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
-  flex: 0 0 auto;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 768px) {
-    .query-bar {
-    padding: 10px 10px 0;
-  }
-
-  .query-bar :deep(.el-form-item) {
-    margin-right: 0;
-  }
-
-  .side-card :deep(.el-card__body),
-  .main-card :deep(.el-card__body) {
-    min-height: auto;
-  }
-
-  .action-row {
-    flex-wrap: wrap;
-    white-space: normal;
-  }
-}
-</style>
-

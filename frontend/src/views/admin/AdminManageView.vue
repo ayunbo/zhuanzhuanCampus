@@ -1,104 +1,82 @@
 <template>
-  <div class="admin-page">
-    <section class="app-card table-panel">
-      <form class="filter-grid" @submit.prevent="handleSearch">
-        <label>
-          <span>账号</span>
-          <input v-model="queryForm.username" class="app-input" type="text" placeholder="管理员账号" />
-        </label>
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-header style="height: auto; padding-bottom: 18px">
+        <el-form :inline="true" :model="queryForm" @submit.prevent="handleSearch">
+          <el-form-item label="账号">
+            <el-input v-model="queryForm.username" clearable placeholder="管理员账号" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="姓名">
+            <el-input v-model="queryForm.name" clearable placeholder="管理员姓名" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="手机号">
+            <el-input v-model="queryForm.phone" clearable placeholder="手机号" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="queryForm.status" clearable placeholder="全部状态">
+              <el-option v-for="item in ADMIN_STATUS_OPTIONS" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="handleReset">重置</el-button>
+            <el-button type="primary" @click="handleCreate">新增管理员</el-button>
+            <el-button :loading="loading" @click="fetchList">刷新</el-button>
+          </el-form-item>
+        </el-form>
+      </el-header>
 
-        <label>
-          <span>姓名</span>
-          <input v-model="queryForm.name" class="app-input" type="text" placeholder="管理员姓名" />
-        </label>
-
-        <label>
-          <span>手机号</span>
-          <input v-model="queryForm.phone" class="app-input" type="text" placeholder="手机号" />
-        </label>
-
-        <label>
-          <span>状态</span>
-          <select v-model="queryForm.status" class="app-select">
-            <option value="">全部</option>
-            <option v-for="item in ADMIN_STATUS_OPTIONS" :key="item.value" :value="item.value">
-              {{ item.label }}
-            </option>
-          </select>
-        </label>
-
-        <div class="action-group">
-          <button class="app-btn primary" type="submit">查询</button>
-          <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
-          <button class="app-btn primary" type="button" @click="handleCreate">新增管理员</button>
-          <button class="app-btn secondary" type="button" :disabled="loading" @click="fetchList">
-            {{ loading ? '加载中...' : '刷新列表' }}
-          </button>
-        </div>
-      </form>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>账号</th>
-              <th>姓名</th>
-              <th>手机号</th>
-              <th>状态</th>
-              <th>创建时间</th>
-              <th>更新时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!loading && records.length === 0">
-              <td class="empty-row" colspan="8">
-                <div class="table-empty">
-                  <el-icon><Box /></el-icon>
-                  <span>暂无数据</span>
-                </div>
-              </td>
-            </tr>
-
-            <tr v-for="record in records" :key="record.id">
-              <td>{{ record.id }}</td>
-              <td>{{ record.username || '-' }}</td>
-              <td>{{ record.name || '-' }}</td>
-              <td>{{ record.phone || '-' }}</td>
-              <td>
-                <span class="status-badge" :class="statusClass(record.status)">
-                  {{ statusLabel(record.status) }}
-                </span>
-              </td>
-              <td>{{ formatDateTime(record.createTime) }}</td>
-              <td>{{ formatDateTime(record.updateTime) }}</td>
-              <td class="actions">
-                <button class="app-btn primary mini" :disabled="actionLoadingId === record.id" @click="handleEdit(record)">
+      <el-main style="padding-top: 0; padding-bottom: 0; min-height: 0">
+        <el-table v-loading="loading" :data="records" border height="100%">
+          <el-table-column prop="id" label="ID" min-width="90" />
+          <el-table-column prop="username" label="账号" min-width="160" />
+          <el-table-column prop="name" label="姓名" min-width="120" />
+          <el-table-column prop="phone" label="手机号" min-width="150" />
+          <el-table-column label="状态" min-width="110">
+            <template #default="{ row }">
+              <el-tag :type="row.status === ADMIN_STATUS.NORMAL ? 'success' : 'info'">
+                {{ statusLabel(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="创建时间" min-width="180">
+            <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
+          </el-table-column>
+          <el-table-column label="更新时间" min-width="180">
+            <template #default="{ row }">{{ formatDateTime(row.updateTime) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" min-width="160">
+            <template #default="{ row }">
+              <el-space>
+                <el-button size="small" type="primary" :loading="actionLoadingId === row.id" @click="handleEdit(row)">
                   编辑
-                </button>
-                <button class="app-btn danger mini" :disabled="actionLoadingId === record.id" @click="handleDelete(record)">
+                </el-button>
+                <el-button size="small" type="danger" :loading="actionLoadingId === row.id" @click="handleDelete(row)">
                   删除
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </el-button>
+              </el-space>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty />
+          </template>
+        </el-table>
+      </el-main>
 
-      <footer class="pagination-wrap">
+      <el-footer style="height: auto; padding-top: 16px; padding-bottom: 0">
         <el-pagination
           v-model:current-page="pager.page"
           v-model:page-size="pager.pageSize"
           :total="pager.total"
           :page-sizes="[10, 20, 30]"
+          background
           layout="total, sizes, prev, pager, next"
           @current-change="handleCurrentChange"
           @size-change="handleSizeChange"
         />
-      </footer>
-    </section>
-  </div>
+      </el-footer>
+    </el-container>
+  </el-card>
 
   <el-dialog v-model="dialogVisible" :title="dialogTitle" width="540px" destroy-on-close>
     <el-form ref="dialogFormRef" :model="dialogForm" :rules="dialogRules" label-width="88px" status-icon>
@@ -137,12 +115,10 @@
     </el-form>
 
     <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="submitDialog">
-          {{ dialogMode === 'create' ? '确认新增' : '确认保存' }}
-        </el-button>
-      </div>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="submitLoading" @click="submitDialog">
+        {{ dialogMode === 'create' ? '确认新增' : '确认保存' }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
@@ -150,7 +126,6 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Box } from '@element-plus/icons-vue'
 import {
   createAdmin,
   deleteAdmin,
@@ -450,151 +425,3 @@ onMounted(() => {
   fetchList()
 })
 </script>
-
-<style scoped>
-.admin-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-panel {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.filter-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: end;
-}
-
-.filter-grid label {
-  display: grid;
-  gap: 6px;
-  flex: 1 1 200px;
-  min-width: 180px;
-}
-
-.filter-grid span {
-  color: #4a648c;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.action-group {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-  justify-content: flex-end;
-}
-
-.table-wrap {
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: auto;
-  background: #ffffff;
-  flex: 1 1 auto;
-  height: 0;
-  min-height: 0;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 960px;
-}
-
-.data-table th,
-.data-table td {
-  padding: 11px 10px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.data-table th {
-  color: #35557f;
-  background: #f3f8ff;
-  font-weight: 700;
-  position: sticky;
-  top: 0;
-}
-
-.data-table tbody tr:hover {
-  background: #f9fcff;
-}
-
-.empty-row {
-  padding: 0 !important;
-  text-align: center;
-}
-
-.actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  white-space: nowrap;
-}
-
-.data-table th:last-child,
-.data-table td:last-child {
-  text-align: right;
-}
-
-.app-btn.mini {
-  padding: 6px 9px;
-  font-size: 12px;
-}
-
-.status-normal {
-  color: #13795b;
-  background: #ddf8ee;
-}
-
-.status-disabled {
-  color: #b0444d;
-  background: #ffe8eb;
-}
-
-.pagination-wrap {
-  margin-top: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
-  flex: 0 0 auto;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 860px) {
-  .action-group {
-    margin-left: 0;
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-}
-
-@media (max-width: 620px) {
-  .table-panel {
-    padding: 10px;
-  }
-}
-</style>
