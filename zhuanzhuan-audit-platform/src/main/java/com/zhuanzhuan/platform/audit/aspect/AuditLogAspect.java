@@ -14,6 +14,7 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * 审核流水自动记录切面。
@@ -51,16 +52,16 @@ public class AuditLogAspect {
             AuditRecord auditRecord = signature.getMethod().getAnnotation(AuditRecord.class);
             int operationType = auditRecord.operationType();
 
-            // 2、从方法参数中提取操作对象 ID（第一个 Long 类型参数）
-            Long targetId = extractTargetId(joinPoint.getArgs());
+            // 2、从方法参数中提取操作对象 ID（优先使用注解显式字段，其次回退到 Long 类型参数）
+            Long targetId = extractTargetId(joinPoint.getArgs(), auditRecord);
 
             // 3、获取当前登录管理员信息
             Long adminId = BaseContext.getCurrentId();
             Admin currentAdmin = adminId == null ? null : adminMapper.getById(adminId);
 
             // 4、从方法参数中提取操作动作和详情
-            String action = extractAction(joinPoint.getArgs(), operationType);
-            String detail = extractDetail(joinPoint.getArgs());
+            String action = extractAction(joinPoint.getArgs(), auditRecord, operationType);
+            String detail = extractDetail(joinPoint.getArgs(), auditRecord);
 
             // 5、构建审核流水实体并写入数据库
             AuditLog auditLog = AuditLog.builder()
@@ -82,10 +83,22 @@ public class AuditLogAspect {
     }
 
     /**
-     * 从方法参数中提取第一个 Long 类型的参数作为操作对象 ID。
+     * 从方法参数中提取操作对象 ID。
+     * 优先使用注解声明的 targetIdField，从 DTO 中读取主键；
+     * 若未声明，则回退到直接传入的 Long 类型参数。
      */
-    private Long extractTargetId(Object[] args) {
-        if (args == null) return null;
+    private Long extractTargetId(Object[] args, AuditRecord auditRecord) {
+        if (args == null) {
+            return null;
+        }
+
+        if (StringUtils.hasText(auditRecord.targetIdField())) {
+            Long targetId = toLong(extractPropertyFromArgs(args, auditRecord.targetIdField()));
+            if (targetId != null) {
+                return targetId;
+            }
+        }
+
         for (Object arg : args) {
             if (arg instanceof Long) {
                 return (Long) arg;
@@ -97,21 +110,22 @@ public class AuditLogAspect {
     /**
      * 根据操作类型生成操作动作描述。
      */
-    private String extractAction(Object[] args, int operationType) {
-        // 尝试从 DTO 参数中提取 status 字段来判断动作
+    private String extractAction(Object[] args, AuditRecord auditRecord, int operationType) {
+        if (StringUtils.hasText(auditRecord.fixedAction())) {
+            return auditRecord.fixedAction();
+        }
+
+        if (StringUtils.hasText(auditRecord.actionField())) {
+            String action = actionValueToText(operationType, extractPropertyFromArgs(args, auditRecord.actionField()));
+            if (StringUtils.hasText(action)) {
+                return action;
+            }
+        }
+
         if (args != null) {
-            for (Object arg : args) {
-                if (arg != null) {
-                    try {
-                        java.lang.reflect.Method getStatus = arg.getClass().getMethod("getStatus");
-                        Object status = getStatus.invoke(arg);
-                        if (status instanceof Integer) {
-                            return statusToAction(operationType, (Integer) status);
-                        }
-                    } catch (Exception ignored) {
-                        // 该参数没有 getStatus 方法，跳过
-                    }
-                }
+            String action = actionValueToText(operationType, extractPropertyFromArgs(args, "status"));
+            if (StringUtils.hasText(action)) {
+                return action;
             }
         }
         return "操作";
@@ -120,6 +134,16 @@ public class AuditLogAspect {
     /**
      * 将状态码转换为操作动作描述。
      */
+    private String actionValueToText(int operationType, Object actionValue) {
+        if (actionValue instanceof Number number) {
+            return statusToAction(operationType, number.intValue());
+        }
+        if (actionValue instanceof String text && StringUtils.hasText(text)) {
+            return text;
+        }
+        return null;
+    }
+
     private String statusToAction(int operationType, int status) {
         return switch (operationType) {
             case 1 -> // 商品审核
@@ -127,7 +151,7 @@ public class AuditLogAspect {
             case 2 -> // 卖家认证审核
                     status == 1 ? "通过" : status == 2 ? "驳回" : "审核";
             case 3 -> // 举报处理
-                    status == 1 ? "处理" : status == 2 ? "忽略" : "处理";
+                    status == 2 ? "下架商品" : status == 3 ? "封禁用户" : "处理";
             default -> "操作";
         };
     }
@@ -135,29 +159,84 @@ public class AuditLogAspect {
     /**
      * 从方法参数中提取 reason 或 handleResult 字段作为操作详情。
      */
-    private String extractDetail(Object[] args) {
-        if (args == null) return null;
-        for (Object arg : args) {
-            if (arg != null) {
-                // 尝试获取 reason 字段
-                try {
-                    java.lang.reflect.Method getReason = arg.getClass().getMethod("getReason");
-                    Object reason = getReason.invoke(arg);
-                    if (reason instanceof String && !((String) reason).isEmpty()) {
-                        return (String) reason;
-                    }
-                } catch (Exception ignored) {
-                }
-                // 尝试获取 handleResult 字段
-                try {
-                    java.lang.reflect.Method getHandleResult = arg.getClass().getMethod("getHandleResult");
-                    Object handleResult = getHandleResult.invoke(arg);
-                    if (handleResult instanceof String && !((String) handleResult).isEmpty()) {
-                        return (String) handleResult;
-                    }
-                } catch (Exception ignored) {
-                }
+    private String extractDetail(Object[] args, AuditRecord auditRecord) {
+        if (StringUtils.hasText(auditRecord.fixedDetail())) {
+            return auditRecord.fixedDetail();
+        }
+
+        if (StringUtils.hasText(auditRecord.detailField())) {
+            String detail = toText(extractPropertyFromArgs(args, auditRecord.detailField()));
+            if (StringUtils.hasText(detail)) {
+                return detail;
             }
+        }
+
+        String reason = toText(extractPropertyFromArgs(args, "reason"));
+        if (StringUtils.hasText(reason)) {
+            return reason;
+        }
+
+        String handleResult = toText(extractPropertyFromArgs(args, "handleResult"));
+        if (StringUtils.hasText(handleResult)) {
+            return handleResult;
+        }
+
+        return null;
+    }
+
+    private Object extractPropertyFromArgs(Object[] args, String propertyName) {
+        if (args == null || !StringUtils.hasText(propertyName)) {
+            return null;
+        }
+        for (Object arg : args) {
+            Object value = extractProperty(arg, propertyName);
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private Object extractProperty(Object target, String propertyName) {
+        if (target == null || !StringUtils.hasText(propertyName)) {
+            return null;
+        }
+
+        String getterName = "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+        try {
+            return target.getClass().getMethod(getterName).invoke(target);
+        } catch (Exception ignored) {
+        }
+
+        try {
+            var field = target.getClass().getDeclaredField(propertyName);
+            field.setAccessible(true);
+            return field.get(target);
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
+    private Long toLong(Object value) {
+        if (value instanceof Long longValue) {
+            return longValue;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text && StringUtils.hasText(text)) {
+            try {
+                return Long.parseLong(text);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private String toText(Object value) {
+        if (value instanceof String text && StringUtils.hasText(text)) {
+            return text;
         }
         return null;
     }

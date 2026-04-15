@@ -94,7 +94,11 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
      */
     @Override
     @Transactional
-    @AuditRecord(operationType = AuditOperationConstant.GOODS_AUDIT)
+    @AuditRecord(
+            operationType = AuditOperationConstant.GOODS_AUDIT,
+            actionField = "status",
+            detailField = "reason"
+    )
     public void audit(Long goodsId, AdminGoodsAuditDTO dto) {
         // 1. 校验管理员登录信息和审核参数。
         Long currentAdminId = BaseContext.getCurrentId();
@@ -105,12 +109,15 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         if (auditDTO.getStatus() == null) {
             throw new BaseException(MessageConstant.AUDIT_PARAM_INCOMPLETE);
         }
+        validateAuditStatus(auditDTO.getStatus());
+        validateRejectReason(auditDTO.getStatus(), auditDTO.getReason());
 
         // 2. 查询商品。
         Goods currentGoods = goodsMapper.selectById(goodsId);
         if (currentGoods == null) {
             throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
         }
+        validateAuditFlow(currentGoods.getStatus());
 
         // 3. 更新审核结果。
         LocalDateTime now = LocalDateTime.now();
@@ -127,6 +134,31 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         int rows = goodsMapper.updateStatusById(updateGoods);
         if (rows <= 0) {
             throw new BaseException(MessageConstant.GOODS_AUDIT_FAILED);
+        }
+    }
+
+    private void validateAuditStatus(Integer status) {
+        if (!GoodsConstant.STATUS_ON_SALE.equals(status)
+                && !GoodsConstant.STATUS_REJECTED.equals(status)) {
+            throw new BaseException(MessageConstant.GOODS_AUDIT_STATUS_INVALID);
+        }
+    }
+
+    private void validateAuditFlow(Integer currentStatus) {
+        if (!GoodsConstant.STATUS_PENDING_AUDIT.equals(currentStatus)) {
+            throw new BaseException(MessageConstant.GOODS_AUDIT_STATUS_FLOW_INVALID);
+        }
+    }
+
+    private void validateRejectReason(Integer status, String reason) {
+        if (!GoodsConstant.STATUS_REJECTED.equals(status)) {
+            return;
+        }
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BaseException(MessageConstant.REJECT_REASON_REQUIRED);
+        }
+        if (reason.length() > GoodsConstant.MAX_AUDIT_REASON_LENGTH) {
+            throw new BaseException(MessageConstant.REJECT_REASON_TOO_LONG);
         }
     }
 
