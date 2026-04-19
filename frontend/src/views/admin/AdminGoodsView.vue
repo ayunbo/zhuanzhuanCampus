@@ -94,10 +94,7 @@
 
             <el-table-column label="标题" min-width="220">
               <template #default="{ row }">
-                <div class="cell-stack">
-                  <strong>{{ row.title || '-' }}</strong>
-                  <small>{{ row.location || '地点未填写' }}</small>
-                </div>
+                {{ row.title || '-' }}
               </template>
             </el-table-column>
 
