@@ -1,96 +1,80 @@
 <template>
-  <div class="user-page">
-    <section class="table-panel app-card">
-      <form class="filter-grid" @submit.prevent="handleSearch">
-        <label>
-          <span>学号</span>
-          <input v-model="query.studentNo" class="app-input" type="text" placeholder="学号模糊查询" />
-        </label>
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-header style="height: auto; padding-bottom: 18px">
+        <el-form :inline="true" :model="query" @submit.prevent="handleSearch">
+          <el-form-item label="学号">
+            <el-input v-model="query.studentNo" clearable placeholder="学号模糊查询" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="姓名">
+            <el-input v-model="query.name" clearable placeholder="用户姓名" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="角色">
+            <el-select v-model="query.role" clearable placeholder="全部角色">
+              <el-option :value="1" label="普通用户" />
+              <el-option :value="2" label="校园卖家" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="resetQuery">重置</el-button>
+            <el-button type="primary" @click="openAddDialog">新增用户</el-button>
+            <el-button :loading="loading" @click="loadData">刷新</el-button>
+          </el-form-item>
+        </el-form>
+      </el-header>
 
-        <label>
-          <span>姓名</span>
-          <input v-model="query.name" class="app-input" type="text" placeholder="用户姓名" />
-        </label>
-
-        <label>
-          <span>角色</span>
-          <select v-model="query.role" class="app-select">
-            <option value="">全部</option>
-            <option :value="1">普通用户</option>
-            <option :value="2">校园卖家</option>
-          </select>
-        </label>
-
-        <div class="action-group">
-          <button class="app-btn primary" type="submit">查询</button>
-          <button class="app-btn ghost" type="button" @click="resetQuery">重置</button>
-          <button class="app-btn primary" type="button" @click="openAddDialog">新增用户</button>
-          <button class="app-btn secondary" type="button" :disabled="loading" @click="loadData">
-            {{ loading ? '加载中...' : '刷新列表' }}
-          </button>
-        </div>
-      </form>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>学号</th>
-              <th>姓名</th>
-              <th>手机号</th>
-              <th>角色</th>
-              <th>状态</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!loading && tableData.length === 0">
-              <td class="empty-row" colspan="7">
-                <div class="table-empty">
-                  <el-icon><Box /></el-icon>
-                  <span>暂无数据</span>
-                </div>
-              </td>
-            </tr>
-            <tr v-for="row in tableData" :key="String(row.id)">
-              <td>{{ row.id }}</td>
-              <td>{{ row.studentNo || '-' }}</td>
-              <td>{{ row.name || '-' }}</td>
-              <td>{{ row.phone || '-' }}</td>
-              <td>
-                <span class="role-badge" :class="Number(row.role) === 2 ? 'seller' : 'user'">
-                  {{ Number(row.role) === 2 ? '校园卖家' : '普通用户' }}
-                </span>
-              </td>
-              <td>
-                <span class="status-badge" :class="Number(row.status) === 1 ? 'status-approved' : 'status-rejected'">
-                  {{ Number(row.status) === 1 ? '正常' : '禁用' }}
-                </span>
-              </td>
-              <td class="actions">
-                <button class="app-btn primary mini" @click="openEditDialog(row)">编辑</button>
-                <button class="app-btn secondary mini" @click="handleStatusToggle(row)">
+      <el-main style="padding-top: 0; padding-bottom: 0; min-height: 0">
+        <el-table v-loading="loading" :data="tableData" border height="100%">
+          <el-table-column prop="id" label="ID" min-width="90" />
+          <el-table-column prop="studentNo" label="学号" min-width="140" />
+          <el-table-column prop="name" label="姓名" min-width="120" />
+          <el-table-column prop="phone" label="手机号" min-width="150" />
+          <el-table-column label="角色" min-width="120">
+            <template #default="{ row }">
+              <el-tag :type="Number(row.role) === 2 ? 'warning' : 'info'">
+                {{ Number(row.role) === 2 ? '校园卖家' : '普通用户' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="Number(row.status) === 1 ? 'success' : 'danger'">
+                {{ Number(row.status) === 1 ? '正常' : '禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" min-width="220">
+            <template #default="{ row }">
+              <el-space wrap>
+                <el-button size="small" type="primary" @click="openEditDialog(row)">编辑</el-button>
+                <el-button size="small" @click="handleStatusToggle(row)">
                   {{ Number(row.status) === 1 ? '禁用' : '启用' }}
-                </button>
-                <button class="app-btn danger mini" @click="handleDelete(row.id)">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </el-button>
+                <el-button size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
+              </el-space>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty />
+          </template>
+        </el-table>
+      </el-main>
 
-      <footer class="pagination-wrap">
+      <el-footer style="height: auto; padding-top: 16px; padding-bottom: 0">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
+          :page-sizes="[10, 20, 30]"
           :total="total"
-          layout="total, prev, pager, next"
+          background
+          layout="total, sizes, prev, pager, next"
           @current-change="loadData"
+          @size-change="loadData"
         />
-      </footer>
-    </section>
-  </div>
+      </el-footer>
+    </el-container>
+  </el-card>
 
   <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="540px" destroy-on-close>
     <el-form :model="form" label-width="84px">
@@ -125,10 +109,8 @@
     </el-form>
 
     <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">保存</el-button>
-      </div>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">保存</el-button>
     </template>
   </el-dialog>
 </template>
@@ -136,7 +118,6 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Box } from '@element-plus/icons-vue'
 import { createUser, deleteUser, fetchUserById, fetchUserPage, updateUser } from '@/api/admin'
 
 const loading = ref(false)
@@ -354,156 +335,3 @@ onMounted(() => {
   loadData()
 })
 </script>
-
-<style scoped>
-.user-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-panel {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.filter-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: end;
-}
-
-.filter-grid label {
-  display: grid;
-  gap: 6px;
-  flex: 1 1 210px;
-  min-width: 180px;
-}
-
-.filter-grid span {
-  color: #4a648c;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.action-group {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-  justify-content: flex-end;
-}
-
-.table-wrap {
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: auto;
-  background: #ffffff;
-  flex: 1 1 auto;
-  height: 0;
-  min-height: 0;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 920px;
-}
-
-.data-table th,
-.data-table td {
-  padding: 11px 10px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.data-table th {
-  color: #35557f;
-  background: #f3f8ff;
-  font-weight: 700;
-  position: sticky;
-  top: 0;
-}
-
-.data-table tbody tr:hover {
-  background: #f9fcff;
-}
-
-.empty-row {
-  padding: 0 !important;
-  text-align: center;
-}
-
-.role-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 72px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.role-badge.seller {
-  color: #0f7f6f;
-  background: #dcf8f4;
-}
-
-.role-badge.user {
-  color: #33609d;
-  background: #eaf3ff;
-}
-
-.actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  white-space: nowrap;
-}
-
-.data-table th:last-child,
-.data-table td:last-child {
-  text-align: right;
-}
-
-.app-btn.mini {
-  padding: 6px 9px;
-  font-size: 12px;
-}
-
-.pagination-wrap {
-  margin-top: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
-  flex: 0 0 auto;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 720px) {
-  .action-group {
-    margin-left: 0;
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-}
-</style>

@@ -93,7 +93,11 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @AuditRecord(operationType = AuditOperationConstant.REPORT_HANDLE)
+    @AuditRecord(
+            operationType = AuditOperationConstant.REPORT_HANDLE,
+            fixedAction = "处理",
+            detailField = "handleResult"
+    )
     public void handleReport(Long id, ReportHandleDTO dto) {
         // 1、构建更新实体，标记为已处理
         Report updateReport = new Report();
@@ -117,7 +121,11 @@ public class ReportServiceImpl implements ReportService {
      * @param id 举报 ID
      */
     @Override
-    @AuditRecord(operationType = AuditOperationConstant.REPORT_HANDLE)
+    @AuditRecord(
+            operationType = AuditOperationConstant.REPORT_HANDLE,
+            fixedAction = "忽略",
+            fixedDetail = "管理员忽略该举报"
+    )
     public void ignoreReport(Long id) {
         // 1、构建更新实体，标记为已忽略
         Report updateReport = new Report();

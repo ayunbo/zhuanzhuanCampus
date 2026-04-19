@@ -80,47 +80,43 @@
           <p>Please enter your details</p>
         </header>
 
-        <form class="login-form" @submit.prevent="handleLogin">
-          <label>
-            <span>账号</span>
-            <input
+        <el-form class="login-form" label-position="top" @submit.prevent="handleLogin">
+          <el-form-item label="账号">
+            <el-input
               v-model="form.username"
-              class="app-input"
-              type="text"
               placeholder="请输入管理员账号"
               autocomplete="username"
               @focus="handleFieldFocus"
               @blur="handleFieldBlur"
             />
-          </label>
+          </el-form-item>
 
-          <label>
-            <span>密码</span>
-            <div class="password-wrap">
-              <input
-                v-model="form.password"
-                class="app-input"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="请输入密码"
-                autocomplete="current-password"
-                @focus="handleFieldFocus"
-                @blur="handleFieldBlur"
-              />
-              <button class="password-toggle" type="button" @click="showPassword = !showPassword">
-                <el-icon>
-                  <Hide v-if="showPassword" />
-                  <View v-else />
-                </el-icon>
-              </button>
-            </div>
-          </label>
+          <el-form-item label="密码">
+            <el-input
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+              @focus="handleFieldFocus"
+              @blur="handleFieldBlur"
+            >
+              <template #suffix>
+                <span class="password-toggle" @click="showPassword = !showPassword">
+                  <el-icon>
+                    <Hide v-if="showPassword" />
+                    <View v-else />
+                  </el-icon>
+                </span>
+              </template>
+            </el-input>
+          </el-form-item>
 
           <p v-if="loginError" class="error-line">{{ loginError }}</p>
 
-          <button class="login-btn" type="submit" :disabled="loading">
+          <el-button class="login-btn" type="primary" native-type="submit" :loading="loading">
             {{ loading ? 'Signing in...' : 'Log in' }}
-          </button>
-        </form>
+          </el-button>
+        </el-form>
       </article>
     </section>
   </div>
@@ -804,53 +800,44 @@ onUnmounted(() => {
   gap: 14px;
 }
 
-.login-form label {
-  display: grid;
-  gap: 8px;
+.login-form :deep(.el-form-item) {
+  margin-bottom: 16px;
 }
 
-.login-form span {
+.login-form :deep(.el-form-item__label) {
   color: #4c5f82;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 8px;
 }
 
-.animated-login .app-input {
-  border-color: #d9e1ef;
+.login-form :deep(.el-input__wrapper) {
+  min-height: 48px;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px #d9e1ef inset;
   background: #ffffff;
 }
 
-.animated-login .app-input:focus {
-  border-color: #f0cd3f;
-  box-shadow: 0 0 0 3px rgba(249, 231, 77, 0.28);
+.login-form :deep(.el-input__wrapper.is-focus) {
+  box-shadow:
+    0 0 0 1px #f0cd3f inset,
+    0 0 0 3px rgba(249, 231, 77, 0.28);
 }
 
-.password-wrap {
-  position: relative;
+.login-form :deep(.el-input__inner) {
+  font-size: 15px;
 }
 
-.password-wrap .app-input {
-  padding-right: 44px;
+.login-form :deep(.el-input__suffix-inner) {
+  color: #6c7a93;
 }
 
 .password-toggle {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  transform: translateY(-50%);
-  border: 0;
-  background: transparent;
-  color: #6c7a93;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-
-.password-toggle:hover {
-  background: #f4f7fc;
 }
 
 .error-line {
@@ -864,29 +851,29 @@ onUnmounted(() => {
 }
 
 .login-btn {
-  border: 0;
-  border-radius: 12px;
+  width: 100%;
   height: 46px;
   font-size: 15px;
   font-weight: 700;
   color: #493611;
+  border-color: #ffea00;
   background: #ffea00;
-  cursor: pointer;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.login-btn:hover {
+.login-btn:hover,
+.login-btn:focus-visible {
   transform: translateY(-1px);
+  border-color: #f3df36;
   background: #f3df36;
   box-shadow: 0 10px 18px rgba(193, 144, 41, 0.24);
 }
 
-.login-btn:disabled {
-  opacity: 0.65;
+.login-btn.is-loading,
+.login-btn.is-disabled {
   transform: none;
-  cursor: not-allowed;
   box-shadow: none;
 }
 

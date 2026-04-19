@@ -96,6 +96,8 @@ public final class MessageConstant {
     public static final String GOODS_ON_SHELF_FAILED = "商品上架失败";
     public static final String GOODS_OFF_SHELF_STATUS_INVALID = "只有在售商品才能下架";
     public static final String GOODS_OFF_SHELF_FAILED = "商品下架失败";
+    public static final String GOODS_DELETE_STATUS_INVALID = "锁定中或已售出的商品不能删除";
+    public static final String GOODS_DELETE_FAILED = "商品删除失败";
     public static final String GOODS_MARK_SOLD_STATUS_INVALID = "只有在售或锁定商品才能标记售出";
     public static final String GOODS_MARK_SOLD_FAILED = "商品售出状态更新失败";
     public static final String GOODS_STATS_UPDATE_EMPTY = "请至少提供一个商品统计增量";

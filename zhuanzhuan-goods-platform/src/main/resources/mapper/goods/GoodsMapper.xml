@@ -90,6 +90,9 @@
                 <when test="status != null">
                     g.status = #{status}
                 </when>
+                <when test="sellerId != null">
+                    g.status in (3, 5)
+                </when>
                 <otherwise>
                     g.status = 3
                 </otherwise>

@@ -4,6 +4,7 @@ import com.zhuanzhuan.annotation.AutoFill;
 import com.zhuanzhuan.dto.AdminSellerAuthPageQueryDTO;
 import com.zhuanzhuan.entity.SellerAuth;
 import com.zhuanzhuan.enumeration.OperationType;
+import com.zhuanzhuan.vo.AuditSellerAuthDetailVO;
 import com.zhuanzhuan.vo.SellerAuthResultVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,6 +32,14 @@ public interface SellerAuthMapper {
      * @return 最近一次申请
      */
     SellerAuth getLatestByUserId(Long userId);
+
+    /**
+     * 根据认证 ID 查询带用户和审核人信息的认证详情。
+     *
+     * @param id 认证 ID
+     * @return 认证详情
+     */
+    AuditSellerAuthDetailVO selectDetailById(Long id);
 
     /**
      * 管理员分页条件查询卖家认证列表。

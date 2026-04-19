@@ -176,7 +176,12 @@ public class SellerAuthServiceImpl implements SellerAuthService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @AuditRecord(operationType = AuditOperationConstant.SELLER_AUTH_AUDIT)
+    @AuditRecord(
+            operationType = AuditOperationConstant.SELLER_AUTH_AUDIT,
+            targetIdField = "authId",
+            actionField = "status",
+            detailField = "reason"
+    )
     public void auditSellerAuth(SellerAuthAuditDTO sellerAuthAuditDTO) {
         // 1、校验审核结果合法性，只允许通过或驳回两种状态
         Integer targetStatus = sellerAuthAuditDTO.getStatus();
