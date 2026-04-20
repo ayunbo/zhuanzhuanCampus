@@ -1,160 +1,116 @@
 <template>
-  <div class="seller-page">
-    <section class="table-panel app-card">
-      <form class="filter-grid" @submit.prevent="handleSearch">
-        <label>
-          <span>姓名</span>
-          <input v-model="queryForm.name" class="app-input" type="text" placeholder="认证姓名或用户昵称" />
-        </label>
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-header style="height: auto; padding-bottom: 18px">
+        <el-form :inline="true" :model="queryForm" @submit.prevent="handleSearch">
+          <el-form-item label="姓名">
+            <el-input v-model="queryForm.name" clearable placeholder="认证姓名或用户昵称" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="手机号">
+            <el-input v-model="queryForm.phone" clearable placeholder="支持模糊查询" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item label="学号">
+            <el-input v-model="queryForm.studentNo" clearable placeholder="支持模糊查询" @keyup.enter="handleSearch" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="handleReset">重置</el-button>
+            <el-button :loading="loading" @click="fetchList">刷新</el-button>
+          </el-form-item>
+        </el-form>
+      </el-header>
 
-        <label>
-          <span>手机号</span>
-          <input v-model="queryForm.phone" class="app-input" type="text" placeholder="支持模糊查询" />
-        </label>
-
-        <label>
-          <span>学号</span>
-          <input v-model="queryForm.studentNo" class="app-input" type="text" placeholder="支持模糊查询" />
-        </label>
-
-        <div class="action-group">
-          <button class="app-btn primary" type="submit">查询</button>
-          <button class="app-btn ghost" type="button" @click="handleReset">重置</button>
-          <button class="app-btn secondary" type="button" :disabled="loading" @click="fetchList">
-            {{ loading ? '加载中...' : '刷新列表' }}
-          </button>
-        </div>
-      </form>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>用户昵称</th>
-              <th>真实姓名</th>
-              <th>学号</th>
-              <th>手机号</th>
-              <th>认证材料</th>
-              <th>状态</th>
-              <th>驳回原因</th>
-              <th>提交时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!loading && records.length === 0">
-              <td class="empty-row" colspan="10">
-                <div class="table-empty">
-                  <el-icon><Box /></el-icon>
-                  <span>暂无数据</span>
-                </div>
-              </td>
-            </tr>
-
-            <tr v-for="record in records" :key="String(record.id)">
-              <td>{{ record.id }}</td>
-              <td>{{ record.userName || '-' }}</td>
-              <td>{{ record.realName || '-' }}</td>
-              <td>{{ record.studentNo || '-' }}</td>
-              <td>{{ record.phone || '-' }}</td>
-              <td>
-                <button
-                  v-if="isUrl(record.material)"
-                  class="material-link"
-                  type="button"
-                  @click="openMaterialPreview(record.material)"
-                >
-                  查看资料
-                </button>
-                <span v-else>{{ record.material || '-' }}</span>
-              </td>
-              <td>
-                <span class="status-badge" :class="statusClass(record.status)">
-                  {{ statusLabel(record) }}
-                </span>
-              </td>
-              <td>{{ record.reason || '-' }}</td>
-              <td>{{ formatDateTime(record.createTime) }}</td>
-              <td class="actions">
-                <button
-                  class="app-btn primary mini"
-                  :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
-                  @click="handleApprove(record)"
+      <el-main style="padding-top: 0; padding-bottom: 0; min-height: 0">
+        <el-table v-loading="loading" :data="records" border height="100%">
+          <el-table-column prop="id" label="ID" min-width="90" />
+          <el-table-column prop="userName" label="用户昵称" min-width="140" />
+          <el-table-column prop="realName" label="真实姓名" min-width="120" />
+          <el-table-column prop="studentNo" label="学号" min-width="140" />
+          <el-table-column prop="phone" label="手机号" min-width="140" />
+          <el-table-column label="认证材料" min-width="120">
+            <template #default="{ row }">
+              <el-button v-if="isUrl(row.material)" link type="primary" @click="openMaterialPreview(row.material)">
+                查看资料
+              </el-button>
+              <span v-else>{{ row.material || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)">
+                {{ statusLabel(row) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="reason" label="驳回原因" min-width="180" show-overflow-tooltip />
+          <el-table-column label="提交时间" min-width="180">
+            <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" min-width="150">
+            <template #default="{ row }">
+              <el-space>
+                <el-button
+                  size="small"
+                  type="primary"
+                  :disabled="!canAudit(row) || actionLoadingId === String(row.id)"
+                  @click="handleApprove(row)"
                 >
                   通过
-                </button>
-                <button
-                  class="app-btn danger mini"
-                  :disabled="!canAudit(record) || actionLoadingId === String(record.id)"
-                  @click="handleReject(record)"
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  :disabled="!canAudit(row) || actionLoadingId === String(row.id)"
+                  @click="handleReject(row)"
                 >
                   驳回
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </el-button>
+              </el-space>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty />
+          </template>
+        </el-table>
+      </el-main>
 
-      <footer class="pagination">
-        <div class="left">
-          <span>共 {{ pager.total }} 条</span>
-          <select v-model.number="pager.pageSize" class="app-select page-size" @change="handlePageSizeChange">
-            <option :value="10">10 / 页</option>
-            <option :value="20">20 / 页</option>
-            <option :value="30">30 / 页</option>
-          </select>
-        </div>
-
-        <div class="pages">
-          <button class="app-btn ghost mini" :disabled="pager.page <= 1" @click="setPage(pager.page - 1)">上一页</button>
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            class="app-btn mini"
-            :class="page === pager.page ? 'primary' : 'ghost'"
-            @click="setPage(page)"
-          >
-            {{ page }}
-          </button>
-          <button class="app-btn ghost mini" :disabled="pager.page >= pageCount" @click="setPage(pager.page + 1)">
-            下一页
-          </button>
-        </div>
-      </footer>
-    </section>
-
-    <el-dialog v-model="previewDialogVisible" title="认证材料预览" width="72%" top="5vh" destroy-on-close>
-      <div class="preview-wrap">
-        <img
-          v-if="previewType === 'image'"
-          :src="previewUrl"
-          alt="认证材料"
-          class="preview-image"
-          @error="handleImagePreviewError"
+      <el-footer style="height: auto; padding-top: 16px; padding-bottom: 0">
+        <el-pagination
+          v-model:current-page="pager.page"
+          v-model:page-size="pager.pageSize"
+          :page-sizes="[10, 20, 30]"
+          :total="pager.total"
+          background
+          layout="total, sizes, prev, pager, next"
+          @current-change="setPage"
+          @size-change="handlePageSizeChange"
         />
+      </el-footer>
+    </el-container>
+  </el-card>
 
-        <iframe v-else-if="previewType === 'pdf'" :src="previewUrl" class="preview-frame" />
-
-        <div v-else class="preview-tip">当前材料类型暂不支持内嵌预览，请点击“新窗口打开”查看。</div>
-      </div>
+  <el-dialog v-model="previewDialogVisible" title="认证材料预览" width="72%" top="5vh" destroy-on-close>
+    <el-image
+      v-if="previewType === 'image'"
+      :src="previewUrl"
+      fit="contain"
+      style="display: block; width: 100%"
+      @error="handleImagePreviewError"
+    />
+    <iframe v-else-if="previewType === 'pdf'" :src="previewUrl" style="width: 100%; height: 68vh; border: 0" />
+    <el-empty v-else description="当前材料暂不支持预览" />
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="previewDialogVisible = false">关闭</el-button>
-          <el-button type="primary" @click="openMaterialInNewWindow">新窗口打开</el-button>
-        </div>
+        <el-button @click="previewDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="openMaterialInNewWindow">新窗口打开</el-button>
       </template>
     </el-dialog>
-  </div>
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Box } from '@element-plus/icons-vue'
 import { auditSellerAuth, fetchSellerAuthPage } from '@/api/admin'
 import { SELLER_AUTH_STATUS, SELLER_AUTH_STATUS_LABEL_MAP } from '@/constants/sellerAuth'
 import { formatDateTime } from '@/utils/format'
@@ -315,20 +271,11 @@ function statusLabel(record) {
   return record.statusDesc || SELLER_AUTH_STATUS_LABEL_MAP[record.status] || '未知状态'
 }
 
-function statusClass(status) {
-  if (status === SELLER_AUTH_STATUS.PENDING) {
-    return 'status-pending'
-  }
-
-  if (status === SELLER_AUTH_STATUS.APPROVED) {
-    return 'status-approved'
-  }
-
-  if (status === SELLER_AUTH_STATUS.REJECTED) {
-    return 'status-rejected'
-  }
-
-  return 'status-revoked'
+function statusTagType(status) {
+  if (status === SELLER_AUTH_STATUS.PENDING) return 'warning'
+  if (status === SELLER_AUTH_STATUS.APPROVED) return 'success'
+  if (status === SELLER_AUTH_STATUS.REJECTED) return 'danger'
+  return 'info'
 }
 
 function canAudit(record) {
@@ -346,7 +293,7 @@ function detectPreviewType(url) {
     return 'image'
   }
 
-  if (/\.pdf$/.test(normalized)) {
+  if (normalized.endsWith('.pdf')) {
     return 'pdf'
   }
 
@@ -447,192 +394,3 @@ watch(
   { immediate: true },
 )
 </script>
-
-<style scoped>
-.seller-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-panel {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.filter-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: end;
-}
-
-.filter-grid label {
-  display: grid;
-  gap: 6px;
-  flex: 1 1 210px;
-  min-width: 180px;
-}
-
-.filter-grid span {
-  color: #4a648c;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.action-group {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-  justify-content: flex-end;
-}
-
-.table-wrap {
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: auto;
-  background: #ffffff;
-  flex: 1 1 auto;
-  height: 0;
-  min-height: 0;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1120px;
-}
-
-.data-table th,
-.data-table td {
-  padding: 11px 10px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.data-table th {
-  color: #35557f;
-  background: #f3f8ff;
-  font-weight: 700;
-  position: sticky;
-  top: 0;
-}
-
-.data-table tbody tr:hover {
-  background: #f9fcff;
-}
-
-.empty-row {
-  padding: 0 !important;
-  text-align: center;
-}
-
-.actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  white-space: nowrap;
-}
-
-.data-table th:last-child,
-.data-table td:last-child {
-  text-align: right;
-}
-
-.app-btn.mini {
-  padding: 6px 9px;
-  font-size: 12px;
-}
-
-.material-link {
-  border: 0;
-  background: transparent;
-  color: #1f6fd8;
-  cursor: pointer;
-  padding: 0;
-  font-weight: 700;
-  text-decoration: underline;
-}
-
-.pagination {
-  margin-top: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
-  flex: 0 0 auto;
-}
-
-.pagination .left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-size {
-  width: 110px;
-}
-
-.pages {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.preview-wrap {
-  min-height: 360px;
-  max-height: 72vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: auto;
-  background: #f6fbff;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-}
-
-.preview-image {
-  display: block;
-  max-width: 100%;
-  max-height: 68vh;
-  object-fit: contain;
-}
-
-.preview-frame {
-  width: 100%;
-  height: 68vh;
-  border: 0;
-}
-
-.preview-tip {
-  color: #56719b;
-  font-size: 14px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 760px) {
-  .action-group {
-    margin-left: 0;
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-}
-</style>

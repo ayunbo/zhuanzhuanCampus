@@ -22,7 +22,12 @@
         <module>zhuanzhuan-pojo</module>
         <module>zhuanzhuan-account-platform</module>
         <module>zhuanzhuan-goods-platform</module>
+        <module>zhuanzhuan-trade-platform</module>
         <module>zhuanzhuan-server</module>
+        <module>zhuanzhuan-review-platform</module>
+        <module>zhuanzhuan-collect-platform</module>
+        <module>zhuanzhuan-history--platform</module>
+        <module>zhuanzhuan-audit-platform</module>
     </modules>
 
     <properties>
@@ -66,6 +71,36 @@
             <dependency>
                 <groupId>com.zhuanzhuan</groupId>
                 <artifactId>zhuanzhuan-goods-platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-trade-platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-review-platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-collect-platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-history--platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-audit-platform</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

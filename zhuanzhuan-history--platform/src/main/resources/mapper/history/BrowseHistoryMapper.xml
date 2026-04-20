@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.history.mapper.BrowseHistoryMapper">
+
+    <select id="listByUserId" resultType="com.zhuanzhuan.vo.UserBrowseHistoryItemVO">
+        select
+            b.id as historyId,
+            b.goods_id as goodsId,
+            g.title,
+            g.cover,
+            g.price,
+            g.old_price as oldPrice,
+            g.quality,
+            g.location,
+            g.status,
+            b.browse_count as browseCount,
+            b.last_browse_time as browseTime
+        from browsehistory b
+        left join goods g on b.goods_id = g.id
+        where b.user_id = #{userId}
+        order by b.last_browse_time desc, b.id desc
+        <if test="limit != null">
+            limit #{limit}
+        </if>
+    </select>
+</mapper>

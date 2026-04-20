@@ -2,6 +2,7 @@ package com.zhuanzhuan.platform.goods.service;
 
 import com.zhuanzhuan.dto.GoodsPageQueryDTO;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.vo.SellerSpaceVO;
 import com.zhuanzhuan.vo.UserGoodsDetailVO;
 
 /**
@@ -16,6 +17,14 @@ public interface UserGoodsService {
      * @return 分页结果
      */
     PageResult page(GoodsPageQueryDTO dto);
+
+    /**
+     * 查询卖家空间基础信息。
+     *
+     * @param sellerId 卖家 ID
+     * @return 卖家空间信息
+     */
+    SellerSpaceVO getSellerSpace(Long sellerId);
 
     /**
      * 用户端查询商品详情。

@@ -37,24 +37,13 @@ public final class MessageConstant {
     public static final String CAMPUS_FORMAT_INVALID = "校区长度不能超过 50";
     public static final String INTRO_TOO_LONG = "个人简介长度不能超过 255";
     public static final String PROFILE_UPDATE_EMPTY = "请至少提交一项要修改的资料";
-
-    public static final String REGISTER_FAILED = "注册失败";
-    public static final String UPDATE_PROFILE_FAILED = "个人资料修改失败";
-    public static final String DELETE_USER_FAILED = "注销用户失败";
     public static final String USER_DELETE_FORBIDDEN_SELLER = "卖家账号暂不支持自主注销，请联系管理员";
     public static final String USER_DELETE_FORBIDDEN_PENDING_AUTH = "存在待审核的卖家认证申请，暂不能注销";
 
     public static final String ADMIN_ACCOUNT_NOT_FOUND = "管理员账号不存在";
     public static final String ADMIN_ACCOUNT_DISABLED = "管理员账号已被禁用";
-    public static final String ADMIN_USERNAME_EMPTY = "管理员账号不能为空";
-    public static final String ADMIN_USERNAME_FORMAT_INVALID = "管理员账号格式不正确，应为 4-32 位字母数字下划线且字母开头";
-    public static final String ADMIN_NAME_EMPTY = "管理员名称不能为空";
-    public static final String ADMIN_STATUS_INVALID = "管理员状态不合法";
     public static final String ADMIN_ALREADY_EXISTS = "管理员账号已存在";
     public static final String ADMIN_NOT_FOUND = "管理员不存在";
-    public static final String ADMIN_CREATE_FAILED = "管理员创建失败";
-    public static final String ADMIN_UPDATE_FAILED = "管理员修改失败";
-    public static final String ADMIN_DELETE_FAILED = "管理员删除失败";
     public static final String ADMIN_DELETE_SELF_NOT_ALLOWED = "不能删除当前登录管理员";
     public static final String ADMIN_DISABLE_SELF_NOT_ALLOWED = "不能禁用当前登录管理员";
     public static final String LAST_ACTIVE_ADMIN_NOT_ALLOWED = "至少保留一个正常状态的管理员";
@@ -68,7 +57,7 @@ public final class MessageConstant {
     public static final String SELLER_AUTH_STUDENT_NO_MISMATCH = "提交的学号与当前登录账号不一致";
     public static final String MATERIAL_EMPTY = "认证材料不能为空";
     public static final String MATERIAL_URL_INVALID = "认证材料地址格式不正确";
-    public static final String SELLER_AUTH_SUBMIT_FAILED = "卖家认证申请提交失败";
+
     public static final String NO_SELLER_AUTH_RECORD = "暂无卖家认证申请记录";
     public static final String AUDIT_PARAM_INCOMPLETE = "审核参数不完整";
     public static final String AUDIT_STATUS_INVALID = "审核状态只允许通过或驳回";
@@ -107,10 +96,14 @@ public final class MessageConstant {
     public static final String GOODS_ON_SHELF_FAILED = "商品上架失败";
     public static final String GOODS_OFF_SHELF_STATUS_INVALID = "只有在售商品才能下架";
     public static final String GOODS_OFF_SHELF_FAILED = "商品下架失败";
+    public static final String GOODS_DELETE_STATUS_INVALID = "锁定中或已售出的商品不能删除";
+    public static final String GOODS_DELETE_FAILED = "商品删除失败";
     public static final String GOODS_MARK_SOLD_STATUS_INVALID = "只有在售或锁定商品才能标记售出";
     public static final String GOODS_MARK_SOLD_FAILED = "商品售出状态更新失败";
     public static final String GOODS_STATS_UPDATE_EMPTY = "请至少提供一个商品统计增量";
     public static final String GOODS_STATS_UPDATE_FAILED = "商品统计更新失败";
+    public static final String FAVORITE_ALREADY_EXISTS = "请勿重复收藏";
+    public static final String FAVORITE_NOT_SUPPORTED_STATUS = "当前商品状态不支持收藏";
     public static final String CATEGORY_NAME_EMPTY = "分类名称不能为空";
     public static final String CATEGORY_PARENT_ID_INVALID = "父分类ID不合法";
     public static final String CATEGORY_NAME_ALREADY_EXISTS = "同级分类名称已存在";
@@ -127,4 +120,18 @@ public final class MessageConstant {
     public static final String CATEGORY_DELETE_FAILED = "删除分类失败";
     public static final String CATEGORY_PARENT_NOT_FOUND = "父分类不存在";
     public static final String CATEGORY_LEVEL_EXCEEDED = "分类层级不能超过3级";
+    public static final String REVIEW_ORDER_ID_REQUIRED = "orderId is required";
+    public static final String REVIEW_GOODS_ID_REQUIRED = "goodsId is required";
+    public static final String REVIEW_SELLER_ID_REQUIRED = "sellerId is required";
+    public static final String REVIEW_SCORE_INVALID = "review score must be between 1 and 5";
+    public static final String REVIEW_CONTENT_TOO_LONG = "review content cannot exceed 500 characters";
+    public static final String REVIEW_ANONYMOUS_INVALID = "anonymous flag must be 0 or 1";
+    public static final String REVIEW_IMAGES_TOO_MANY = "review images cannot exceed 6";
+    public static final String REVIEW_IMAGE_URL_INVALID = "review image url is invalid";
+    public static final String REVIEW_IMAGE_TYPE_NOT_ALLOWED = "only image files are allowed";
+    public static final String REVIEW_ORDER_NOT_COMPLETED = "only completed orders can be reviewed";
+    public static final String REVIEW_ALREADY_EXISTS = "this order has already been reviewed";
+    public static final String REVIEW_NOT_ALLOWED = "you are not allowed to view this review";
+    public static final String REVIEW_NOT_FOUND = "review not found";
+    public static final String REVIEW_SUBMIT_FAILED = "review submit failed";
 }

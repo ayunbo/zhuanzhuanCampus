@@ -44,9 +44,8 @@
           and id != #{id}
     </select>
 
-    <insert id="insert">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         insert into category (
-            id,
             parent_id,
             name,
             level,
@@ -57,7 +56,6 @@
             create_user,
             update_user
         ) values (
-            #{id},
             #{parentId},
             #{name},
             #{level},

@@ -9,6 +9,7 @@ import com.zhuanzhuan.vo.AdminGoodsDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +57,30 @@ public class AdminGoodsController {
     @PutMapping("/{id:\\d+}/audit")
     public Result<Void> audit(@PathVariable Long id, @RequestBody AdminGoodsAuditDTO dto) {
         adminGoodsService.audit(id, dto);
+        return Result.success();
+    }
+
+    /**
+     * 管理端下架商品。
+     *
+     * @param id 商品 ID
+     * @return 操作结果
+     */
+    @PutMapping("/{id:\\d+}/off-shelf")
+    public Result<Void> offShelf(@PathVariable Long id) {
+        adminGoodsService.offShelf(id);
+        return Result.success();
+    }
+
+    /**
+     * 管理端删除商品。
+     *
+     * @param id 商品 ID
+     * @return 操作结果
+     */
+    @DeleteMapping("/{id:\\d+}")
+    public Result<Void> delete(@PathVariable Long id) {
+        adminGoodsService.delete(id);
         return Result.success();
     }
 }

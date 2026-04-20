@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhuanzhuan.platform.audit.mapper.AuditLogMapper">
+
+    <sql id="OperationTypeDescSql">
+        case l.operation_type
+            when 1 then '商品审核'
+            when 2 then '卖家认证审核'
+            when 3 then '举报处理'
+            else '未知类型'
+        end
+    </sql>
+
+    <sql id="TargetSummarySql">
+        case
+            when l.operation_type = 1 then concat(
+                '商品：',
+                ifnull(g.title, concat('商品#', l.target_id)),
+                '；发布人：',
+                ifnull(gu.name, '-')
+            )
+            when l.operation_type = 2 then concat(
+                '申请人：',
+                ifnull(ifnull(sa.real_name, su.name), concat('认证#', l.target_id)),
+                '；学号：',
+                ifnull(sa.student_no, '-')
+            )
+            when l.operation_type = 3 then concat(
+                '举报对象：',
+                case r.target_type
+                    when 1 then ifnull(concat('商品 ', rg.title), concat('商品#', r.target_id))
+                    when 2 then ifnull(concat('用户 ', ru.name), concat('用户#', r.target_id))
+                    when 3 then concat('消息#', ifnull(cast(r.target_id as char), '-'))
+                    else concat('举报#', l.target_id)
+                end
+            )
+            else concat('对象#', l.target_id)
+        end
+    </sql>
+
+    <sql id="AuditLogViewColumns">
+        l.id as id,
+        l.admin_id as adminId,
+        coalesce(nullif(l.admin_name, ''), a.name, concat('管理员#', l.admin_id)) as adminName,
+        l.operation_type as operationType,
+        <include refid="OperationTypeDescSql"/> as operationTypeDesc,
+        l.target_id as targetId,
+        <include refid="TargetSummarySql"/> as targetSummary,
+        l.action as action,
+        l.detail as detail,
+        l.create_time as createTime
+    </sql>
+
+    <sql id="AuditLogViewJoins">
+        from audit_log l
+        left join admin a on l.admin_id = a.id
+        left join goods g on l.operation_type = 1 and l.target_id = g.id
+        left join `user` gu on g.seller_id = gu.id
+        left join sellerauth sa on l.operation_type = 2 and l.target_id = sa.id
+        left join `user` su on sa.user_id = su.id
+        left join report r on l.operation_type = 3 and l.target_id = r.id
+        left join goods rg on r.target_type = 1 and r.target_id = rg.id
+        left join `user` ru on r.target_type = 2 and r.target_id = ru.id
+    </sql>
+
+    <!-- 插入审核流水记录（主键自增） -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO audit_log (admin_id, admin_name, operation_type, target_id, action, detail,
+                               create_time, update_time, create_user, update_user)
+        VALUES (#{adminId}, #{adminName}, #{operationType}, #{targetId}, #{action}, #{detail},
+                #{createTime}, #{updateTime}, #{createUser}, #{updateUser})
+    </insert>
+
+    <!-- 分页查询审核流水列表（动态条件） -->
+    <select id="pageQuery" resultType="com.zhuanzhuan.vo.AuditLogVO">
+        select
+            <include refid="AuditLogViewColumns"/>
+        <include refid="AuditLogViewJoins"/>
+        <where>
+            <if test="operationType != null">
+                and l.operation_type = #{operationType}
+            </if>
+        </where>
+        order by l.create_time desc
+    </select>
+
+    <select id="getById" resultType="com.zhuanzhuan.vo.AuditLogVO">
+        select
+            <include refid="AuditLogViewColumns"/>
+        <include refid="AuditLogViewJoins"/>
+        where l.id = #{id}
+        limit 1
+    </select>
+
+</mapper>

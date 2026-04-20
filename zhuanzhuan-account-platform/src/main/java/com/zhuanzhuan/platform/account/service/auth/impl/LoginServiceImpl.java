@@ -44,46 +44,42 @@ public class LoginServiceImpl implements LoginService {
 
     /**
      * 管理员登录。
+     *
+     * @param adminLoginDTO 登录信息（用户名、密码）
+     * @return 登录结果（含 JWT 令牌）
      */
     @Override
     public LoginVO adminLogin(AdminLoginDTO adminLoginDTO) {
-        // 1、校验登录参数
-        if (adminLoginDTO == null
-                || !StringUtils.hasText(adminLoginDTO.getUsername())
+        // 1、校验用户名和密码不能为空
+        if (!StringUtils.hasText(adminLoginDTO.getUsername())
                 || !StringUtils.hasText(adminLoginDTO.getPassword())) {
             throw new BaseException(MessageConstant.LOGIN_PARAM_EMPTY);
         }
 
-        // 2、整理账号，避免因为首尾空格导致后台账号查不到
-        String username = adminLoginDTO.getUsername().trim();
-        String password = adminLoginDTO.getPassword();
-
-        // 3、按用户名查询管理员账号，后台登录只允许管理员账号进入
-        Admin admin = adminMapper.getByUsername(username);
+        // 2、按用户名查询管理员，去掉首尾空格兼容输入习惯
+        Admin admin = adminMapper.getByUsername(adminLoginDTO.getUsername().trim());
         if (admin == null) {
             throw new AccountNotFoundException(MessageConstant.ADMIN_ACCOUNT_NOT_FOUND);
         }
 
-        // 4、先校验密码，再校验账号状态，禁用管理员不能继续进入后台
-        String encryptedPassword = DigestUtils.md5DigestAsHex(password.getBytes());
-        if (!encryptedPassword.equals(admin.getPassword())) {
+        // 3、校验密码：入参 MD5 后与数据库存储值比对
+        if (!DigestUtils.md5DigestAsHex(adminLoginDTO.getPassword().getBytes()).equals(admin.getPassword())) {
             throw new PasswordErrorException(MessageConstant.PASSWORD_ERROR);
         }
+
+        // 4、校验账号状态，被禁用的管理员不允许登录后台
         if (!AdminStatusConstant.NORMAL.equals(admin.getStatus())) {
             throw new AccountLockedException(MessageConstant.ADMIN_ACCOUNT_DISABLED);
         }
 
-        // 5、生成令牌并返回登录结果
+        // 5、生成 JWT 令牌，携带管理员 ID、用户名和姓名
         Map<String, Object> claims = new HashMap<>();
         claims.put(JwtClaimsConstant.ADMIN_ID, admin.getId());
         claims.put(JwtClaimsConstant.USERNAME, admin.getUsername());
         claims.put(JwtClaimsConstant.NAME, admin.getName());
-        String token = JwtUtil.createJWT(
-                jwtProperties.getAdminSecretKey(),
-                jwtProperties.getAdminTtl(),
-                claims
-        );
+        String token = JwtUtil.createJWT(jwtProperties.getAdminSecretKey(), jwtProperties.getAdminTtl(), claims);
 
+        // 6、封装登录结果返回
         return LoginVO.builder()
                 .id(admin.getId())
                 .username(admin.getUsername())
@@ -94,45 +90,37 @@ public class LoginServiceImpl implements LoginService {
     }
 
     /**
-     * 用户登录。
+     * 用户登录（支持学号和手机号两种登录方式）。
+     *
+     * @param userLoginDTO 登录信息（账号、密码）
+     * @return 登录结果（含 JWT 令牌）
      */
     @Override
     public LoginVO userLogin(UserLoginDTO userLoginDTO) {
-        // 1、校验登录参数
-        if (userLoginDTO == null) {
-            throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
-        }
-
-        // 2、整理登录账号，统一去掉首尾空格，兼容学号和手机号两种登录方式
-        String account = userLoginDTO.getAccount();
-        if (StringUtils.hasText(account)) {
-            account = account.trim();
-        } else {
-            account = null;
-        }
-
-        String password = userLoginDTO.getPassword();
-
-        if (!StringUtils.hasText(account) || !StringUtils.hasText(password)) {
+        // 1、整理账号并校验必填项，去除首尾空格后统一判断是否为空
+        String account = StringUtils.hasText(userLoginDTO.getAccount())
+                ? userLoginDTO.getAccount().trim() : null;
+        if (!StringUtils.hasText(account) || !StringUtils.hasText(userLoginDTO.getPassword())) {
             throw new BaseException(MessageConstant.LOGIN_PARAM_EMPTY);
         }
 
-        // 3、按学号或手机号查询账号，普通用户和卖家共用这一套登录入口
+        // 2、按学号或手机号查询账号，普通用户和卖家共用此登录入口
         User user = userMapper.getByStudentNoOrPhone(account);
         if (user == null) {
             throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
         }
 
-        // 4、校验密码和账号状态，被封禁账号不能继续登录前台
-        String encryptedPassword = DigestUtils.md5DigestAsHex(password.getBytes());
-        if (!encryptedPassword.equals(user.getPassword())) {
+        // 3、校验密码：入参 MD5 后与数据库存储值比对
+        if (!DigestUtils.md5DigestAsHex(userLoginDTO.getPassword().getBytes()).equals(user.getPassword())) {
             throw new PasswordErrorException(MessageConstant.PASSWORD_ERROR);
         }
+
+        // 4、校验账号状态，被封禁账号不允许登录前台
         if (!UserStatusConstant.NORMAL.equals(user.getStatus())) {
             throw new AccountLockedException(MessageConstant.ACCOUNT_LOCKED);
         }
 
-        // 5、生成令牌并返回登录结果
+        // 5、生成 JWT 令牌，携带用户 ID、学号、姓名，手机号有值时一并写入
         Map<String, Object> claims = new HashMap<>();
         claims.put(JwtClaimsConstant.USER_ID, user.getId());
         claims.put(JwtClaimsConstant.USERNAME, user.getStudentNo());
@@ -140,13 +128,9 @@ public class LoginServiceImpl implements LoginService {
         if (StringUtils.hasText(user.getPhone())) {
             claims.put(JwtClaimsConstant.PHONE, user.getPhone());
         }
+        String token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), claims);
 
-        String token = JwtUtil.createJWT(
-                jwtProperties.getUserSecretKey(),
-                jwtProperties.getUserTtl(),
-                claims
-        );
-
+        // 6、封装登录结果返回
         return LoginVO.builder()
                 .id(user.getId())
                 .studentNo(user.getStudentNo())

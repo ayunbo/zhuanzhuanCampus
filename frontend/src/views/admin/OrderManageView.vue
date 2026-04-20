@@ -1,94 +1,75 @@
 <template>
-  <div class="order-page">
-    <section class="app-card order-panel">
-      <form class="filter-row" @submit.prevent>
-        <input v-model="filters.keyword" class="app-input" type="text" placeholder="搜索订单号 / 商品标题" />
-        <input v-model="filters.buyer" class="app-input" type="text" placeholder="买家昵称" />
-        <select v-model="filters.status" class="app-select">
-          <option value="all">全部状态</option>
-          <option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-        </select>
-        <button class="app-btn primary" type="button">查询</button>
-        <button class="app-btn ghost" type="button" @click="resetFilters">重置</button>
-      </form>
+  <el-card shadow="never" style="height: 100%">
+    <el-container style="height: 100%">
+      <el-header style="height: auto; padding-bottom: 18px">
+        <el-form :inline="true" :model="filters">
+          <el-form-item label="关键字">
+            <el-input v-model="filters.keyword" clearable placeholder="搜索订单号 / 商品标题" />
+          </el-form-item>
+          <el-form-item label="买家">
+            <el-input v-model="filters.buyer" clearable placeholder="买家昵称" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="filters.status">
+              <el-option value="all" label="全部状态" />
+              <el-option v-for="item in statusOptions" :key="item.value" :value="item.value" :label="item.label" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary">查询</el-button>
+            <el-button @click="resetFilters">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-header>
 
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>订单号</th>
-              <th>商品</th>
-              <th>买家</th>
-              <th>金额</th>
-              <th>状态</th>
-              <th>更新时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="pagedOrders.length === 0">
-              <td colspan="7" class="empty-row">
-                <div class="table-empty">
-                  <el-icon><Box /></el-icon>
-                  <span>暂无数据</span>
-                </div>
-              </td>
-            </tr>
-            <tr v-for="item in pagedOrders" :key="item.id">
-              <td>{{ item.id }}</td>
-              <td>{{ item.goodsTitle || '-' }}</td>
-              <td>{{ item.buyerName || '-' }}</td>
-              <td>{{ typeof item.amount === 'number' ? `¥${item.amount}` : '-' }}</td>
-              <td>
-                <span class="status-badge" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
-              </td>
-              <td>{{ item.updateTime || '-' }}</td>
-              <td>
-                <div class="action-row">
-                  <button class="app-btn mini ghost" type="button">查看</button>
-                  <button class="app-btn mini secondary" type="button">审核</button>
-                  <button class="app-btn mini danger" type="button">关闭</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <el-main style="padding-top: 0; padding-bottom: 0; min-height: 0">
+        <el-table :data="pagedOrders" border height="100%">
+          <el-table-column prop="id" label="订单号" min-width="150" />
+          <el-table-column prop="goodsTitle" label="商品" min-width="180" />
+          <el-table-column prop="buyerName" label="买家" min-width="120" />
+          <el-table-column label="金额" min-width="110">
+            <template #default="{ row }">{{ typeof row.amount === 'number' ? `¥${row.amount}` : '-' }}</template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="120">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="updateTime" label="更新时间" min-width="180" />
+          <el-table-column label="操作" fixed="right" min-width="180">
+            <template #default>
+              <el-space>
+                <el-button size="small">查看</el-button>
+                <el-button size="small">审核</el-button>
+                <el-button size="small" type="danger">关闭</el-button>
+              </el-space>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty />
+          </template>
+        </el-table>
+      </el-main>
 
-      <footer class="pagination">
-        <div class="left">
-          <span>共 {{ filteredOrders.length }} 条</span>
-          <select v-model.number="pager.pageSize" class="app-select page-size" @change="handlePageSizeChange">
-            <option :value="10">10 / 页</option>
-            <option :value="20">20 / 页</option>
-            <option :value="30">30 / 页</option>
-          </select>
-        </div>
-
-        <div class="pages">
-          <button class="app-btn ghost mini" :disabled="pager.page <= 1" @click="setPage(pager.page - 1)">上一页</button>
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            class="app-btn mini"
-            :class="page === pager.page ? 'primary' : 'ghost'"
-            @click="setPage(page)"
-          >
-            {{ page }}
-          </button>
-          <button class="app-btn ghost mini" :disabled="pager.page >= pageCount" @click="setPage(pager.page + 1)">
-            下一页
-          </button>
-        </div>
-      </footer>
-    </section>
-  </div>
+      <el-footer style="height: auto; padding-top: 16px; padding-bottom: 0">
+        <el-pagination
+          v-model:current-page="pager.page"
+          v-model:page-size="pager.pageSize"
+          :page-sizes="[10, 20, 30]"
+          :total="filteredOrders.length"
+          background
+          layout="total, sizes, prev, pager, next"
+          @current-change="setPage"
+          @size-change="handlePageSizeChange"
+        />
+      </el-footer>
+    </el-container>
+  </el-card>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Box } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const orderList = ref([])
@@ -176,11 +157,11 @@ function statusLabel(status) {
   return map[status] || '未知状态'
 }
 
-function statusClass(status) {
-  if (status === 'shipped') return 'status-approved'
-  if (status === 'pending_pay' || status === 'pending_ship') return 'status-pending'
-  if (status === 'closed') return 'status-rejected'
-  return 'status-revoked'
+function statusTagType(status) {
+  if (status === 'shipped') return 'success'
+  if (status === 'pending_pay' || status === 'pending_ship') return 'warning'
+  if (status === 'closed') return 'danger'
+  return 'info'
 }
 
 function resetFilters() {
@@ -227,110 +208,3 @@ watch(
   },
 )
 </script>
-
-<style scoped>
-.order-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.order-panel {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.filter-row {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 180px auto auto;
-  gap: 10px;
-}
-
-.table-wrap {
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: auto;
-  background: #fff;
-  flex: 1 1 auto;
-  height: 0;
-  min-height: 0;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 980px;
-}
-
-.data-table th,
-.data-table td {
-  padding: 11px 10px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-
-.data-table th {
-  background: #f3f8ff;
-  color: #35557f;
-}
-
-.empty-row {
-  padding: 0 !important;
-  text-align: center;
-}
-
-.action-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.app-btn.mini {
-  padding: 6px 9px;
-  font-size: 12px;
-}
-
-.pagination {
-  margin-top: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #f9fcff 100%);
-  flex: 0 0 auto;
-}
-
-.pagination .left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-size {
-  width: 110px;
-}
-
-.pages {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-@media (max-width: 1220px) {
-  .filter-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-</style>

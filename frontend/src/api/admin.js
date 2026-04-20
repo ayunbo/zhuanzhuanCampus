@@ -58,6 +58,16 @@ export function auditSellerAuth(data) {
   return request.put('/admin/seller-auth/audit', data)
 }
 
+export function fetchAuditLogPage(params) {
+  return request.get('/admin/audit-log/page', {
+    params,
+  })
+}
+
+export function fetchAuditLogDetail(id) {
+  return request.get(`/admin/audit-log/${id}`)
+}
+
 export function createCategory(data) {
   return request.post('/admin/category', data)
 }
@@ -112,4 +122,12 @@ export function auditAdminGoods(data) {
   }
 
   return request.put(`/admin/goods/${goodsId}/audit`, payload)
+}
+
+export function offShelfAdminGoods(id) {
+  return request.put(`/admin/goods/${id}/off-shelf`)
+}
+
+export function deleteAdminGoods(id) {
+  return request.delete(`/admin/goods/${id}`)
 }

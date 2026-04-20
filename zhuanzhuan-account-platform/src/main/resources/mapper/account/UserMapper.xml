@@ -192,4 +192,17 @@
         where id = #{id}
     </update>
 
+    <update id="increaseReviewStats">
+        update `user`
+        set score_avg = case
+                            when review_count is null or review_count &lt;= 0
+                                then cast(#{score} as decimal(10,2))
+                            else round((score_avg * review_count + #{score}) / (review_count + 1), 2)
+            end,
+            review_count = ifnull(review_count, 0) + 1,
+            update_time = now(),
+            update_user = #{updateUser}
+        where id = #{id}
+    </update>
+
 </mapper>

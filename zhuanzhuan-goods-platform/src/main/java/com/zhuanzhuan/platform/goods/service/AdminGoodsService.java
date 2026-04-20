@@ -33,4 +33,18 @@ public interface AdminGoodsService {
      * @param dto 审核参数
      */
     void audit(Long goodsId, AdminGoodsAuditDTO dto);
+
+    /**
+     * 管理员下架商品。
+     *
+     * @param goodsId 商品 ID
+     */
+    void offShelf(Long goodsId);
+
+    /**
+     * 管理员删除商品。
+     *
+     * @param goodsId 商品 ID
+     */
+    void delete(Long goodsId);
 }

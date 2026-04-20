@@ -2,6 +2,8 @@ package com.zhuanzhuan.platform.goods.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.zhuanzhuan.annotation.AuditRecord;
+import com.zhuanzhuan.constant.AuditOperationConstant;
 import com.zhuanzhuan.constant.GoodsConstant;
 import com.zhuanzhuan.constant.MessageConstant;
 import com.zhuanzhuan.context.BaseContext;
@@ -92,6 +94,11 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
      */
     @Override
     @Transactional
+    @AuditRecord(
+            operationType = AuditOperationConstant.GOODS_AUDIT,
+            actionField = "status",
+            detailField = "reason"
+    )
     public void audit(Long goodsId, AdminGoodsAuditDTO dto) {
         // 1. 校验管理员登录信息和审核参数。
         Long currentAdminId = BaseContext.getCurrentId();
@@ -102,12 +109,15 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         if (auditDTO.getStatus() == null) {
             throw new BaseException(MessageConstant.AUDIT_PARAM_INCOMPLETE);
         }
+        validateAuditStatus(auditDTO.getStatus());
+        validateRejectReason(auditDTO.getStatus(), auditDTO.getReason());
 
         // 2. 查询商品。
         Goods currentGoods = goodsMapper.selectById(goodsId);
         if (currentGoods == null) {
             throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
         }
+        validateAuditFlow(currentGoods.getStatus());
 
         // 3. 更新审核结果。
         LocalDateTime now = LocalDateTime.now();
@@ -124,6 +134,97 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         int rows = goodsMapper.updateStatusById(updateGoods);
         if (rows <= 0) {
             throw new BaseException(MessageConstant.GOODS_AUDIT_FAILED);
+        }
+    }
+
+    private void validateAuditStatus(Integer status) {
+        if (!GoodsConstant.STATUS_ON_SALE.equals(status)
+                && !GoodsConstant.STATUS_REJECTED.equals(status)) {
+            throw new BaseException(MessageConstant.GOODS_AUDIT_STATUS_INVALID);
+        }
+    }
+
+    private void validateAuditFlow(Integer currentStatus) {
+        if (!GoodsConstant.STATUS_PENDING_AUDIT.equals(currentStatus)) {
+            throw new BaseException(MessageConstant.GOODS_AUDIT_STATUS_FLOW_INVALID);
+        }
+    }
+
+    private void validateRejectReason(Integer status, String reason) {
+        if (!GoodsConstant.STATUS_REJECTED.equals(status)) {
+            return;
+        }
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BaseException(MessageConstant.REJECT_REASON_REQUIRED);
+        }
+        if (reason.length() > GoodsConstant.MAX_AUDIT_REASON_LENGTH) {
+            throw new BaseException(MessageConstant.REJECT_REASON_TOO_LONG);
+        }
+    }
+
+    /**
+     * 管理员下架商品。
+     *
+     * @param goodsId 商品 ID
+     */
+    @Override
+    @Transactional
+    public void offShelf(Long goodsId) {
+        Long currentAdminId = BaseContext.getCurrentId();
+        if (currentAdminId == null) {
+            throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
+        }
+
+        Goods currentGoods = goodsMapper.selectById(goodsId);
+        if (currentGoods == null) {
+            throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
+        }
+        if (!GoodsConstant.STATUS_ON_SALE.equals(currentGoods.getStatus())) {
+            throw new BaseException(MessageConstant.GOODS_OFF_SHELF_STATUS_INVALID);
+        }
+
+        Goods updateGoods = Goods.builder()
+                .id(goodsId)
+                .status(GoodsConstant.STATUS_OFF_SHELF)
+                .reason(currentGoods.getReason())
+                .auditAdminId(currentGoods.getAuditAdminId())
+                .auditTime(currentGoods.getAuditTime())
+                .publishTime(currentGoods.getPublishTime())
+                .lockOrderId(currentGoods.getLockOrderId())
+                .version(currentGoods.getVersion())
+                .build();
+        int rows = goodsMapper.updateStatusById(updateGoods);
+        if (rows <= 0) {
+            throw new BaseException(MessageConstant.GOODS_OFF_SHELF_FAILED);
+        }
+    }
+
+    /**
+     * 管理员删除商品。
+     *
+     * @param goodsId 商品 ID
+     */
+    @Override
+    @Transactional
+    public void delete(Long goodsId) {
+        Long currentAdminId = BaseContext.getCurrentId();
+        if (currentAdminId == null) {
+            throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
+        }
+
+        Goods currentGoods = goodsMapper.selectById(goodsId);
+        if (currentGoods == null) {
+            throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
+        }
+        if (GoodsConstant.STATUS_LOCKED.equals(currentGoods.getStatus())
+                || GoodsConstant.STATUS_SOLD.equals(currentGoods.getStatus())) {
+            throw new BaseException(MessageConstant.GOODS_DELETE_STATUS_INVALID);
+        }
+
+        goodsImageMapper.deleteByGoodsId(goodsId);
+        int rows = goodsMapper.deleteById(goodsId);
+        if (rows <= 0) {
+            throw new BaseException(MessageConstant.GOODS_DELETE_FAILED);
         }
     }
 }

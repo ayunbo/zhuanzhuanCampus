@@ -66,4 +66,11 @@ public interface UserMapper {
      * 将用户角色更新为卖家。
      */
     int updateRoleById(@Param("id") Long id, @Param("role") Integer role);
+
+    /**
+     * 更新卖家评分与评价次数。
+     */
+    int increaseReviewStats(@Param("id") Long id,
+                            @Param("score") Integer score,
+                            @Param("updateUser") Long updateUser);
 }
