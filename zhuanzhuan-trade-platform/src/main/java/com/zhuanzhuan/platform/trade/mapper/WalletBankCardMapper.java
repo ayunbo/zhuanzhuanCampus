@@ -14,6 +14,17 @@ public interface WalletBankCardMapper {
 
     WalletBankCard getById(Long id);
 
+    WalletBankCard getByCardNo(String cardNo);
+
+    void insert(WalletBankCard walletBankCard);
+
+    int clearDefaultByWalletAccountId(@Param("walletAccountId") Long walletAccountId,
+                                      @Param("updateUser") Long updateUser);
+
+    int setDefault(@Param("id") Long id,
+                   @Param("walletAccountId") Long walletAccountId,
+                   @Param("updateUser") Long updateUser);
+
     int deductBalance(@Param("id") Long id,
                       @Param("amount") BigDecimal amount);
 }

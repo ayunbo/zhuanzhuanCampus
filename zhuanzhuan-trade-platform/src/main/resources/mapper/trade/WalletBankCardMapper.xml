@@ -20,6 +20,41 @@
         limit 1
     </select>
 
+    <select id="getByCardNo" resultType="com.zhuanzhuan.entity.WalletBankCard">
+        select *
+        from wallet_bank_card
+        where card_no = #{cardNo}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.zhuanzhuan.entity.WalletBankCard" useGeneratedKeys="true" keyProperty="id">
+        insert into wallet_bank_card
+        (wallet_account_id, bank_name, card_holder, card_no, card_no_mask, card_type, balance,
+         is_default, status, bind_time, create_time, update_time, create_user, update_user)
+        values
+            (#{walletAccountId}, #{bankName}, #{cardHolder}, #{cardNo}, #{cardNoMask}, #{cardType}, #{balance},
+             #{isDefault}, #{status}, #{bindTime}, now(), now(), #{createUser}, #{updateUser})
+    </insert>
+
+    <update id="clearDefaultByWalletAccountId">
+        update wallet_bank_card
+        set is_default = 0,
+            update_user = #{updateUser},
+            update_time = now()
+        where wallet_account_id = #{walletAccountId}
+          and status = 1
+    </update>
+
+    <update id="setDefault">
+        update wallet_bank_card
+        set is_default = 1,
+            update_user = #{updateUser},
+            update_time = now()
+        where id = #{id}
+          and wallet_account_id = #{walletAccountId}
+          and status = 1
+    </update>
+
     <update id="deductBalance">
         update wallet_bank_card
         set balance = balance - #{amount},

@@ -52,5 +52,9 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.zhuanzhuan</groupId>
+            <artifactId>zhuanzhuan-account-platform</artifactId>
+        </dependency>
     </dependencies>
 </project>

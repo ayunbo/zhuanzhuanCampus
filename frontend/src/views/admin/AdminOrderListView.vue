@@ -73,11 +73,13 @@
                 {{ formatOrderStatus(item.status) }}
               </span>
             </td>
-            <td>{{ item.createTime || '-' }}</td>
+            <td>{{ formatDateTime(item.createTime) }}</td>
             <td class="actions">
-              <button class="app-btn primary mini" @click="goDetail(item.id)">详情</button>
-              <button class="app-btn secondary mini" @click="openStatusDialog(item)">改状态</button>
-              <button class="app-btn danger mini" @click="handleDelete(item.id)">删除</button>
+              <button class="app-btn primary mini" type="button" @click="goDetail(item.id)">详情</button>
+              <button class="app-btn secondary mini" type="button" @click="openStatusDialog(item)">改状态</button>
+              <button class="app-btn danger mini" type="button" :disabled="deletingId === item.id" @click="handleDelete(item.id)">
+                {{ deletingId === item.id ? '删除中...' : '删除' }}
+              </button>
             </td>
           </tr>
         </tbody>
@@ -115,7 +117,9 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="closeStatusDialog">取消</el-button>
-        <el-button type="primary" @click="handleUpdateStatus">确定</el-button>
+        <el-button type="primary" :disabled="statusSubmitting" @click="handleUpdateStatus">
+          {{ statusSubmitting ? '提交中...' : '确定' }}
+        </el-button>
       </div>
     </template>
   </el-dialog>
@@ -125,6 +129,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatDateTime } from '@/utils/format'
 import { deleteAdminOrder, getAdminOrderPage, updateAdminOrderStatus } from '@/api/admin'
 
 const route = useRoute()
@@ -134,6 +139,8 @@ const loading = ref(false)
 const total = ref(0)
 const tableData = ref([])
 const showStatusDialog = ref(false)
+const deletingId = ref(null)
+const statusSubmitting = ref(false)
 
 const statusTabs = [
   { value: '', label: '全部订单' },
@@ -195,6 +202,21 @@ function syncRouteFilters() {
     : ''
 }
 
+function normalizeOrder(record = {}) {
+  return {
+    id: record.id ?? null,
+    orderNo: record.orderNo || '',
+    goodsTitle: record.goodsTitle || '',
+    buyerId: record.buyerId ?? null,
+    sellerId: record.sellerId ?? null,
+    buyerName: record.buyerName || '',
+    sellerName: record.sellerName || '',
+    amount: record.amount ?? 0,
+    status: Number(record.status ?? 0),
+    createTime: record.createTime || '',
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -208,11 +230,11 @@ async function loadData() {
     }
 
     if (query.value.orderNo) {
-      params.orderNo = query.value.orderNo
+      params.orderNo = query.value.orderNo.trim()
     }
 
     const data = await getAdminOrderPage(params)
-    tableData.value = data?.result || data?.records || data?.list || []
+    tableData.value = Array.isArray(data?.records) ? data.records.map(normalizeOrder) : []
     total.value = data?.total || 0
   } catch (error) {
     ElMessage.error(error.message || '获取订单列表失败')
@@ -231,9 +253,16 @@ function isStatusActive(status) {
 }
 
 function handleStatusTabChange(status) {
+  const routeStatus = Object.entries(routeStatusMap).find(([, value]) => String(value) === String(status))?.[0] || 'all'
   query.value.status = status
   query.value.page = 1
-  loadData()
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      status: routeStatus,
+    },
+  })
 }
 
 function handleReset() {
@@ -243,7 +272,13 @@ function handleReset() {
     status: '',
     orderNo: '',
   }
-  loadData()
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      status: 'all',
+    },
+  })
 }
 
 function goDetail(id) {
@@ -264,6 +299,7 @@ function closeStatusDialog() {
 }
 
 async function handleUpdateStatus() {
+  statusSubmitting.value = true
   try {
     await updateAdminOrderStatus({
       id: statusForm.value.id,
@@ -274,6 +310,8 @@ async function handleUpdateStatus() {
     loadData()
   } catch (error) {
     ElMessage.error(error.message || '修改订单状态失败')
+  } finally {
+    statusSubmitting.value = false
   }
 }
 
@@ -289,11 +327,14 @@ async function handleDelete(id) {
   }
 
   try {
+    deletingId.value = id
     await deleteAdminOrder(id)
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
     ElMessage.error(error.message || '删除订单失败')
+  } finally {
+    deletingId.value = null
   }
 }
 
