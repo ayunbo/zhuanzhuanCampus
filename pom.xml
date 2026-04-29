@@ -28,6 +28,7 @@
         <module>zhuanzhuan-collect-platform</module>
         <module>zhuanzhuan-history--platform</module>
         <module>zhuanzhuan-audit-platform</module>
+        <module>zhuanzhuan-notify-platform</module>
     </modules>
 
     <properties>
@@ -101,6 +102,12 @@
             <dependency>
                 <groupId>com.zhuanzhuan</groupId>
                 <artifactId>zhuanzhuan-audit-platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zhuanzhuan</groupId>
+                <artifactId>zhuanzhuan-notify-platform</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
