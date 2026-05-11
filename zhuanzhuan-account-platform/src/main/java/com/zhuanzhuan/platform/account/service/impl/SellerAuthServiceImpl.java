@@ -20,6 +20,7 @@ import com.zhuanzhuan.platform.account.mapper.SellerAuthMapper;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.account.service.SellerAuthService;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.vo.SellerAuthResultVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ public class SellerAuthServiceImpl implements SellerAuthService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private RiskControlService riskControlService;
+
     /**
      * 用户提交卖家认证申请。
      *
@@ -54,46 +58,62 @@ public class SellerAuthServiceImpl implements SellerAuthService {
         if (userId == null) {
             throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
         }
-
-        // 2、查询当前用户，校验账号是否正常可用
-        User currentUser = userMapper.getById(userId);
-        if (currentUser == null) {
-            throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
+        if (!riskControlService.allowRate("rate:seller-apply:user:" + userId,
+                RiskControlService.SELLER_AUTH_SUBMIT_LIMIT, RiskControlService.SELLER_AUTH_SUBMIT_WINDOW)) {
+            throw new BaseException(MessageConstant.REQUEST_TOO_FREQUENT);
         }
-        if (!UserStatusConstant.NORMAL.equals(currentUser.getStatus())) {
-            throw new BaseException(MessageConstant.ACCOUNT_LOCKED);
+        String dedupKey = "dedup:seller-apply:" + userId;
+        if (!riskControlService.acquireDedupLock(dedupKey, RiskControlService.DEDUP_TTL)) {
+            throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
         }
 
-        // 3、校验当前角色是否允许发起卖家认证
-        //    已是卖家的账号无需重复申请，其他非普通用户账号也不允许申请
-        if (!RoleConstant.NORMAL_USER.equals(currentUser.getRole())) {
-            if (RoleConstant.SELLER.equals(currentUser.getRole())) {
-                throw new BaseException(MessageConstant.ALREADY_SELLER);
+        boolean success = false;
+        try {
+            // 2、查询当前用户，校验账号是否正常可用
+            User currentUser = userMapper.getById(userId);
+            if (currentUser == null) {
+                throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
             }
-            throw new BaseException(MessageConstant.ROLE_NOT_ALLOW_APPLY);
-        }
+            if (!UserStatusConstant.NORMAL.equals(currentUser.getStatus())) {
+                throw new BaseException(MessageConstant.ACCOUNT_LOCKED);
+            }
 
-        // 4、查询该用户最新一条认证记录，防止重复提交
-        SellerAuth latestAuth = sellerAuthMapper.getLatestByUserId(userId);
-        if (latestAuth != null && SellerAuthStatusConstant.PENDING.equals(latestAuth.getStatus())) {
-            // 已有待审核申请，不允许再次提交
-            throw new BaseException(MessageConstant.AUTH_ALREADY_PENDING);
-        }
-        if (latestAuth != null && SellerAuthStatusConstant.APPROVED.equals(latestAuth.getStatus())) {
-            // 认证已通过，无需重复申请
-            throw new BaseException(MessageConstant.AUTH_ALREADY_APPROVED);
-        }
+            // 3、校验当前角色是否允许发起卖家认证
+            //    已是卖家的账号无需重复申请，其他非普通用户账号也不允许申请
+            if (!RoleConstant.NORMAL_USER.equals(currentUser.getRole())) {
+                if (RoleConstant.SELLER.equals(currentUser.getRole())) {
+                    throw new BaseException(MessageConstant.ALREADY_SELLER);
+                }
+                throw new BaseException(MessageConstant.ROLE_NOT_ALLOW_APPLY);
+            }
 
-        // 5、将 DTO 属性拷贝到认证实体，补充系统生成字段
-        SellerAuth sellerAuth = new SellerAuth();
-        BeanUtils.copyProperties(sellerAuthApplyDTO, sellerAuth);
-        sellerAuth.setUserId(userId);
-        // 学号从当前登录用户档案中取，防止前端篡改
-        sellerAuth.setStudentNo(currentUser.getStudentNo());
-        sellerAuth.setStatus(SellerAuthStatusConstant.PENDING);
+            // 4、查询该用户最新一条认证记录，防止重复提交
+            SellerAuth latestAuth = sellerAuthMapper.getLatestByUserId(userId);
+            if (latestAuth != null && SellerAuthStatusConstant.PENDING.equals(latestAuth.getStatus())) {
+                // 已有待审核申请，不允许再次提交
+                throw new BaseException(MessageConstant.AUTH_ALREADY_PENDING);
+            }
+            if (latestAuth != null && SellerAuthStatusConstant.APPROVED.equals(latestAuth.getStatus())) {
+                // 认证已通过，无需重复申请
+                throw new BaseException(MessageConstant.AUTH_ALREADY_APPROVED);
+            }
 
-        // 6、执行数据库插入
-        sellerAuthMapper.insert(sellerAuth);
+            // 5、将 DTO 属性拷贝到认证实体，补充系统生成字段
+            SellerAuth sellerAuth = new SellerAuth();
+            BeanUtils.copyProperties(sellerAuthApplyDTO, sellerAuth);
+            sellerAuth.setUserId(userId);
+            // 学号从当前登录用户档案中取，防止前端篡改
+            sellerAuth.setStudentNo(currentUser.getStudentNo());
+            sellerAuth.setStatus(SellerAuthStatusConstant.PENDING);
+
+            // 6、执行数据库插入
+            sellerAuthMapper.insert(sellerAuth);
+            success = true;
+        } finally {
+            if (!success) {
+                riskControlService.releaseDedupLock(dedupKey);
+            }
+        }
     }
 
     /**
@@ -195,47 +215,62 @@ public class SellerAuthServiceImpl implements SellerAuthService {
                 && !StringUtils.hasText(sellerAuthAuditDTO.getReason())) {
             throw new BaseException(MessageConstant.REJECT_REASON_REQUIRED);
         }
-
-        // 3、查询待审核记录，确认申请存在且处于待审核状态
-        SellerAuth sellerAuth = sellerAuthMapper.getById(sellerAuthAuditDTO.getAuthId());
-        if (sellerAuth == null) {
-            throw new BaseException(MessageConstant.AUTH_NOT_FOUND);
-        }
-        if (!SellerAuthStatusConstant.PENDING.equals(sellerAuth.getStatus())) {
-            // 申请已被处理，防止重复操作
-            throw new BaseException(MessageConstant.AUTH_ALREADY_AUDITED);
-        }
-
-        // 4、获取当前登录管理员 ID，用于写入审核人信息
         Long adminId = BaseContext.getCurrentId();
         if (adminId == null) {
             throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
         }
-
-        // 5、审核通过前额外校验申请人账号状态，被封禁账号不能升级为卖家
-        if (SellerAuthStatusConstant.APPROVED.equals(targetStatus)) {
-            User authUser = userMapper.getById(sellerAuth.getUserId());
-            if (authUser == null) {
-                throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
-            }
-            if (!UserStatusConstant.NORMAL.equals(authUser.getStatus())) {
-                throw new BaseException(MessageConstant.ACCOUNT_LOCKED);
-            }
+        if (!riskControlService.allowRate("rate:admin-audit:admin:" + adminId,
+                RiskControlService.ADMIN_AUDIT_LIMIT, RiskControlService.ADMIN_AUDIT_WINDOW)) {
+            throw new BaseException(MessageConstant.REQUEST_TOO_FREQUENT);
+        }
+        String dedupKey = "dedup:audit:seller-apply:" + sellerAuthAuditDTO.getAuthId();
+        if (!riskControlService.acquireDedupLock(dedupKey, RiskControlService.DEDUP_TTL)) {
+            throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
         }
 
-        // 6、更新认证记录：写入审核结果、审核人、审核时间，驳回时附带原因
-        SellerAuth updateEntity = new SellerAuth();
-        updateEntity.setId(sellerAuthAuditDTO.getAuthId());
-        updateEntity.setStatus(targetStatus);
-        updateEntity.setReason(SellerAuthStatusConstant.REJECTED.equals(targetStatus)
-                ? sellerAuthAuditDTO.getReason() : null);
-        updateEntity.setAuditAdminId(adminId);
-        updateEntity.setAuditTime(LocalDateTime.now());
-        sellerAuthMapper.updateAuditById(updateEntity);
+        boolean success = false;
+        try {
+            // 3、查询待审核记录，确认申请存在且处于待审核状态
+            SellerAuth sellerAuth = sellerAuthMapper.getById(sellerAuthAuditDTO.getAuthId());
+            if (sellerAuth == null) {
+                throw new BaseException(MessageConstant.AUTH_NOT_FOUND);
+            }
+            if (!SellerAuthStatusConstant.PENDING.equals(sellerAuth.getStatus())) {
+                // 申请已被处理，防止重复操作
+                throw new BaseException(MessageConstant.AUTH_ALREADY_AUDITED);
+            }
 
-        // 7、审核通过后同步将用户角色升级为卖家，卖家权限从此刻生效
-        if (SellerAuthStatusConstant.APPROVED.equals(targetStatus)) {
-            userMapper.updateRoleById(sellerAuth.getUserId(), RoleConstant.SELLER);
+            // 5、审核通过前额外校验申请人账号状态，被封禁账号不能升级为卖家
+            if (SellerAuthStatusConstant.APPROVED.equals(targetStatus)) {
+                User authUser = userMapper.getById(sellerAuth.getUserId());
+                if (authUser == null) {
+                    throw new BaseException(MessageConstant.CURRENT_USER_NOT_FOUND);
+                }
+                if (!UserStatusConstant.NORMAL.equals(authUser.getStatus())) {
+                    throw new BaseException(MessageConstant.ACCOUNT_LOCKED);
+                }
+            }
+
+            // 6、更新认证记录：写入审核结果、审核人、审核时间，驳回时附带原因
+            SellerAuth updateEntity = new SellerAuth();
+            updateEntity.setId(sellerAuthAuditDTO.getAuthId());
+            updateEntity.setStatus(targetStatus);
+            updateEntity.setReason(SellerAuthStatusConstant.REJECTED.equals(targetStatus)
+                    ? sellerAuthAuditDTO.getReason() : null);
+            updateEntity.setAuditAdminId(adminId);
+            updateEntity.setAuditTime(LocalDateTime.now());
+            sellerAuthMapper.updateAuditById(updateEntity);
+
+            // 7、审核通过后同步将用户角色升级为卖家，卖家权限从此刻生效
+            if (SellerAuthStatusConstant.APPROVED.equals(targetStatus)) {
+                userMapper.updateRoleById(sellerAuth.getUserId(), RoleConstant.SELLER);
+                riskControlService.evictAuthStatus("user", sellerAuth.getUserId());
+            }
+            success = true;
+        } finally {
+            if (!success) {
+                riskControlService.releaseDedupLock(dedupKey);
+            }
         }
     }
 

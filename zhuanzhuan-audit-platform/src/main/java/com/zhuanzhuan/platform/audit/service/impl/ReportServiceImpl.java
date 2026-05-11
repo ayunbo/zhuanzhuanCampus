@@ -4,17 +4,19 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.zhuanzhuan.annotation.AuditRecord;
 import com.zhuanzhuan.constant.AuditOperationConstant;
-import com.zhuanzhuan.constant.GoodsConstant;
+import com.zhuanzhuan.constant.MessageConstant;
 import com.zhuanzhuan.constant.ReportConstant;
-import com.zhuanzhuan.constant.UserStatusConstant;
 import com.zhuanzhuan.context.BaseContext;
 import com.zhuanzhuan.dto.AdminReportPageQueryDTO;
 import com.zhuanzhuan.dto.ReportHandleDTO;
 import com.zhuanzhuan.dto.ReportSubmitDTO;
 import com.zhuanzhuan.entity.Report;
+import com.zhuanzhuan.exception.BaseException;
+import com.zhuanzhuan.exception.UserNotLoginException;
 import com.zhuanzhuan.platform.audit.mapper.ReportMapper;
 import com.zhuanzhuan.platform.audit.service.ReportService;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.vo.ReportDetailVO;
 import com.zhuanzhuan.vo.ReportVO;
 import org.springframework.beans.BeanUtils;
@@ -34,6 +36,9 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private ReportMapper reportMapper;
 
+    @Autowired
+    private RiskControlService riskControlService;
+
     /**
      * 用户提交举报。
      *
@@ -41,16 +46,39 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     public void submitReport(ReportSubmitDTO dto) {
-        // 1、将 DTO 属性拷贝到举报实体
-        Report report = new Report();
-        BeanUtils.copyProperties(dto, report);
+        if (dto == null || dto.getTargetType() == null || dto.getTargetId() == null) {
+            throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
+        }
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            throw new UserNotLoginException(MessageConstant.USER_NOT_LOGIN);
+        }
+        if (!riskControlService.allowRate("rate:report:user:" + userId,
+                RiskControlService.REPORT_SUBMIT_LIMIT, RiskControlService.REPORT_SUBMIT_WINDOW)) {
+            throw new BaseException(MessageConstant.REQUEST_TOO_FREQUENT);
+        }
+        String dedupKey = "dedup:report:" + userId + ":" + dto.getTargetType() + ":" + dto.getTargetId();
+        if (!riskControlService.acquireDedupLock(dedupKey, RiskControlService.DEDUP_TTL)) {
+            throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
+        }
+        boolean success = false;
+        try {
+            // 1、将 DTO 属性拷贝到举报实体
+            Report report = new Report();
+            BeanUtils.copyProperties(dto, report);
 
-        // 2、补充系统生成字段：举报人、初始状态
-        report.setReportUserId(BaseContext.getCurrentId());
-        report.setStatus(ReportConstant.STATUS_PENDING);
+            // 2、补充系统生成字段：举报人、初始状态
+            report.setReportUserId(userId);
+            report.setStatus(ReportConstant.STATUS_PENDING);
 
-        // 3、执行数据库插入
-        reportMapper.insert(report);
+            // 3、执行数据库插入
+            reportMapper.insert(report);
+            success = true;
+        } finally {
+            if (!success) {
+                riskControlService.releaseDedupLock(dedupKey);
+            }
+        }
     }
 
     /**
@@ -99,20 +127,38 @@ public class ReportServiceImpl implements ReportService {
             detailField = "handleResult"
     )
     public void handleReport(Long id, ReportHandleDTO dto) {
-        // 1、构建更新实体，标记为已处理
-        Report updateReport = new Report();
-        updateReport.setId(id);
-        updateReport.setStatus(ReportConstant.STATUS_HANDLED);
-        updateReport.setHandleAdminId(BaseContext.getCurrentId());
-        updateReport.setHandleResult(dto.getHandleResult());
-        updateReport.setHandleTime(LocalDateTime.now());
+        Long adminId = BaseContext.getCurrentId();
+        checkAdminAuditRisk(adminId, "dedup:report-handle:" + id);
+        boolean success = false;
+        try {
+            Report currentReport = reportMapper.selectById(id);
+            if (currentReport == null) {
+                throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
+            }
+            if (currentReport.getStatus() == null || currentReport.getStatus() != ReportConstant.STATUS_PENDING) {
+                throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
+            }
 
-        // 2、执行举报记录更新
-        reportMapper.updateHandleResult(updateReport);
+            // 1、构建更新实体，标记为已处理
+            Report updateReport = new Report();
+            updateReport.setId(id);
+            updateReport.setStatus(ReportConstant.STATUS_HANDLED);
+            updateReport.setHandleAdminId(adminId);
+            updateReport.setHandleResult(dto.getHandleResult());
+            updateReport.setHandleTime(LocalDateTime.now());
 
-        // 3、根据处理方式执行联动操作
-        // 注意：下架商品和封禁用户需要调用对应模块的 Mapper，
-        // 这里通过直接操作数据库实现，保持模块独立性
+            // 2、执行举报记录更新
+            reportMapper.updateHandleResult(updateReport);
+
+            // 3、根据处理方式执行联动操作
+            // 注意：下架商品和封禁用户需要调用对应模块的 Mapper，
+            // 这里通过直接操作数据库实现，保持模块独立性
+            success = true;
+        } finally {
+            if (!success) {
+                riskControlService.releaseDedupLock("dedup:report-handle:" + id);
+            }
+        }
     }
 
     /**
@@ -127,15 +173,46 @@ public class ReportServiceImpl implements ReportService {
             fixedDetail = "管理员忽略该举报"
     )
     public void ignoreReport(Long id) {
-        // 1、构建更新实体，标记为已忽略
-        Report updateReport = new Report();
-        updateReport.setId(id);
-        updateReport.setStatus(ReportConstant.STATUS_IGNORED);
-        updateReport.setHandleAdminId(BaseContext.getCurrentId());
-        updateReport.setHandleResult("管理员忽略该举报");
-        updateReport.setHandleTime(LocalDateTime.now());
+        Long adminId = BaseContext.getCurrentId();
+        checkAdminAuditRisk(adminId, "dedup:report-handle:" + id);
+        boolean success = false;
+        try {
+            Report currentReport = reportMapper.selectById(id);
+            if (currentReport == null) {
+                throw new BaseException(MessageConstant.REQUEST_PARAM_NULL);
+            }
+            if (currentReport.getStatus() == null || currentReport.getStatus() != ReportConstant.STATUS_PENDING) {
+                throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
+            }
 
-        // 2、执行举报记录更新
-        reportMapper.updateHandleResult(updateReport);
+            // 1、构建更新实体，标记为已忽略
+            Report updateReport = new Report();
+            updateReport.setId(id);
+            updateReport.setStatus(ReportConstant.STATUS_IGNORED);
+            updateReport.setHandleAdminId(adminId);
+            updateReport.setHandleResult("管理员忽略该举报");
+            updateReport.setHandleTime(LocalDateTime.now());
+
+            // 2、执行举报记录更新
+            reportMapper.updateHandleResult(updateReport);
+            success = true;
+        } finally {
+            if (!success) {
+                riskControlService.releaseDedupLock("dedup:report-handle:" + id);
+            }
+        }
+    }
+
+    private void checkAdminAuditRisk(Long adminId, String dedupKey) {
+        if (adminId == null) {
+            throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
+        }
+        if (!riskControlService.allowRate("rate:admin-audit:admin:" + adminId,
+                RiskControlService.ADMIN_AUDIT_LIMIT, RiskControlService.ADMIN_AUDIT_WINDOW)) {
+            throw new BaseException(MessageConstant.REQUEST_TOO_FREQUENT);
+        }
+        if (!riskControlService.acquireDedupLock(dedupKey, RiskControlService.DEDUP_TTL)) {
+            throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
+        }
     }
 }

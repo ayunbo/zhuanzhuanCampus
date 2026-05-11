@@ -15,6 +15,7 @@ import com.zhuanzhuan.platform.account.mapper.SellerAuthMapper;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.account.service.AdminUserService;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.vo.UserProfileVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Autowired
     private SellerAuthMapper sellerAuthMapper;
+
+    @Autowired
+    private RiskControlService riskControlService;
 
     /**
      * 新增用户。
@@ -124,6 +128,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // 6、执行选择性更新（只更新非 null 字段）
         userMapper.updateByIdSelective(updateEntity);
+        riskControlService.evictAuthStatus("user", saveDTO.getId());
     }
 
     /**
@@ -147,6 +152,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // 3、执行物理删除
         userMapper.deleteById(id);
+        riskControlService.evictAuthStatus("user", id);
     }
 
     /**

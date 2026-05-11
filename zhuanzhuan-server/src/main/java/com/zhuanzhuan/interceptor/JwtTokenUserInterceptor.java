@@ -1,8 +1,12 @@
 package com.zhuanzhuan.interceptor;
 
 import com.zhuanzhuan.constant.JwtClaimsConstant;
+import com.zhuanzhuan.constant.UserStatusConstant;
 import com.zhuanzhuan.context.BaseContext;
+import com.zhuanzhuan.entity.User;
+import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.properties.JwtProperties;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +28,12 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
     @Autowired
     private JwtProperties jwtProperties;
 
+    @Autowired
+    private RiskControlService riskControlService;
+
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         BaseContext.removeCurrentId();
@@ -41,6 +51,16 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         try {
             Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
             Long userId = Long.valueOf(claims.get(JwtClaimsConstant.USER_ID).toString());
+            Integer status = riskControlService.getAuthStatus("user", userId);
+            if (status == null) {
+                User user = userMapper.getById(userId);
+                status = user == null ? UserStatusConstant.BANNED : user.getStatus();
+                riskControlService.cacheAuthStatus("user", userId, status);
+            }
+            if (!UserStatusConstant.NORMAL.equals(status)) {
+                response.setStatus(401);
+                return false;
+            }
             BaseContext.setCurrentId(userId);
             log.debug("用户 JWT 解析成功, userId={}", userId);
             return true;

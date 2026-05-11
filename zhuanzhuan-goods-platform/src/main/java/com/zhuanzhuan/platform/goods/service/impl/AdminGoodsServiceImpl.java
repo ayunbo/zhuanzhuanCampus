@@ -16,6 +16,7 @@ import com.zhuanzhuan.platform.goods.mapper.GoodsImageMapper;
 import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.platform.goods.service.AdminGoodsService;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.vo.AdminGoodsDetailVO;
 import com.zhuanzhuan.vo.AdminGoodsPageVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,9 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
 
     @Autowired
     private GoodsImageMapper goodsImageMapper;
+
+    @Autowired
+    private RiskControlService riskControlService;
 
     /**
      * 分页查询商品。
@@ -105,35 +109,51 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         if (currentAdminId == null) {
             throw new UserNotLoginException(MessageConstant.ADMIN_NOT_LOGIN);
         }
-        AdminGoodsAuditDTO auditDTO = dto == null ? new AdminGoodsAuditDTO() : dto;
-        if (auditDTO.getStatus() == null) {
-            throw new BaseException(MessageConstant.AUDIT_PARAM_INCOMPLETE);
+        if (!riskControlService.allowRate("rate:admin-audit:admin:" + currentAdminId,
+                RiskControlService.ADMIN_AUDIT_LIMIT, RiskControlService.ADMIN_AUDIT_WINDOW)) {
+            throw new BaseException(MessageConstant.REQUEST_TOO_FREQUENT);
         }
-        validateAuditStatus(auditDTO.getStatus());
-        validateRejectReason(auditDTO.getStatus(), auditDTO.getReason());
-
-        // 2. 查询商品。
-        Goods currentGoods = goodsMapper.selectById(goodsId);
-        if (currentGoods == null) {
-            throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
+        String dedupKey = "dedup:audit:goods:" + goodsId;
+        if (!riskControlService.acquireDedupLock(dedupKey, RiskControlService.DEDUP_TTL)) {
+            throw new BaseException(MessageConstant.DUPLICATE_SUBMIT);
         }
-        validateAuditFlow(currentGoods.getStatus());
+        boolean success = false;
+        try {
+            AdminGoodsAuditDTO auditDTO = dto == null ? new AdminGoodsAuditDTO() : dto;
+            if (auditDTO.getStatus() == null) {
+                throw new BaseException(MessageConstant.AUDIT_PARAM_INCOMPLETE);
+            }
+            validateAuditStatus(auditDTO.getStatus());
+            validateRejectReason(auditDTO.getStatus(), auditDTO.getReason());
 
-        // 3. 更新审核结果。
-        LocalDateTime now = LocalDateTime.now();
-        Goods updateGoods = Goods.builder()
-                .id(goodsId)
-                .status(auditDTO.getStatus())
-                .reason(auditDTO.getReason())
-                .auditAdminId(currentAdminId)
-                .auditTime(now)
-                .publishTime(GoodsConstant.STATUS_ON_SALE.equals(auditDTO.getStatus()) ? now : null)
-                .lockOrderId(currentGoods.getLockOrderId())
-                .version(currentGoods.getVersion())
-                .build();
-        int rows = goodsMapper.updateStatusById(updateGoods);
-        if (rows <= 0) {
-            throw new BaseException(MessageConstant.GOODS_AUDIT_FAILED);
+            // 2. 查询商品。
+            Goods currentGoods = goodsMapper.selectById(goodsId);
+            if (currentGoods == null) {
+                throw new BaseException(MessageConstant.GOODS_NOT_FOUND);
+            }
+            validateAuditFlow(currentGoods.getStatus());
+
+            // 3. 更新审核结果。
+            LocalDateTime now = LocalDateTime.now();
+            Goods updateGoods = Goods.builder()
+                    .id(goodsId)
+                    .status(auditDTO.getStatus())
+                    .reason(auditDTO.getReason())
+                    .auditAdminId(currentAdminId)
+                    .auditTime(now)
+                    .publishTime(GoodsConstant.STATUS_ON_SALE.equals(auditDTO.getStatus()) ? now : null)
+                    .lockOrderId(currentGoods.getLockOrderId())
+                    .version(currentGoods.getVersion())
+                    .build();
+            int rows = goodsMapper.updateStatusById(updateGoods);
+            if (rows <= 0) {
+                throw new BaseException(MessageConstant.GOODS_AUDIT_FAILED);
+            }
+            success = true;
+        } finally {
+            if (!success) {
+                riskControlService.releaseDedupLock(dedupKey);
+            }
         }
     }
 

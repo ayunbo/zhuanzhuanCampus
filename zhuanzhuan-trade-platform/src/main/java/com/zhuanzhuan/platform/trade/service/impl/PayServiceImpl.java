@@ -35,13 +35,11 @@ public class PayServiceImpl implements PayService {
         }
         return currentId;
     }
+
     @Override
     @Transactional
     public void mockPay(PaySubmitDTO dto) {
-        Long currentId = BaseContext.getCurrentId();
-        if (currentId == null) {
-            throw new BaseException("用户未登录");
-        }
+        Long currentId = getCurrentUserId();
 
         Order order = orderMapper.getById(dto.getOrderId());
         if (order == null) {
@@ -54,6 +52,10 @@ public class PayServiceImpl implements PayService {
 
         if (!OrderStatusConstant.PENDING_PAY.equals(order.getStatus())) {
             throw new BaseException("订单状态异常");
+        }
+
+        if (order.getExpireTime() != null && !order.getExpireTime().isAfter(LocalDateTime.now())) {
+            throw new BaseException("订单已过期，请重新下单");
         }
 
         Pay pay = payMapper.getByOrderId(order.getId());

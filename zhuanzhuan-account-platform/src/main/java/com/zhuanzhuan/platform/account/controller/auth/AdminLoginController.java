@@ -1,11 +1,13 @@
 package com.zhuanzhuan.platform.account.controller.auth;
 
 import com.zhuanzhuan.dto.AdminLoginDTO;
+import com.zhuanzhuan.platform.account.util.IpUtil;
 import com.zhuanzhuan.result.Result;
 import com.zhuanzhuan.platform.account.service.auth.LoginService;
 import com.zhuanzhuan.vo.LoginVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,7 +24,7 @@ public class AdminLoginController {
 
     @Operation(summary = "管理员登录")
     @PostMapping("/login")
-    public Result<LoginVO> login(@RequestBody AdminLoginDTO adminLoginDTO) {
-        return Result.success(loginService.adminLogin(adminLoginDTO));
+    public Result<LoginVO> login(@RequestBody AdminLoginDTO adminLoginDTO, HttpServletRequest request) {
+        return Result.success(loginService.adminLogin(adminLoginDTO, IpUtil.getClientIp(request)));
     }
 }

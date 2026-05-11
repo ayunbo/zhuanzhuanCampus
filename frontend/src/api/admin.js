@@ -131,3 +131,25 @@ export function offShelfAdminGoods(id) {
 export function deleteAdminGoods(id) {
   return request.delete(`/admin/goods/${id}`)
 }
+
+export function getAdminOrderPage(params) {
+  return request.get('/admin/order/page', {
+    params,
+  })
+}
+
+export function getAdminOrderDetail(id) {
+  return request.get(`/admin/order/detail/${id}`)
+}
+
+export function updateAdminOrder(data) {
+  return request.put('/admin/order/update', data)
+}
+
+export function updateAdminOrderStatus(data) {
+  return request.put('/admin/order/status', data)
+}
+
+export function deleteAdminOrder(id) {
+  return request.delete(`/admin/order/${id}`)
+}

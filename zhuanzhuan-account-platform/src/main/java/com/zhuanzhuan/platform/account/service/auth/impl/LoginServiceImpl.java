@@ -17,6 +17,7 @@ import com.zhuanzhuan.platform.account.mapper.AdminMapper;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.account.service.auth.LoginService;
 import com.zhuanzhuan.properties.JwtProperties;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.utils.JwtUtil;
 import com.zhuanzhuan.vo.LoginVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ public class LoginServiceImpl implements LoginService {
     @Autowired
     private JwtProperties jwtProperties;
 
+    @Autowired
+    private RiskControlService riskControlService;
+
     /**
      * 管理员登录。
      *
@@ -49,21 +53,25 @@ public class LoginServiceImpl implements LoginService {
      * @return 登录结果（含 JWT 令牌）
      */
     @Override
-    public LoginVO adminLogin(AdminLoginDTO adminLoginDTO) {
+    public LoginVO adminLogin(AdminLoginDTO adminLoginDTO, String clientIp) {
         // 1、校验用户名和密码不能为空
         if (!StringUtils.hasText(adminLoginDTO.getUsername())
                 || !StringUtils.hasText(adminLoginDTO.getPassword())) {
             throw new BaseException(MessageConstant.LOGIN_PARAM_EMPTY);
         }
+        String username = adminLoginDTO.getUsername().trim();
+        checkLoginRisk("admin", username, clientIp);
 
         // 2、按用户名查询管理员，去掉首尾空格兼容输入习惯
-        Admin admin = adminMapper.getByUsername(adminLoginDTO.getUsername().trim());
+        Admin admin = adminMapper.getByUsername(username);
         if (admin == null) {
+            riskControlService.recordLoginFailure("admin", username);
             throw new AccountNotFoundException(MessageConstant.ADMIN_ACCOUNT_NOT_FOUND);
         }
 
         // 3、校验密码：入参 MD5 后与数据库存储值比对
         if (!DigestUtils.md5DigestAsHex(adminLoginDTO.getPassword().getBytes()).equals(admin.getPassword())) {
+            riskControlService.recordLoginFailure("admin", username);
             throw new PasswordErrorException(MessageConstant.PASSWORD_ERROR);
         }
 
@@ -72,7 +80,8 @@ public class LoginServiceImpl implements LoginService {
             throw new AccountLockedException(MessageConstant.ADMIN_ACCOUNT_DISABLED);
         }
 
-        // 5、生成 JWT 令牌，携带管理员 ID、用户名和姓名
+        // 5、清理失败计数并生成 JWT 令牌，携带管理员 ID、用户名和姓名
+        riskControlService.clearLoginFailures("admin", username);
         Map<String, Object> claims = new HashMap<>();
         claims.put(JwtClaimsConstant.ADMIN_ID, admin.getId());
         claims.put(JwtClaimsConstant.USERNAME, admin.getUsername());
@@ -96,22 +105,25 @@ public class LoginServiceImpl implements LoginService {
      * @return 登录结果（含 JWT 令牌）
      */
     @Override
-    public LoginVO userLogin(UserLoginDTO userLoginDTO) {
+    public LoginVO userLogin(UserLoginDTO userLoginDTO, String clientIp) {
         // 1、整理账号并校验必填项，去除首尾空格后统一判断是否为空
         String account = StringUtils.hasText(userLoginDTO.getAccount())
                 ? userLoginDTO.getAccount().trim() : null;
         if (!StringUtils.hasText(account) || !StringUtils.hasText(userLoginDTO.getPassword())) {
             throw new BaseException(MessageConstant.LOGIN_PARAM_EMPTY);
         }
+        checkLoginRisk("user", account, clientIp);
 
         // 2、按学号或手机号查询账号，普通用户和卖家共用此登录入口
         User user = userMapper.getByStudentNoOrPhone(account);
         if (user == null) {
+            riskControlService.recordLoginFailure("user", account);
             throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
         }
 
         // 3、校验密码：入参 MD5 后与数据库存储值比对
         if (!DigestUtils.md5DigestAsHex(userLoginDTO.getPassword().getBytes()).equals(user.getPassword())) {
+            riskControlService.recordLoginFailure("user", account);
             throw new PasswordErrorException(MessageConstant.PASSWORD_ERROR);
         }
 
@@ -120,7 +132,8 @@ public class LoginServiceImpl implements LoginService {
             throw new AccountLockedException(MessageConstant.ACCOUNT_LOCKED);
         }
 
-        // 5、生成 JWT 令牌，携带用户 ID、学号、姓名，手机号有值时一并写入
+        // 5、清理失败计数并生成 JWT 令牌，携带用户 ID、学号、姓名，手机号有值时一并写入
+        riskControlService.clearLoginFailures("user", account);
         Map<String, Object> claims = new HashMap<>();
         claims.put(JwtClaimsConstant.USER_ID, user.getId());
         claims.put(JwtClaimsConstant.USERNAME, user.getStudentNo());
@@ -138,5 +151,15 @@ public class LoginServiceImpl implements LoginService {
                 .role(user.getRole())
                 .token(token)
                 .build();
+    }
+
+    private void checkLoginRisk(String identity, String account, String clientIp) {
+        if (!riskControlService.allowRate("rate:login:ip:" + clientIp,
+                RiskControlService.LOGIN_IP_LIMIT, RiskControlService.LOGIN_IP_WINDOW)) {
+            throw new BaseException(MessageConstant.REQUEST_TOO_FREQUENT);
+        }
+        if (riskControlService.isLoginLocked(identity, account)) {
+            throw new AccountLockedException(MessageConstant.LOGIN_TEMP_LOCKED);
+        }
     }
 }

@@ -12,10 +12,10 @@ public interface LoginService {
     /**
      * 管理员登录
      */
-    LoginVO adminLogin(AdminLoginDTO adminLoginDTO);
+    LoginVO adminLogin(AdminLoginDTO adminLoginDTO, String clientIp);
 
     /**
      * 用户统一登录（普通用户/卖家共用）
      */
-    LoginVO userLogin(UserLoginDTO userLoginDTO);
+    LoginVO userLogin(UserLoginDTO userLoginDTO, String clientIp);
 }

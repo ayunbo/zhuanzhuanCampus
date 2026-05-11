@@ -5,6 +5,7 @@ import com.zhuanzhuan.entity.PayRecord;
 import com.zhuanzhuan.vo.AdminOrderDetailVO;
 import com.zhuanzhuan.vo.OrderDetailVO;
 import com.zhuanzhuan.vo.PayRecordVO;
+import com.zhuanzhuan.vo.WalletTransactionVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,13 +15,14 @@ import java.util.List;
 public interface PayRecordMapper {
 
     void insert(PayRecord payRecord);
-    // 管理员订单分页
+
     List<OrderDetailVO> adminPageQuery(@Param("dto") AdminOrderPageQueryDTO dto);
 
-    // 管理员订单详情
     AdminOrderDetailVO adminDetail(Long id);
+
     List<PayRecordVO> listByOrderId(Long orderId);
 
+    List<WalletTransactionVO> pageWalletRecords(@Param("buyerId") Long buyerId);
 
     int deleteByOrderId(Long orderId);
 }

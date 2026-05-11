@@ -1,11 +1,13 @@
 package com.zhuanzhuan.platform.account.controller.auth;
 
 import com.zhuanzhuan.dto.UserLoginDTO;
+import com.zhuanzhuan.platform.account.util.IpUtil;
 import com.zhuanzhuan.result.Result;
 import com.zhuanzhuan.platform.account.service.auth.LoginService;
 import com.zhuanzhuan.vo.LoginVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,19 +24,19 @@ public class UserLoginController {
 
     @Operation(summary = "用户统一登录（学号或手机号）")
     @PostMapping
-    public Result<LoginVO> login(@RequestBody UserLoginDTO userLoginDTO) {
-        return Result.success(loginService.userLogin(userLoginDTO));
+    public Result<LoginVO> login(@RequestBody UserLoginDTO userLoginDTO, HttpServletRequest request) {
+        return Result.success(loginService.userLogin(userLoginDTO, IpUtil.getClientIp(request)));
     }
 
     @Operation(summary = "兼容旧版买家登录地址")
     @PostMapping("/buyer")
-    public Result<LoginVO> buyerLogin(@RequestBody UserLoginDTO userLoginDTO) {
-        return Result.success(loginService.userLogin(userLoginDTO));
+    public Result<LoginVO> buyerLogin(@RequestBody UserLoginDTO userLoginDTO, HttpServletRequest request) {
+        return Result.success(loginService.userLogin(userLoginDTO, IpUtil.getClientIp(request)));
     }
 
     @Operation(summary = "兼容旧版卖家登录地址")
     @PostMapping("/seller")
-    public Result<LoginVO> sellerLogin(@RequestBody UserLoginDTO userLoginDTO) {
-        return Result.success(loginService.userLogin(userLoginDTO));
+    public Result<LoginVO> sellerLogin(@RequestBody UserLoginDTO userLoginDTO, HttpServletRequest request) {
+        return Result.success(loginService.userLogin(userLoginDTO, IpUtil.getClientIp(request)));
     }
 }
