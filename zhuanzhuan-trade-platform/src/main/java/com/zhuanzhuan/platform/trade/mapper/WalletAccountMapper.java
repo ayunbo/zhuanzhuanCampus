@@ -11,6 +11,12 @@ public interface WalletAccountMapper {
 
     WalletAccount getByLoginName(String loginName);
 
+    WalletAccount getAnyByLoginName(String loginName);
+
+    WalletAccount getByPhone(String phone);
+
+    void insert(WalletAccount walletAccount);
+
     int deductBalance(@Param("id") Long id,
                       @Param("amount") BigDecimal amount);
 }

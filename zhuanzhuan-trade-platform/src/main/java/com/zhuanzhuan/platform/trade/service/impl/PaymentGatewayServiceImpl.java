@@ -62,8 +62,10 @@ public class PaymentGatewayServiceImpl implements PaymentGatewayService {
             }
 
             vo.setAction("redirect_page");
-            vo.setRedirectUrl(hasReturnUrl ? dto.getReturnUrl() : walletLaunchVO.getReturnUrl());
-            vo.setMessage("请跳转到虚拟钱包收银台或拉起钱包应用");
+            vo.setRedirectUrl(walletLaunchVO.getWalletScheme());
+            vo.setMessage(hasReturnUrl
+                    ? "请拉起虚拟钱包支付，完成后回到业务页"
+                    : "请拉起虚拟钱包完成支付");
             return vo;
         }
 

@@ -13,22 +13,40 @@
              now(), now(), #{createUser}, #{updateUser})
     </insert>
 
+    <select id="pageWalletRecords" resultType="com.zhuanzhuan.vo.WalletTransactionVO">
+        select
+            pr.id,
+            pr.order_id,
+            pr.record_no,
+            pr.content,
+            pr.status,
+            pr.channel_response,
+            p.amount,
+            p.method as pay_method,
+            o.order_no,
+            pr.create_time
+        from pay_record pr
+                 left join pay p on p.id = pr.pay_id
+                 left join `order` o on o.id = pr.order_id
+        where o.buyer_id = #{buyerId}
+          and p.method = 2
+        order by pr.create_time desc
+    </select>
 
-
-        <select id="listByOrderId" resultType="com.zhuanzhuan.vo.PayRecordVO">
-            select
-                id,
-                pay_id,
-                order_id,
-                record_no,
-                content,
-                status,
-                channel_response,
-                create_time
-            from pay_record
-            where order_id = #{orderId}
-            order by create_time desc
-        </select>
+    <select id="listByOrderId" resultType="com.zhuanzhuan.vo.PayRecordVO">
+        select
+            id,
+            pay_id,
+            order_id,
+            record_no,
+            content,
+            status,
+            channel_response,
+            create_time
+        from pay_record
+        where order_id = #{orderId}
+        order by create_time desc
+    </select>
 
     <delete id="deleteByOrderId">
         delete from pay_record where order_id = #{orderId}

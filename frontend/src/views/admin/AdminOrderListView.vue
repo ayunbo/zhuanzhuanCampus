@@ -7,6 +7,19 @@
       </div>
     </section>
 
+    <div class="status-tabs">
+      <button
+        v-for="item in statusTabs"
+        :key="item.label"
+        class="status-tab"
+        :class="{ active: isStatusActive(item.value) }"
+        type="button"
+        @click="handleStatusTabChange(item.value)"
+      >
+        {{ item.label }}
+      </button>
+    </div>
+
     <form class="filter-grid" @submit.prevent="handleSearch">
       <label>
         <span>订单号</span>
@@ -60,11 +73,13 @@
                 {{ formatOrderStatus(item.status) }}
               </span>
             </td>
-            <td>{{ item.createTime || '-' }}</td>
+            <td>{{ formatDateTime(item.createTime) }}</td>
             <td class="actions">
-              <button class="app-btn primary mini" @click="goDetail(item.id)">详情</button>
-              <button class="app-btn secondary mini" @click="openStatusDialog(item)">改状态</button>
-              <button class="app-btn danger mini" @click="handleDelete(item.id)">删除</button>
+              <button class="app-btn primary mini" type="button" @click="goDetail(item.id)">详情</button>
+              <button class="app-btn secondary mini" type="button" @click="openStatusDialog(item)">改状态</button>
+              <button class="app-btn danger mini" type="button" :disabled="deletingId === item.id" @click="handleDelete(item.id)">
+                {{ deletingId === item.id ? '删除中...' : '删除' }}
+              </button>
             </td>
           </tr>
         </tbody>
@@ -76,8 +91,10 @@
         v-model:current-page="query.page"
         v-model:page-size="query.pageSize"
         :total="total"
-        layout="total, prev, pager, next"
+        :page-sizes="[10, 20, 30]"
+        layout="total, sizes, prev, pager, next"
         @current-change="loadData"
+        @size-change="loadData"
       />
     </footer>
   </div>
@@ -100,28 +117,43 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="closeStatusDialog">取消</el-button>
-        <el-button type="primary" @click="handleUpdateStatus">确定</el-button>
+        <el-button type="primary" :disabled="statusSubmitting" @click="handleUpdateStatus">
+          {{ statusSubmitting ? '提交中...' : '确定' }}
+        </el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatDateTime } from '@/utils/format'
 import { deleteAdminOrder, getAdminOrderPage, updateAdminOrderStatus } from '@/api/admin'
 
+const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
 const total = ref(0)
 const tableData = ref([])
 const showStatusDialog = ref(false)
+const deletingId = ref(null)
+const statusSubmitting = ref(false)
+
+const statusTabs = [
+  { value: '', label: '全部订单' },
+  { value: 0, label: '待支付' },
+  { value: 1, label: '已支付' },
+  { value: 2, label: '已完成' },
+  { value: 3, label: '已取消' },
+  { value: 4, label: '超时关闭' },
+]
 
 const query = ref({
   page: 1,
-  pageSize: 5,
+  pageSize: 10,
   status: '',
   orderNo: '',
 })
@@ -131,6 +163,15 @@ const statusForm = ref({
   orderNo: '',
   status: 0,
 })
+
+const routeStatusMap = {
+  all: '',
+  pending_pay: 0,
+  paid: 1,
+  completed: 2,
+  canceled: 3,
+  timeout_closed: 4,
+}
 
 function formatOrderStatus(status) {
   const map = {
@@ -154,6 +195,28 @@ function statusClass(status) {
   return map[status] || ''
 }
 
+function syncRouteFilters() {
+  const routeStatus = typeof route.query.status === 'string' ? route.query.status : 'all'
+  query.value.status = Object.prototype.hasOwnProperty.call(routeStatusMap, routeStatus)
+    ? routeStatusMap[routeStatus]
+    : ''
+}
+
+function normalizeOrder(record = {}) {
+  return {
+    id: record.id ?? null,
+    orderNo: record.orderNo || '',
+    goodsTitle: record.goodsTitle || '',
+    buyerId: record.buyerId ?? null,
+    sellerId: record.sellerId ?? null,
+    buyerName: record.buyerName || '',
+    sellerName: record.sellerName || '',
+    amount: record.amount ?? 0,
+    status: Number(record.status ?? 0),
+    createTime: record.createTime || '',
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -162,16 +225,16 @@ async function loadData() {
       pageSize: query.value.pageSize,
     }
 
-    if (query.value.status !== '' && query.value.status !== null) {
-      params.status = query.value.status
+    if (query.value.status !== '' && query.value.status !== null && query.value.status !== undefined) {
+      params.status = Number(query.value.status)
     }
 
     if (query.value.orderNo) {
-      params.orderNo = query.value.orderNo
+      params.orderNo = query.value.orderNo.trim()
     }
 
     const data = await getAdminOrderPage(params)
-    tableData.value = data?.result || data?.records || data?.list || []
+    tableData.value = Array.isArray(data?.records) ? data.records.map(normalizeOrder) : []
     total.value = data?.total || 0
   } catch (error) {
     ElMessage.error(error.message || '获取订单列表失败')
@@ -185,18 +248,41 @@ function handleSearch() {
   loadData()
 }
 
+function isStatusActive(status) {
+  return String(query.value.status) === String(status)
+}
+
+function handleStatusTabChange(status) {
+  const routeStatus = Object.entries(routeStatusMap).find(([, value]) => String(value) === String(status))?.[0] || 'all'
+  query.value.status = status
+  query.value.page = 1
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      status: routeStatus,
+    },
+  })
+}
+
 function handleReset() {
   query.value = {
     page: 1,
-    pageSize: 5,
+    pageSize: 10,
     status: '',
     orderNo: '',
   }
-  loadData()
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      status: 'all',
+    },
+  })
 }
 
 function goDetail(id) {
-  router.push(`/admin/order/detail/${id}`)
+  router.push(`/order-manage/detail/${id}`)
 }
 
 function openStatusDialog(item) {
@@ -213,6 +299,7 @@ function closeStatusDialog() {
 }
 
 async function handleUpdateStatus() {
+  statusSubmitting.value = true
   try {
     await updateAdminOrderStatus({
       id: statusForm.value.id,
@@ -223,6 +310,8 @@ async function handleUpdateStatus() {
     loadData()
   } catch (error) {
     ElMessage.error(error.message || '修改订单状态失败')
+  } finally {
+    statusSubmitting.value = false
   }
 }
 
@@ -238,17 +327,30 @@ async function handleDelete(id) {
   }
 
   try {
+    deletingId.value = id
     await deleteAdminOrder(id)
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
     ElMessage.error(error.message || '删除订单失败')
+  } finally {
+    deletingId.value = null
   }
 }
 
 onMounted(() => {
+  syncRouteFilters()
   loadData()
 })
+
+watch(
+  () => route.query.status,
+  () => {
+    syncRouteFilters()
+    query.value.page = 1
+    loadData()
+  },
+)
 </script>
 
 <style scoped>
@@ -281,6 +383,36 @@ onMounted(() => {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.status-tabs {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-tab {
+  border: 1px solid #ead8bc;
+  background: #fffaf1;
+  color: #7b5d38;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-tab:hover {
+  border-color: #d4b07d;
+  background: #fff3df;
+}
+
+.status-tab.active {
+  border-color: #c98d36;
+  background: linear-gradient(135deg, #ffe5b7 0%, #ffd18a 100%);
+  color: #6a4208;
 }
 
 .filter-grid label {

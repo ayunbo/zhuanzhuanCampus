@@ -47,9 +47,17 @@ const routes = [
       {
         path: 'order-manage',
         name: 'orderManage',
-        component: () => import('@/views/admin/OrderManageView.vue'),
+        component: () => import('@/views/admin/AdminOrderListView.vue'),
         meta: {
           title: '订单管理',
+        },
+      },
+      {
+        path: 'order-manage/detail/:id',
+        name: 'adminOrderDetail',
+        component: () => import('@/views/admin/AdminOrderDetailView.vue'),
+        meta: {
+          title: '订单详情',
         },
       },
       {
