@@ -75,8 +75,25 @@
     <!-- 分页查询审核流水列表（动态条件） -->
     <select id="pageQuery" resultType="com.zhuanzhuan.vo.AuditLogVO">
         select
-            <include refid="AuditLogViewColumns"/>
-        <include refid="AuditLogViewJoins"/>
+            l.id as id,
+            l.admin_id as adminId,
+            coalesce(nullif(l.admin_name, ''), concat('管理员#', l.admin_id)) as adminName,
+            l.operation_type as operationType,
+            <include refid="OperationTypeDescSql"/> as operationTypeDesc,
+            l.target_id as targetId,
+            concat(
+                case l.operation_type
+                    when 1 then '商品#'
+                    when 2 then '认证#'
+                    when 3 then '举报#'
+                    else '对象#'
+                end,
+                l.target_id
+            ) as targetSummary,
+            l.action as action,
+            l.detail as detail,
+            l.create_time as createTime
+        from audit_log l
         <where>
             <if test="operationType != null">
                 and l.operation_type = #{operationType}

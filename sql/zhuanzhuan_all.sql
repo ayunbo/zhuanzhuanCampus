@@ -476,7 +476,8 @@ CREATE TABLE `audit_log`  (
                                `update_user` bigint NOT NULL DEFAULT 0 COMMENT '修改人id',
                                PRIMARY KEY (`id`) USING BTREE,
                                INDEX `idx_audit_log_admin`(`admin_id` ASC) USING BTREE,
-                               INDEX `idx_audit_log_type_time`(`operation_type` ASC, `create_time` ASC) USING BTREE
+                               INDEX `idx_audit_log_type_time`(`operation_type` ASC, `create_time` ASC) USING BTREE,
+                               INDEX `idx_audit_log_create_time`(`create_time` DESC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '审核操作流水表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
