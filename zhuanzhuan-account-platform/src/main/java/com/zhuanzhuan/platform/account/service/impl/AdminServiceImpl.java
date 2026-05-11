@@ -14,6 +14,7 @@ import com.zhuanzhuan.exception.BaseException;
 import com.zhuanzhuan.platform.account.mapper.AdminMapper;
 import com.zhuanzhuan.platform.account.service.AdminService;
 import com.zhuanzhuan.result.PageResult;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.vo.AdminVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Autowired
     private AdminMapper adminMapper;
+
+    @Autowired
+    private RiskControlService riskControlService;
 
     /**
      * 新增管理员。
@@ -111,6 +115,7 @@ public class AdminServiceImpl implements AdminService {
 
         // 6、执行选择性更新（只更新非 null 字段）
         adminMapper.updateByIdSelective(admin);
+        riskControlService.evictAuthStatus("admin", adminSaveDTO.getId());
     }
 
     /**
@@ -140,6 +145,7 @@ public class AdminServiceImpl implements AdminService {
 
         // 4、执行物理删除
         adminMapper.deleteById(id);
+        riskControlService.evictAuthStatus("admin", id);
     }
 
     /**

@@ -16,6 +16,12 @@ spring:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
+  data:
+    redis:
+      host: ${zhuanzhuan.redis.host}
+      port: ${zhuanzhuan.redis.port}
+      database: ${zhuanzhuan.redis.database}
+      timeout: ${zhuanzhuan.redis.timeout}
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml

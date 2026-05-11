@@ -6,7 +6,12 @@ zhuanzhuan:
     port: 3306
     database: zhuanzhuan
     username: root
-    password: 123456
+    password: 20041021
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 3000ms
   alioss:
     bucket-name: zhuanzhuancampus
     endpoint: https://oss-cn-beijing.aliyuncs.com

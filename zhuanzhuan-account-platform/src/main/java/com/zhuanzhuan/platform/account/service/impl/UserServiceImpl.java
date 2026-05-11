@@ -14,6 +14,7 @@ import com.zhuanzhuan.exception.UserNotLoginException;
 import com.zhuanzhuan.platform.account.mapper.SellerAuthMapper;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.account.service.UserService;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.vo.UserProfileVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private SellerAuthMapper sellerAuthMapper;
+
+    @Autowired
+    private RiskControlService riskControlService;
 
     /**
      * 用户注册。
@@ -141,6 +145,7 @@ public class UserServiceImpl implements UserService {
 
         // 5、执行选择性更新（只更新非 null 字段）
         userMapper.updateByIdSelective(user);
+        riskControlService.evictAuthStatus("user", userId);
     }
 
     /**
@@ -173,5 +178,6 @@ public class UserServiceImpl implements UserService {
 
         // 5、执行物理删除
         userMapper.deleteById(userId);
+        riskControlService.evictAuthStatus("user", userId);
     }
 }

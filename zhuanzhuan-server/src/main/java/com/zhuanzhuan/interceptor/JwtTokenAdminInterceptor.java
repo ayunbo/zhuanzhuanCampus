@@ -1,8 +1,12 @@
 package com.zhuanzhuan.interceptor;
 
 import com.zhuanzhuan.constant.JwtClaimsConstant;
+import com.zhuanzhuan.constant.AdminStatusConstant;
 import com.zhuanzhuan.context.BaseContext;
+import com.zhuanzhuan.entity.Admin;
+import com.zhuanzhuan.platform.account.mapper.AdminMapper;
 import com.zhuanzhuan.properties.JwtProperties;
+import com.zhuanzhuan.service.RiskControlService;
 import com.zhuanzhuan.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +28,12 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
     @Autowired
     private JwtProperties jwtProperties;
 
+    @Autowired
+    private RiskControlService riskControlService;
+
+    @Autowired
+    private AdminMapper adminMapper;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         BaseContext.removeCurrentId();
@@ -41,6 +51,16 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
         try {
             Claims claims = JwtUtil.parseJWT(jwtProperties.getAdminSecretKey(), token);
             Long adminId = Long.valueOf(claims.get(JwtClaimsConstant.ADMIN_ID).toString());
+            Integer status = riskControlService.getAuthStatus("admin", adminId);
+            if (status == null) {
+                Admin admin = adminMapper.getById(adminId);
+                status = admin == null ? AdminStatusConstant.DISABLED : admin.getStatus();
+                riskControlService.cacheAuthStatus("admin", adminId, status);
+            }
+            if (!AdminStatusConstant.NORMAL.equals(status)) {
+                response.setStatus(401);
+                return false;
+            }
             BaseContext.setCurrentId(adminId);
             log.debug("管理员 JWT 解析成功, adminId={}", adminId);
             return true;

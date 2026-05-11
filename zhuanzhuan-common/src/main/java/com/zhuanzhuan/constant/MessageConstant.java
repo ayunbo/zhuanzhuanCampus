@@ -11,6 +11,9 @@ public final class MessageConstant {
     public static final String UNKNOWN_ERROR = "未知错误，请稍后重试";
     public static final String REQUEST_PARAM_NULL = "请求参数不能为空";
     public static final String STATUS_PARAM_INVALID = "状态参数不合法";
+    public static final String REQUEST_TOO_FREQUENT = "操作过于频繁，请稍后再试";
+    public static final String DUPLICATE_SUBMIT = "请勿重复提交";
+    public static final String LOGIN_TEMP_LOCKED = "登录失败次数过多，请15分钟后再试";
 
     public static final String USER_NOT_LOGIN = "用户未登录";
     public static final String ADMIN_NOT_LOGIN = "管理员未登录";
