@@ -184,11 +184,19 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
 
     /**
      * 管理员下架商品。
+     * <p>
+     * 该操作属于审核风控处理的一部分，常用于发现已上架商品存在违规、信息不实等问题时，
+     * 将商品从用户端可见列表中移除。方法执行成功后会由审核流水切面记录“下架”动作，
+     * 便于后续追溯是哪位管理员在什么时间处理了哪一个商品。
      *
      * @param goodsId 商品 ID
      */
     @Override
     @Transactional
+    @AuditRecord(
+            operationType = AuditOperationConstant.GOODS_AUDIT,
+            fixedAction = "下架"
+    )
     public void offShelf(Long goodsId) {
         Long currentAdminId = BaseContext.getCurrentId();
         if (currentAdminId == null) {
@@ -221,11 +229,19 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
 
     /**
      * 管理员删除商品。
+     * <p>
+     * 删除是更强的风控处置方式，会同时删除商品主记录和图片记录。由于商品被硬删除后无法再通过
+     * 商品表查询详情，审核流水切面会在删除前抓取商品快照，并在删除成功后写入 audit_log.detail，
+     * 避免出现“有删除记录但无法知道删除了什么商品”的追溯缺口。
      *
      * @param goodsId 商品 ID
      */
     @Override
     @Transactional
+    @AuditRecord(
+            operationType = AuditOperationConstant.GOODS_AUDIT,
+            fixedAction = "删除"
+    )
     public void delete(Long goodsId) {
         Long currentAdminId = BaseContext.getCurrentId();
         if (currentAdminId == null) {

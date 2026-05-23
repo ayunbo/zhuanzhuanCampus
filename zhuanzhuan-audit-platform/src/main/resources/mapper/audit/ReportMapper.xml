@@ -11,12 +11,136 @@
                 #{createTime}, #{updateTime}, #{createUser}, #{updateUser})
     </insert>
 
-    <!-- 分页查询举报列表（动态条件） -->
-    <select id="pageQuery" resultType="com.zhuanzhuan.vo.ReportVO">
-        SELECT r.id, r.report_user_id, u.name AS report_user_name,
-               r.target_type, r.target_id, r.reason, r.status, r.create_time
+    <sql id="ReportListColumns">
+        r.id,
+        r.report_user_id,
+        u.name AS report_user_name,
+        r.target_type,
+        r.target_id,
+        r.reason,
+        r.status,
+        r.create_time
+    </sql>
+
+    <sql id="UserReportListColumns">
+        r.id,
+        r.target_type,
+        r.target_id,
+        r.reason,
+        r.status,
+        r.create_time
+    </sql>
+
+    <sql id="ReportDetailColumns">
+        r.id,
+        r.report_user_id,
+        u.name AS report_user_name,
+        u.student_no AS report_user_student_no,
+        u.phone AS report_user_phone,
+        r.target_type,
+        r.target_id,
+        case r.target_type
+            when 1 then g.title
+            when 2 then tu.name
+            when 3 then left(cm.content, 100)
+            else null
+        end AS target_name,
+        tu.student_no AS target_user_student_no,
+        tu.phone AS target_user_phone,
+        tu.role AS target_user_role,
+        tu.status AS target_user_status,
+        tu.campus AS target_user_campus,
+        tu.intro AS target_user_intro,
+        g.title AS goods_title,
+        g.price AS goods_price,
+        g.status AS goods_status,
+        case g.status
+            when 0 then '草稿'
+            when 1 then '待审核'
+            when 2 then '已驳回'
+            when 3 then '在售'
+            when 4 then '锁定'
+            when 5 then '已售出'
+            when 6 then '已下架'
+            else null
+        end AS goods_status_desc,
+        c.name AS goods_category_name,
+        g.location AS goods_location,
+        g.detail AS goods_detail,
+        g.cover AS goods_cover,
+        g.seller_id AS goods_seller_id,
+        gu.name AS goods_seller_name,
+        gu.student_no AS goods_seller_student_no,
+        gu.phone AS goods_seller_phone,
+        gu.campus AS goods_seller_campus,
+        r.reason,
+        r.status,
+        r.handle_admin_id,
+        a.name AS handle_admin_name,
+        r.handle_result,
+        r.handle_time,
+        r.create_time
+    </sql>
+
+    <sql id="UserReportDetailColumns">
+        r.id,
+        r.target_type,
+        r.target_id,
+        case r.target_type
+            when 1 then g.title
+            when 2 then tu.name
+            when 3 then left(cm.content, 100)
+            else null
+        end AS target_name,
+        tu.role AS target_user_role,
+        tu.status AS target_user_status,
+        tu.campus AS target_user_campus,
+        tu.intro AS target_user_intro,
+        g.title AS goods_title,
+        g.price AS goods_price,
+        g.status AS goods_status,
+        case g.status
+            when 0 then '草稿'
+            when 1 then '待审核'
+            when 2 then '已驳回'
+            when 3 then '在售'
+            when 4 then '锁定'
+            when 5 then '已售出'
+            when 6 then '已下架'
+            else null
+        end AS goods_status_desc,
+        c.name AS goods_category_name,
+        g.location AS goods_location,
+        g.detail AS goods_detail,
+        g.cover AS goods_cover,
+        g.seller_id AS goods_seller_id,
+        gu.name AS goods_seller_name,
+        gu.campus AS goods_seller_campus,
+        r.reason,
+        r.status,
+        a.name AS handle_admin_name,
+        r.handle_result,
+        r.handle_time,
+        r.create_time
+    </sql>
+
+    <sql id="ReportDetailJoins">
         FROM report r
-        LEFT JOIN user u ON r.report_user_id = u.id
+        LEFT JOIN `user` u ON r.report_user_id = u.id
+        LEFT JOIN admin a ON r.handle_admin_id = a.id
+        LEFT JOIN goods g ON r.target_type = 1 AND r.target_id = g.id
+        LEFT JOIN category c ON g.category_id = c.id
+        LEFT JOIN `user` gu ON g.seller_id = gu.id
+        LEFT JOIN `user` tu ON r.target_type = 2 AND r.target_id = tu.id
+        LEFT JOIN chatmessage cm ON r.target_type = 3 AND r.target_id = cm.id
+    </sql>
+
+    <!-- 管理员分页查询举报列表（动态条件） -->
+    <select id="pageQuery" resultType="com.zhuanzhuan.vo.ReportVO">
+        SELECT
+            <include refid="ReportListColumns"/>
+        FROM report r
+        LEFT JOIN `user` u ON r.report_user_id = u.id
         <where>
             <if test="status != null">
                 AND r.status = #{status}
@@ -28,33 +152,40 @@
         ORDER BY r.create_time DESC
     </select>
 
-    <!-- 查询举报详情（关联举报人和处理管理员名称） -->
-    <select id="selectDetailById" resultType="com.zhuanzhuan.vo.ReportDetailVO">
-        SELECT r.id,
-               r.report_user_id,
-               u.name AS report_user_name,
-               r.target_type,
-               r.target_id,
-               case r.target_type
-                   when 1 then g.title
-                   when 2 then tu.name
-                   when 3 then left(cm.content, 100)
-                   else null
-               end AS target_name,
-               r.reason,
-               r.status,
-               r.handle_admin_id,
-               a.name AS handle_admin_name,
-               r.handle_result,
-               r.handle_time,
-               r.create_time
+    <!-- 用户分页查询本人提交的举报列表（动态条件） -->
+    <select id="pageQueryByUserId" resultType="com.zhuanzhuan.vo.ReportVO">
+        SELECT
+            <include refid="UserReportListColumns"/>
         FROM report r
-        LEFT JOIN user u ON r.report_user_id = u.id
-        LEFT JOIN admin a ON r.handle_admin_id = a.id
-        LEFT JOIN goods g ON r.target_type = 1 AND r.target_id = g.id
-        LEFT JOIN user tu ON r.target_type = 2 AND r.target_id = tu.id
-        LEFT JOIN chatmessage cm ON r.target_type = 3 AND r.target_id = cm.id
+        <where>
+            r.report_user_id = #{reportUserId}
+            <if test="dto.status != null">
+                AND r.status = #{dto.status}
+            </if>
+            <if test="dto.targetType != null">
+                AND r.target_type = #{dto.targetType}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+    </select>
+
+    <!-- 管理员查询举报详情（关联举报人、处理管理员、举报对象名称） -->
+    <select id="selectDetailById" resultType="com.zhuanzhuan.vo.ReportDetailVO">
+        SELECT
+            <include refid="ReportDetailColumns"/>
+        <include refid="ReportDetailJoins"/>
         WHERE r.id = #{id}
+        LIMIT 1
+    </select>
+
+    <!-- 用户查询本人举报详情，通过 report_user_id 限制数据归属，防止越权查看其他用户举报 -->
+    <select id="selectDetailByIdAndReportUserId" resultType="com.zhuanzhuan.vo.ReportDetailVO">
+        SELECT
+            <include refid="UserReportDetailColumns"/>
+        <include refid="ReportDetailJoins"/>
+        WHERE r.id = #{id}
+          AND r.report_user_id = #{reportUserId}
+        LIMIT 1
     </select>
 
     <!-- 更新举报处理结果 -->
