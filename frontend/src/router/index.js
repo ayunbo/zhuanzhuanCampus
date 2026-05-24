@@ -100,6 +100,14 @@ const routes = [
           title: '日志管理',
         },
       },
+      {
+        path: 'report-manage',
+        name: 'reportManage',
+        component: () => import('@/views/admin/ReportManageView.vue'),
+        meta: {
+          title: '举报处理',
+        },
+      },
     ],
   },
   {

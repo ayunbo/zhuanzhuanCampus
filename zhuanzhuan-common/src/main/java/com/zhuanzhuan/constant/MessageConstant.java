@@ -137,4 +137,14 @@ public final class MessageConstant {
     public static final String REVIEW_NOT_ALLOWED = "you are not allowed to view this review";
     public static final String REVIEW_NOT_FOUND = "review not found";
     public static final String REVIEW_SUBMIT_FAILED = "review submit failed";
+
+    public static final String REPORT_TARGET_TYPE_INVALID = "举报对象类型不合法";
+    public static final String REPORT_TARGET_NOT_FOUND = "举报对象不存在";
+    public static final String REPORT_REASON_REQUIRED = "举报原因不能为空";
+    public static final String REPORT_REASON_TOO_LONG = "举报原因长度不能超过255";
+    public static final String REPORT_HANDLE_RESULT_REQUIRED = "处理结果不能为空";
+    public static final String REPORT_HANDLE_RESULT_TOO_LONG = "处理结果长度不能超过255";
+    public static final String REPORT_NOT_FOUND = "举报记录不存在";
+    public static final String REPORT_ALREADY_HANDLED = "该举报已处理，请勿重复操作";
+    public static final String REPORT_SELF_NOT_ALLOWED = "不能举报自己";
 }

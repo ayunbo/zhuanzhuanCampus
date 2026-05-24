@@ -15,6 +15,7 @@ import {
   ArrowLeftBold,
   ArrowRightBold,
   Document,
+  Warning,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -124,6 +125,18 @@ const primaryGroups = [
           { label: '商品审核', path: '/audit-log', query: { operationType: '1' } },
           { label: '认证审核', path: '/audit-log', query: { operationType: '2' } },
           { label: '举报处理', path: '/audit-log', query: { operationType: '3' } },
+        ],
+      },
+      {
+        key: 'report',
+        label: '举报',
+        path: '/report-manage',
+        icon: Warning,
+        tasks: [
+          { label: '全部举报', path: '/report-manage' },
+          { label: '待处理', path: '/report-manage', query: { status: 'pending' } },
+          { label: '已处理', path: '/report-manage', query: { status: 'handled' } },
+          { label: '已忽略', path: '/report-manage', query: { status: 'ignored' } },
         ],
       },
     ],

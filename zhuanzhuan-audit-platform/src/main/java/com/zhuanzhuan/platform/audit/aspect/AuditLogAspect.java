@@ -1,14 +1,17 @@
 package com.zhuanzhuan.platform.audit.aspect;
 
 import com.zhuanzhuan.annotation.AuditRecord;
+import com.zhuanzhuan.constant.AuditOperationConstant;
 import com.zhuanzhuan.context.BaseContext;
 import com.zhuanzhuan.entity.Admin;
 import com.zhuanzhuan.entity.AuditLog;
 import com.zhuanzhuan.platform.account.mapper.AdminMapper;
 import com.zhuanzhuan.platform.audit.mapper.AuditLogMapper;
+import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
+import com.zhuanzhuan.vo.AdminGoodsDetailVO;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -32,6 +35,9 @@ public class AuditLogAspect {
     @Autowired
     private AdminMapper adminMapper;
 
+    @Autowired
+    private GoodsMapper goodsMapper;
+
     /**
      * 切入点：匹配所有标注了 @AuditRecord 注解的方法。
      */
@@ -40,46 +46,54 @@ public class AuditLogAspect {
     }
 
     /**
-     * 后置通知：方法成功执行后自动记录审核流水。
+     * 环绕通知：业务方法执行成功后自动记录审核流水。
+     * <p>
+     * 这里使用环绕通知而不是普通后置通知，是为了在“删除商品”这类硬删除操作执行前先抓取商品快照。
+     * 如果等删除成功后再查商品表，商品详情已经不存在，日志只能留下商品 ID，无法满足审核风控的可追溯要求。
      *
      * @param joinPoint 连接点
+     * @return 原业务方法返回值
+     * @throws Throwable 原业务方法抛出的异常需要继续向外传播，保证事务回滚和错误响应不被吞掉
      */
-    @AfterReturning("auditRecordPointCut()")
-    public void recordAuditLog(JoinPoint joinPoint) {
+    @Around("auditRecordPointCut()")
+    public Object recordAuditLog(ProceedingJoinPoint joinPoint) throws Throwable {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        AuditRecord auditRecord = signature.getMethod().getAnnotation(AuditRecord.class);
+        int operationType = auditRecord.operationType();
+        Long targetId = extractTargetId(joinPoint.getArgs(), auditRecord);
+
+        // 商品删除、下架等处置操作可能会改变或删除商品记录，因此在主业务执行前先保存关键快照。
+        String snapshotDetail = buildSnapshotDetail(operationType, targetId);
+
+        Object result = joinPoint.proceed();
+
         try {
-            // 1、获取方法上的 @AuditRecord 注解，提取操作类型
-            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-            AuditRecord auditRecord = signature.getMethod().getAnnotation(AuditRecord.class);
-            int operationType = auditRecord.operationType();
-
-            // 2、从方法参数中提取操作对象 ID（优先使用注解显式字段，其次回退到 Long 类型参数）
-            Long targetId = extractTargetId(joinPoint.getArgs(), auditRecord);
-
-            // 3、获取当前登录管理员信息
+            // 业务成功后再写流水，避免失败操作也被记录成已完成的审核动作。
             Long adminId = BaseContext.getCurrentId();
             Admin currentAdmin = adminId == null ? null : adminMapper.getById(adminId);
-
-            // 4、从方法参数中提取操作动作和详情
             String action = extractAction(joinPoint.getArgs(), auditRecord, operationType);
             String detail = extractDetail(joinPoint.getArgs(), auditRecord);
+            if (!StringUtils.hasText(detail)) {
+                detail = snapshotDetail;
+            }
 
-            // 5、构建审核流水实体并写入数据库
             AuditLog auditLog = AuditLog.builder()
                     .adminId(adminId != null ? adminId : 0L)
                     .adminName(currentAdmin != null ? currentAdmin.getName() : "")
                     .operationType(operationType)
                     .targetId(targetId != null ? targetId : 0L)
                     .action(action)
-                    .detail(detail)
+                    .detail(truncateDetail(detail))
                     .build();
 
             auditLogMapper.insert(auditLog);
             log.info("审核流水已记录：operationType={}, targetId={}, action={}", operationType, targetId, action);
-
         } catch (Exception e) {
-            // 审核流水记录失败不应影响主业务，仅打印日志
+            // 审核流水记录失败不应影响主业务，仅打印日志，避免因为日志异常导致审核操作回滚。
             log.error("记录审核流水失败", e);
         }
+
+        return result;
     }
 
     /**
@@ -239,5 +253,49 @@ public class AuditLogAspect {
             return text;
         }
         return null;
+    }
+
+    /**
+     * 构建审核对象快照详情。
+     * <p>
+     * 目前重点补齐商品审核风控链路：商品被下架或删除后，日志仍应保留商品标题、卖家和处理前状态。
+     * 其他操作类型暂不需要额外快照，继续使用注解指定的 reason、handleResult 等业务字段。
+     */
+    private String buildSnapshotDetail(int operationType, Long targetId) {
+        if (operationType != AuditOperationConstant.GOODS_AUDIT || targetId == null) {
+            return null;
+        }
+
+        try {
+            AdminGoodsDetailVO goodsDetail = goodsMapper.detailAdmin(targetId);
+            if (goodsDetail == null) {
+                return null;
+            }
+            return "商品快照：ID=" + safeText(goodsDetail.getId())
+                    + "；标题=" + safeText(goodsDetail.getTitle())
+                    + "；卖家=" + safeText(goodsDetail.getSellerName())
+                    + "；卖家学号=" + safeText(goodsDetail.getSellerStudentNo())
+                    + "；分类=" + safeText(goodsDetail.getCategoryName())
+                    + "；价格=" + safeText(goodsDetail.getPrice())
+                    + "；处理前状态=" + safeText(goodsDetail.getStatusDesc());
+        } catch (Exception e) {
+            // 快照只是增强追溯信息，不能影响主审核业务。
+            log.warn("构建商品审核快照失败，targetId={}", targetId, e);
+            return null;
+        }
+    }
+
+    /**
+     * audit_log.detail 字段长度为 500，这里做统一截断，避免个别商品标题或详情过长导致插入失败。
+     */
+    private String truncateDetail(String detail) {
+        if (detail == null || detail.length() <= 500) {
+            return detail;
+        }
+        return detail.substring(0, 500);
+    }
+
+    private String safeText(Object value) {
+        return value == null ? "-" : String.valueOf(value);
     }
 }

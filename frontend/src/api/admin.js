@@ -68,6 +68,24 @@ export function fetchAuditLogDetail(id) {
   return request.get(`/admin/audit-log/${id}`)
 }
 
+export function fetchReportPage(params) {
+  return request.get('/admin/report/page', {
+    params,
+  })
+}
+
+export function fetchReportDetail(id) {
+  return request.get(`/admin/report/${id}`)
+}
+
+export function handleReport(id, data) {
+  return request.put(`/admin/report/${id}/handle`, data)
+}
+
+export function ignoreReport(id) {
+  return request.put(`/admin/report/${id}/ignore`)
+}
+
 export function createCategory(data) {
   return request.post('/admin/category', data)
 }
