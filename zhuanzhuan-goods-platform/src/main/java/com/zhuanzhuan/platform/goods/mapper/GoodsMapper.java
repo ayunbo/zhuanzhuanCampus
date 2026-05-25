@@ -43,7 +43,7 @@ public interface GoodsMapper {
      * @param id 商品 ID
      * @return 商品实体
      */
-    Goods getById(Long id);
+    Goods getById(@Param("id") Long id);
 
     /**
      * 根据商品 ID 和卖家 ID 查询商品基础信息。
@@ -178,6 +178,18 @@ public interface GoodsMapper {
             where id = #{goodsId}
             """)
     int adjustFavoriteCount(@Param("goodsId") Long goodsId, @Param("delta") Integer delta);
+
+    @Update("""
+            update goods
+            set cover = #{cover},
+                version = version + 1,
+                update_time = now(),
+                update_user = #{updateUser}
+            where id = #{goodsId}
+            """)
+    int updateCoverById(@Param("goodsId") Long goodsId,
+                        @Param("cover") String cover,
+                        @Param("updateUser") Long updateUser);
 
     /**
      * 统计指定卖家指定状态的商品数量。

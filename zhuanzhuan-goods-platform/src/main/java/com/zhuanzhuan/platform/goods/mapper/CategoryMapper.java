@@ -13,7 +13,7 @@ import java.util.List;
 @Mapper
 public interface CategoryMapper {
 
-    Category getById(Long id);
+    Category getById(@Param("id") Long id);
 
     int countByParentIdAndName(@Param("parentId") Long parentId, @Param("name") String name);
 

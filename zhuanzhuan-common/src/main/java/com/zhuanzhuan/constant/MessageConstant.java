@@ -72,9 +72,11 @@ public final class MessageConstant {
 
     public static final String FILE_EMPTY = "上传文件不能为空";
     public static final String FILE_SIZE_EXCEEDED = "上传文件大小不能超过 5MB";
-    public static final String FILE_TYPE_NOT_ALLOWED = "仅支持 jpg/jpeg/png/webp/gif/pdf 格式文件";
+    public static final String FILE_TYPE_NOT_ALLOWED = "仅支持 jpg/jpeg/png/webp/gif 格式图片";
+    public static final String FILE_COUNT_EXCEEDED = "单次上传图片数量不能超过 9 张";
     public static final String UPLOAD_CATEGORY_INVALID = "上传分类不合法";
     public static final String FILE_UPLOAD_FAILED = "文件上传失败，请稍后重试";
+    public static final String FILE_DELETE_FAILED = "文件删除失败，请稍后重试";
 
     public static final String ALREADY_EXISTS = "已存在";
     public static final String GOODS_NOT_FOUND = "商品不存在";
@@ -88,6 +90,8 @@ public final class MessageConstant {
     public static final String GOODS_QUALITY_INVALID = "商品成色仅允许1到5";
     public static final String GOODS_LOCATION_TOO_LONG = "面交地点长度不能超过120";
     public static final String GOODS_COVER_INVALID = "商品封面地址格式不正确";
+    public static final String GOODS_IMAGE_URL_INVALID = "商品图片地址格式不正确";
+    public static final String GOODS_IMAGES_TOO_MANY = "商品图片不能超过 9 张";
     public static final String GOODS_STATUS_INVALID = "商品状态不合法";
     public static final String GOODS_EDIT_FORBIDDEN = "当前状态下不允许编辑商品";
     public static final String GOODS_SUBMIT_AUDIT_STATUS_INVALID = "只有草稿或已驳回商品才能提交审核";

@@ -16,8 +16,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -71,6 +73,44 @@ public class AliOssUtil {
         return endpoint.split("//")[0] + "//" + bucketName + "." + endpoint.split("//")[1] + "/" + objectName;
     }
 
+    public void deleteByUrl(String url) throws Exception {
+        if (!StringUtils.hasText(url)) {
+            return;
+        }
+        deleteByUrls(List.of(url));
+    }
+
+    public void deleteByUrls(List<String> urls) throws Exception {
+        if (urls == null || urls.isEmpty()) {
+            return;
+        }
+
+        String endpoint = aliOssProperties.getEndpoint();
+        String bucketName = aliOssProperties.getBucketName();
+        String region = aliOssProperties.getRegion();
+        EnvironmentVariableCredentialsProvider credentialsProvider = CredentialsProviderFactory.newEnvironmentVariableCredentialsProvider();
+
+        ClientBuilderConfiguration clientBuilderConfiguration = new ClientBuilderConfiguration();
+        clientBuilderConfiguration.setSignatureVersion(SignVersion.V4);
+        OSS ossClient = OSSClientBuilder.create()
+                .endpoint(endpoint)
+                .credentialsProvider(credentialsProvider)
+                .clientConfiguration(clientBuilderConfiguration)
+                .region(region)
+                .build();
+
+        try {
+            for (String url : urls) {
+                String objectName = extractObjectName(url, bucketName);
+                if (StringUtils.hasText(objectName)) {
+                    ossClient.deleteObject(bucketName, objectName);
+                }
+            }
+        } finally {
+            ossClient.shutdown();
+        }
+    }
+
     private String buildObjectName(String originalFilename, String category) {
         String normalizedCategory = normalizeCategory(category);
         String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
@@ -120,5 +160,28 @@ public class AliOssUtil {
         }
 
         return suffix;
+    }
+
+    private String extractObjectName(String url, String bucketName) {
+        if (!StringUtils.hasText(url)) {
+            return null;
+        }
+
+        try {
+            URI uri = URI.create(url.trim());
+            String path = uri.getPath();
+            if (!StringUtils.hasText(path)) {
+                return null;
+            }
+
+            String normalizedPath = path.startsWith("/") ? path.substring(1) : path;
+            if (normalizedPath.startsWith(bucketName + "/")) {
+                return normalizedPath.substring(bucketName.length() + 1);
+            }
+            return normalizedPath;
+        } catch (Exception ex) {
+            log.warn("parse oss object name from url failed, url={}", url, ex);
+            return null;
+        }
     }
 }

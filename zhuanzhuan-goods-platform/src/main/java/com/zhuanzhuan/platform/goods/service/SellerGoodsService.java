@@ -33,6 +33,16 @@ public interface SellerGoodsService {
      */
     void delete(Long goodsId);
 
+    void appendImages(Long goodsId, java.util.List<String> imageUrls);
+
+    /**
+     * 删除商品单张图片。
+     *
+     * @param goodsId 商品 ID
+     * @param imageUrl 图片地址
+     */
+    void deleteImage(Long goodsId, String imageUrl);
+
     /**
      * 分页查询卖家商品。
      *

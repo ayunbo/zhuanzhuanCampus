@@ -8,6 +8,7 @@ import com.zhuanzhuan.platform.review.service.ReviewService;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.result.Result;
 import com.zhuanzhuan.utils.AliOssUtil;
+import com.zhuanzhuan.utils.ValidationRuleUtil;
 import com.zhuanzhuan.vo.ReviewVO;
 import com.zhuanzhuan.vo.SellerReviewPageVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Locale;
-import java.util.Set;
 
 @Tag(name = "用户评价接口")
 @RestController
@@ -32,7 +31,6 @@ import java.util.Set;
 public class ReviewController {
 
     private static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
-    private static final Set<String> IMAGE_SUFFIX_SET = Set.of("jpg", "jpeg", "png", "webp", "gif");
 
     @Autowired
     private ReviewService reviewService;
@@ -50,12 +48,10 @@ public class ReviewController {
             throw new BaseException(MessageConstant.FILE_SIZE_EXCEEDED);
         }
         String contentType = file.getContentType();
-        if (!StringUtils.hasText(contentType) || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
+        if (!StringUtils.hasText(contentType) || !contentType.toLowerCase().startsWith("image/")) {
             throw new BaseException(MessageConstant.REVIEW_IMAGE_TYPE_NOT_ALLOWED);
         }
-
-        String suffix = resolveFileSuffix(file.getOriginalFilename());
-        if (!IMAGE_SUFFIX_SET.contains(suffix)) {
+        if (!ValidationRuleUtil.isAllowedImageFilename(file.getOriginalFilename())) {
             throw new BaseException(MessageConstant.REVIEW_IMAGE_TYPE_NOT_ALLOWED);
         }
 
@@ -92,14 +88,4 @@ public class ReviewController {
         return Result.success(reviewService.pageBySellerId(sellerId, dto));
     }
 
-    private String resolveFileSuffix(String filename) {
-        if (!StringUtils.hasText(filename)) {
-            return "";
-        }
-        int dotIndex = filename.lastIndexOf('.');
-        if (dotIndex < 0 || dotIndex == filename.length() - 1) {
-            return "";
-        }
-        return filename.substring(dotIndex + 1).trim().toLowerCase(Locale.ROOT);
-    }
 }

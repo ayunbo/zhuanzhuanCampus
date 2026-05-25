@@ -17,6 +17,7 @@ import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.platform.goods.service.AdminGoodsService;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.service.RiskControlService;
+import com.zhuanzhuan.utils.AliOssUtil;
 import com.zhuanzhuan.vo.AdminGoodsDetailVO;
 import com.zhuanzhuan.vo.AdminGoodsPageVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 管理端商品服务实现。
@@ -40,6 +42,9 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
 
     @Autowired
     private RiskControlService riskControlService;
+
+    @Autowired
+    private AliOssUtil aliOssUtil;
 
     /**
      * 分页查询商品。
@@ -257,10 +262,18 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
             throw new BaseException(MessageConstant.GOODS_DELETE_STATUS_INVALID);
         }
 
+        List<String> imageUrls = goodsImageMapper.selectEntitiesByGoodsId(goodsId).stream()
+                .map(com.zhuanzhuan.entity.GoodsImage::getUrl)
+                .collect(Collectors.toList());
         goodsImageMapper.deleteByGoodsId(goodsId);
         int rows = goodsMapper.deleteById(goodsId);
         if (rows <= 0) {
             throw new BaseException(MessageConstant.GOODS_DELETE_FAILED);
+        }
+        try {
+            aliOssUtil.deleteByUrls(imageUrls);
+        } catch (Exception ex) {
+            throw new BaseException(MessageConstant.FILE_DELETE_FAILED);
         }
     }
 }

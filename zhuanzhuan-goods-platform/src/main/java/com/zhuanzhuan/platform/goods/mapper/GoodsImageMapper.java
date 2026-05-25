@@ -29,6 +29,30 @@ public interface GoodsImageMapper {
             """)
     List<GoodsImageVO> selectByGoodsId(Long goodsId);
 
+    @Select("""
+            select id, goods_id, url, sort, is_cover, create_time, update_time, create_user, update_user
+            from goodsimage
+            where goods_id = #{goodsId}
+            order by sort asc, id asc
+            """)
+    List<GoodsImage> selectEntitiesByGoodsId(Long goodsId);
+
+    @Select("""
+            select distinct goods_id
+            from goodsimage
+            where url = #{url}
+            """)
+    List<Long> selectGoodsIdsByUrl(String url);
+
+    @Select("""
+            select url
+            from goodsimage
+            where goods_id = #{goodsId}
+            order by sort asc, id asc
+            limit 1
+            """)
+    String selectFirstUrlByGoodsId(Long goodsId);
+
     /**
      * 根据商品 ID 删除图片列表。
      *
@@ -37,6 +61,12 @@ public interface GoodsImageMapper {
      */
     @Delete("delete from goodsimage where goods_id = #{goodsId}")
     int deleteByGoodsId(Long goodsId);
+
+    @Delete("delete from goodsimage where goods_id = #{goodsId} and url = #{url}")
+    int deleteByGoodsIdAndUrl(@Param("goodsId") Long goodsId, @Param("url") String url);
+
+    @Delete("delete from goodsimage where url = #{url}")
+    int deleteByUrl(String url);
 
     /**
      * 批量新增商品图片。

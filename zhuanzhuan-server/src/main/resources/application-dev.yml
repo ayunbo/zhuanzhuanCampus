@@ -6,7 +6,7 @@ zhuanzhuan:
     port: 3306
     database: zhuanzhuan
     username: root
-    password: 20041021
+    password: 210XCmSE
   redis:
     host: localhost
     port: 6379

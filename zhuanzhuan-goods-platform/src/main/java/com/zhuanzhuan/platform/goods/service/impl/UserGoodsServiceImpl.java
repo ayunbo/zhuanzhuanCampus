@@ -10,6 +10,7 @@ import com.zhuanzhuan.exception.BaseException;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.goods.mapper.GoodsImageMapper;
 import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
+import com.zhuanzhuan.platform.goods.service.GoodsStatsAsyncService;
 import com.zhuanzhuan.platform.goods.service.UserGoodsService;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.vo.SellerSpaceVO;
@@ -35,6 +36,9 @@ public class UserGoodsServiceImpl implements UserGoodsService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private GoodsStatsAsyncService goodsStatsAsyncService;
 
     /**
      * 用户端分页查询商品列表。
@@ -97,7 +101,7 @@ public class UserGoodsServiceImpl implements UserGoodsService {
         }
 
         detailVO.setImages(goodsImageMapper.selectByGoodsId(goodsId));
-        goodsMapper.increaseViewCount(goodsId, 1);
+        goodsStatsAsyncService.increaseViewCountAsync(goodsId, 1);
         detailVO.setViewCount(detailVO.getViewCount() == null ? 1 : detailVO.getViewCount() + 1);
         return detailVO;
     }

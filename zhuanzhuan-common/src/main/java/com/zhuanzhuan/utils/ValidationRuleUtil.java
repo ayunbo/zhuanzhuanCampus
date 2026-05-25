@@ -2,6 +2,9 @@ package com.zhuanzhuan.utils;
 
 import org.springframework.util.StringUtils;
 
+import java.net.URI;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -16,6 +19,7 @@ public final class ValidationRuleUtil {
     private static final Pattern DISPLAY_NAME_PATTERN = Pattern.compile("^[\\p{IsHan}A-Za-z0-9_\\-\\s]{1,20}$");
     private static final Pattern REAL_NAME_PATTERN = Pattern.compile("^[\\p{IsHan}A-Za-z·\\-\\s]{2,20}$");
     private static final Pattern HTTP_URL_PATTERN = Pattern.compile("^https?://.+");
+    private static final Set<String> IMAGE_SUFFIX_SET = Set.of("jpg", "jpeg", "png", "webp", "gif");
 
     private ValidationRuleUtil() {
     }
@@ -46,5 +50,33 @@ public final class ValidationRuleUtil {
 
     public static boolean isValidHttpUrl(String url) {
         return StringUtils.hasText(url) && HTTP_URL_PATTERN.matcher(url.trim()).matches();
+    }
+
+    public static boolean isAllowedImageFilename(String filename) {
+        String extension = extractExtension(filename);
+        return StringUtils.hasText(extension) && IMAGE_SUFFIX_SET.contains(extension);
+    }
+
+    public static boolean isAllowedImageUrl(String url) {
+        if (!isValidHttpUrl(url)) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(url.trim());
+            return isAllowedImageFilename(uri.getPath());
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    private static String extractExtension(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        int dotIndex = value.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex == value.length() - 1) {
+            return "";
+        }
+        return value.substring(dotIndex + 1).trim().toLowerCase(Locale.ROOT);
     }
 }
