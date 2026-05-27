@@ -22,9 +22,9 @@ public class Category {
     private Integer level;
     private Integer sort;
     private Integer status;
+    private Long goodsCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private Long createUser;
     private Long updateUser;
 }
-

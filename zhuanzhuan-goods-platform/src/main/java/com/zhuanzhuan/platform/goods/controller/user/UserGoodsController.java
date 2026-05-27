@@ -3,11 +3,14 @@ package com.zhuanzhuan.platform.goods.controller.user;
 import com.zhuanzhuan.constant.JwtClaimsConstant;
 import com.zhuanzhuan.context.BaseContext;
 import com.zhuanzhuan.dto.GoodsPageQueryDTO;
+import com.zhuanzhuan.dto.SearchHistoryRecordDTO;
 import com.zhuanzhuan.platform.goods.service.UserGoodsService;
 import com.zhuanzhuan.platform.history.service.BrowseHistoryService;
+import com.zhuanzhuan.platform.history.service.SearchHistoryService;
 import com.zhuanzhuan.properties.JwtProperties;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.result.Result;
+import com.zhuanzhuan.service.SearchAssistService;
 import com.zhuanzhuan.utils.JwtUtil;
 import com.zhuanzhuan.vo.SellerSpaceVO;
 import com.zhuanzhuan.vo.UserGoodsDetailVO;
@@ -36,6 +39,12 @@ public class UserGoodsController {
     @Autowired
     private BrowseHistoryService browseHistoryService;
 
+    @Autowired
+    private SearchHistoryService searchHistoryService;
+
+    @Autowired
+    private SearchAssistService searchAssistService;
+
     /**
      * 用户端分页查询商品列表。
      *
@@ -43,8 +52,15 @@ public class UserGoodsController {
      * @return 分页结果
      */
     @GetMapping({"", "/page"})
-    public Result<PageResult> page(GoodsPageQueryDTO dto) {
-        return Result.success(userGoodsService.page(dto));
+    public Result<PageResult> page(GoodsPageQueryDTO dto, HttpServletRequest request) {
+        bindCurrentUserIfPresent(request);
+        try {
+            PageResult pageResult = userGoodsService.page(dto);
+            recordSearchHistoryQuietly(dto);
+            return Result.success(pageResult);
+        } finally {
+            BaseContext.removeCurrentId();
+        }
     }
 
     /**
@@ -101,5 +117,52 @@ public class UserGoodsController {
         } catch (Exception ignored) {
             // 浏览历史记录失败不影响详情主流程
         }
+    }
+
+    private void recordSearchHistoryQuietly(GoodsPageQueryDTO dto) {
+        if (dto == null || dto.getPage() > 1 || !hasMeaningfulSearchCondition(dto)) {
+            return;
+        }
+
+        SearchHistoryRecordDTO recordDTO = new SearchHistoryRecordDTO();
+        recordDTO.setKeyword(dto.getEffectiveKeyword());
+        recordDTO.setCategoryId(dto.getCategoryId());
+        recordDTO.setSellerId(dto.getSellerId());
+        recordDTO.setStatus(dto.getStatus());
+        recordDTO.setQuality(dto.getQuality());
+        recordDTO.setLocation(dto.getLocation());
+        recordDTO.setMinPrice(dto.getMinPrice());
+        recordDTO.setMaxPrice(dto.getMaxPrice());
+        if (StringUtils.hasText(dto.getSortBy())) {
+            recordDTO.setSortBy(dto.getEffectiveSortBy());
+        }
+
+        try {
+            searchAssistService.record(recordDTO);
+        } catch (Exception ignored) {
+            // 热搜统计失败不影响商品列表主流程
+        }
+
+        if (BaseContext.getCurrentId() == null) {
+            return;
+        }
+
+        try {
+            searchHistoryService.record(recordDTO);
+        } catch (Exception ignored) {
+            // 搜索历史记录失败不影响商品列表主流程
+        }
+    }
+
+    private boolean hasMeaningfulSearchCondition(GoodsPageQueryDTO dto) {
+        return StringUtils.hasText(dto.getEffectiveKeyword())
+                || dto.getCategoryId() != null
+                || dto.getSellerId() != null
+                || dto.getStatus() != null
+                || dto.getQuality() != null
+                || StringUtils.hasText(dto.getLocation())
+                || dto.getMinPrice() != null
+                || dto.getMaxPrice() != null
+                || StringUtils.hasText(dto.getSortBy());
     }
 }

@@ -3,8 +3,8 @@ package com.zhuanzhuan.utils;
 import com.aliyun.oss.ClientBuilderConfiguration;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.common.auth.CredentialsProvider;
 import com.aliyun.oss.common.auth.CredentialsProviderFactory;
-import com.aliyun.oss.common.auth.EnvironmentVariableCredentialsProvider;
 import com.aliyun.oss.common.comm.SignVersion;
 
 import com.zhuanzhuan.properties.AliOssProperties;
@@ -47,8 +47,7 @@ public class AliOssUtil {
         String region = aliOssProperties.getRegion();
 
 
-        // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
-        EnvironmentVariableCredentialsProvider credentialsProvider = CredentialsProviderFactory.newEnvironmentVariableCredentialsProvider();
+        CredentialsProvider credentialsProvider = buildCredentialsProvider();
 
         String objectName = buildObjectName(originalFilename, category);
 
@@ -78,6 +77,17 @@ public class AliOssUtil {
         String newFileName = UUID.randomUUID().toString().replace("-", "") + fileSuffix;
 
         return normalizedCategory + "/" + datePath + "/" + newFileName;
+    }
+
+    private CredentialsProvider buildCredentialsProvider() throws Exception {
+        String accessKeyId = aliOssProperties.getAccessKeyId();
+        String accessKeySecret = aliOssProperties.getAccessKeySecret();
+        if (StringUtils.hasText(accessKeyId) && StringUtils.hasText(accessKeySecret)) {
+            return CredentialsProviderFactory.newDefaultCredentialProvider(accessKeyId, accessKeySecret);
+        }
+
+        // When keys are not in config, keep supporting OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET.
+        return CredentialsProviderFactory.newEnvironmentVariableCredentialsProvider();
     }
 
     private String normalizeCategory(String category) {

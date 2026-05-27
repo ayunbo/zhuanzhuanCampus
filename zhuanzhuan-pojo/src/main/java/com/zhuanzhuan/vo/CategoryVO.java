@@ -13,6 +13,7 @@ public class CategoryVO {
     private Integer level;
     private Integer sort;
     private Integer status;
+    private Long goodsCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
