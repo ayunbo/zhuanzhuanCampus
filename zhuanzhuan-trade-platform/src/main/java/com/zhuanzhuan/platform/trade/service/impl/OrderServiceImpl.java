@@ -23,6 +23,7 @@ import com.zhuanzhuan.platform.trade.mapper.PayRecordMapper;
 import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.platform.trade.service.OrderService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import com.zhuanzhuan.vo.OrderDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private PayRecordMapper payRecordMapper;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     /**
      * 获取当前登录用户id
@@ -162,6 +166,13 @@ public class OrderServiceImpl implements OrderService {
 
         payRecordMapper.insert(payRecord);
 
+        noticePublishService.publishOrderStatusChange(
+                goods.getSellerId(),
+                order.getId(),
+                "收到新的订单",
+                "买家已提交订单，订单支付后请及时联系买家完成交易。"
+        );
+
         return order.getId();
     }
 
@@ -223,6 +234,19 @@ public class OrderServiceImpl implements OrderService {
             payRecord.setUpdateUser(buyerId);
             payRecordMapper.insert(payRecord);
         }
+
+        noticePublishService.publishOrderStatusChange(
+                order.getSellerId(),
+                order.getId(),
+                "订单已取消",
+                "买家已取消订单，商品已恢复上架。"
+        );
+        noticePublishService.publishOrderStatusChange(
+                buyerId,
+                order.getId(),
+                "订单已取消",
+                "你的订单已取消，支付单已关闭。"
+        );
     }
 
     /**
@@ -260,6 +284,19 @@ public class OrderServiceImpl implements OrderService {
                 order.getId(),
                 GoodsStatusConstant.LOCKED,
                 GoodsStatusConstant.SOLD
+        );
+
+        noticePublishService.publishOrderStatusChange(
+                order.getSellerId(),
+                order.getId(),
+                "订单已完成",
+                "买家已确认完成订单，商品已标记为已售出。"
+        );
+        noticePublishService.publishOrderStatusChange(
+                buyerId,
+                order.getId(),
+                "订单已完成",
+                "你已确认完成订单，感谢使用校园二手交易平台。"
         );
     }
 

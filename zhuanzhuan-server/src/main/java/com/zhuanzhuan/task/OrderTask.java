@@ -10,6 +10,7 @@ import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.platform.trade.mapper.OrderMapper;
 import com.zhuanzhuan.platform.trade.mapper.PayMapper;
 import com.zhuanzhuan.platform.trade.mapper.PayRecordMapper;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,6 +32,8 @@ public class OrderTask {
     private PayMapper payMapper;
     @Autowired
     private PayRecordMapper payRecordMapper;
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     /**
      * 每分钟扫描一次超时未支付订单
@@ -93,6 +96,19 @@ public class OrderTask {
             payRecord.setUpdateUser(0L);
             payRecordMapper.insert(payRecord);
         }
+
+        noticePublishService.publishOrderStatusChange(
+                order.getBuyerId(),
+                order.getId(),
+                "订单超时关闭",
+                "你的订单因超过 30 分钟未支付已自动关闭，商品已恢复上架。"
+        );
+        noticePublishService.publishOrderStatusChange(
+                order.getSellerId(),
+                order.getId(),
+                "订单超时关闭",
+                "买家超时未支付，订单已自动关闭，商品已恢复上架。"
+        );
 
         log.info("超时订单已关闭，orderId={}", order.getId());
     }

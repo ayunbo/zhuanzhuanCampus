@@ -22,6 +22,7 @@ import com.zhuanzhuan.platform.trade.service.AdminOrderService;
 import com.zhuanzhuan.vo.AdminOrderDetailVO;
 import com.zhuanzhuan.vo.OrderDetailVO;
 import com.zhuanzhuan.vo.PayRecordVO;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,9 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Autowired
     private PayRecordMapper payRecordMapper;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     @Override
     public PageResult pageQuery(AdminOrderPageQueryDTO dto) {
@@ -110,6 +114,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         syncPayStatus(order.getId(), newStatus);
         syncGoodsStatus(order, newStatus);
         insertAdminStatusRecord(order.getId(), newStatus);
+        publishAdminOrderStatusNotice(order, newStatus);
     }
 
     private void syncOrderTimeFields(Long orderId, Integer newStatus) {
@@ -210,6 +215,32 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             return PayStatusConstant.CLOSED;
         }
         return PayStatusConstant.PENDING;
+    }
+
+    private void publishAdminOrderStatusNotice(Order order, Integer newStatus) {
+        String statusText = toOrderStatusText(newStatus);
+        String content = "管理员已将订单状态更新为" + statusText + "，请查看订单详情。";
+        noticePublishService.publishOrderStatusChange(order.getBuyerId(), order.getId(), "订单状态更新", content);
+        noticePublishService.publishOrderStatusChange(order.getSellerId(), order.getId(), "订单状态更新", content);
+    }
+
+    private String toOrderStatusText(Integer status) {
+        if (OrderStatusConstant.PENDING_PAY.equals(status)) {
+            return "待支付";
+        }
+        if (OrderStatusConstant.PAID.equals(status)) {
+            return "已支付";
+        }
+        if (OrderStatusConstant.COMPLETED.equals(status)) {
+            return "已完成";
+        }
+        if (OrderStatusConstant.CANCELED.equals(status)) {
+            return "已取消";
+        }
+        if (OrderStatusConstant.TIMEOUT_CLOSED.equals(status)) {
+            return "超时关闭";
+        }
+        return "未知状态";
     }
 
     @Override

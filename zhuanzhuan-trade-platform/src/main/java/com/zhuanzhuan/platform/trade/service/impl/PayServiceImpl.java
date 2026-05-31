@@ -12,6 +12,7 @@ import com.zhuanzhuan.platform.trade.mapper.OrderMapper;
 import com.zhuanzhuan.platform.trade.mapper.PayMapper;
 import com.zhuanzhuan.platform.trade.mapper.PayRecordMapper;
 import com.zhuanzhuan.platform.trade.service.PayService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,8 @@ public class PayServiceImpl implements PayService {
     private PayMapper payMapper;
     @Autowired
     private PayRecordMapper payRecordMapper;
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     private Long getCurrentUserId() {
         Long currentId = BaseContext.getCurrentId();
@@ -100,5 +103,18 @@ public class PayServiceImpl implements PayService {
         payRecord.setUpdateUser(currentId);
 
         payRecordMapper.insert(payRecord);
+
+        noticePublishService.publishOrderStatusChange(
+                order.getSellerId(),
+                order.getId(),
+                "订单已支付",
+                "买家已完成支付，请及时联系买家完成线下交易。"
+        );
+        noticePublishService.publishOrderStatusChange(
+                order.getBuyerId(),
+                order.getId(),
+                "支付成功",
+                "你的订单已支付成功，请按约定时间地点完成交易。"
+        );
     }
 }

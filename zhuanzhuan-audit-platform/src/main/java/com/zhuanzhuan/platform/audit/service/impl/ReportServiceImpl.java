@@ -24,6 +24,7 @@ import com.zhuanzhuan.platform.audit.service.ReportService;
 import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.service.RiskControlService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import com.zhuanzhuan.vo.ReportDetailVO;
 import com.zhuanzhuan.vo.ReportVO;
 import org.springframework.beans.BeanUtils;
@@ -63,6 +64,9 @@ public class ReportServiceImpl implements ReportService {
 
     @Autowired
     private RiskControlService riskControlService;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     /**
      * 用户提交举报。
@@ -248,6 +252,12 @@ public class ReportServiceImpl implements ReportService {
 
             // 根据处理方式执行联动处罚。若联动失败，事务会回滚举报处理结果。
             handleLinkedPenalty(currentReport, dto, adminId);
+            noticePublishService.publishReportResult(
+                    currentReport.getReportUserId(),
+                    id,
+                    "举报处理结果",
+                    truncate("你的举报已处理，处理结果：" + dto.getHandleResult(), 500)
+            );
             success = true;
         } finally {
             if (!success) {
@@ -295,6 +305,12 @@ public class ReportServiceImpl implements ReportService {
             if (rows <= 0) {
                 throw new BaseException(MessageConstant.REPORT_NOT_FOUND);
             }
+            noticePublishService.publishReportResult(
+                    currentReport.getReportUserId(),
+                    id,
+                    "举报处理结果",
+                    "你的举报已由管理员审核，本次暂不处理。"
+            );
             success = true;
         } finally {
             if (!success) {
@@ -371,6 +387,12 @@ public class ReportServiceImpl implements ReportService {
         if (rows <= 0) {
             throw new BaseException(MessageConstant.GOODS_OFF_SHELF_FAILED);
         }
+        noticePublishService.publishGoodsAuditResult(
+                currentGoods.getSellerId(),
+                currentGoods.getId(),
+                "商品已下架",
+                truncate("你的商品因举报处理被平台下架，处理结果：" + dto.getHandleResult(), 500)
+        );
     }
 
     /**
@@ -395,6 +417,12 @@ public class ReportServiceImpl implements ReportService {
                 .build();
         userMapper.updateByIdSelective(updateUser);
         riskControlService.evictAuthStatus("user", user.getId());
+        noticePublishService.publishReportResult(
+                user.getId(),
+                report.getId(),
+                "账号处理通知",
+                "你的账号因举报处理已被平台封禁，如有疑问请联系管理员。"
+        );
     }
 
     /**
@@ -533,5 +561,12 @@ public class ReportServiceImpl implements ReportService {
                 && !Integer.valueOf(ReportConstant.TARGET_TYPE_MESSAGE).equals(targetType)) {
             throw new BaseException(MessageConstant.REPORT_TARGET_TYPE_INVALID);
         }
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength - 3) + "...";
     }
 }

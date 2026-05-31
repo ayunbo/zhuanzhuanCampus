@@ -14,6 +14,7 @@ import com.zhuanzhuan.platform.trade.mapper.PayMapper;
 import com.zhuanzhuan.platform.trade.mapper.PayRecordMapper;
 import com.zhuanzhuan.properties.VirtualWalletProperties;
 import com.zhuanzhuan.platform.trade.service.VirtualWalletPayService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import com.zhuanzhuan.utils.VirtualWalletSignUtil;
 import com.zhuanzhuan.vo.PayStatusVO;
 import com.zhuanzhuan.vo.VirtualWalletLaunchVO;
@@ -40,6 +41,9 @@ public class VirtualWalletPayServiceImpl implements VirtualWalletPayService {
 
     @Autowired
     private VirtualWalletProperties virtualWalletProperties;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     @Override
     @Transactional
@@ -178,6 +182,19 @@ public class VirtualWalletPayServiceImpl implements VirtualWalletPayService {
         payRecord.setCreateUser(order.getBuyerId());
         payRecord.setUpdateUser(order.getBuyerId());
         payRecordMapper.insert(payRecord);
+
+        noticePublishService.publishOrderStatusChange(
+                order.getSellerId(),
+                order.getId(),
+                "订单已支付",
+                "买家已通过虚拟钱包完成支付，请及时联系买家完成线下交易。"
+        );
+        noticePublishService.publishOrderStatusChange(
+                order.getBuyerId(),
+                order.getId(),
+                "支付成功",
+                "你的订单已支付成功，请按约定时间地点完成交易。"
+        );
     }
 
     private void insertFailRecord(Order order, Pay pay, VirtualWalletCallbackDTO dto) {

@@ -259,7 +259,7 @@ function handlePageSizeChange() {
 }
 
 function setPage(targetPage) {
-  if (targetPage < 1 || targetPage > pageCount.value || targetPage === pager.page) {
+  if (targetPage < 1 || targetPage > pageCount.value) {
     return
   }
 

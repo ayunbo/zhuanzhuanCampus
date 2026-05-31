@@ -21,6 +21,7 @@ import com.zhuanzhuan.platform.account.mapper.UserMapper;
 import com.zhuanzhuan.platform.account.service.SellerAuthService;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.service.RiskControlService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import com.zhuanzhuan.vo.SellerAuthResultVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,9 @@ public class SellerAuthServiceImpl implements SellerAuthService {
 
     @Autowired
     private RiskControlService riskControlService;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     /**
      * 用户提交卖家认证申请。
@@ -266,6 +270,13 @@ public class SellerAuthServiceImpl implements SellerAuthService {
                 userMapper.updateRoleById(sellerAuth.getUserId(), RoleConstant.SELLER);
                 riskControlService.evictAuthStatus("user", sellerAuth.getUserId());
             }
+
+            noticePublishService.publishSellerAuthResult(
+                    sellerAuth.getUserId(),
+                    sellerAuth.getId(),
+                    "卖家认证审核结果",
+                    buildSellerAuthNoticeContent(targetStatus, sellerAuthAuditDTO.getReason())
+            );
             success = true;
         } finally {
             if (!success) {
@@ -294,5 +305,20 @@ public class SellerAuthServiceImpl implements SellerAuthService {
             return SellerAuthStatusConstant.REVOKED_DESC;
         }
         return SellerAuthStatusConstant.UNKNOWN_DESC;
+    }
+
+    private String buildSellerAuthNoticeContent(Integer status, String reason) {
+        if (SellerAuthStatusConstant.APPROVED.equals(status)) {
+            return "你的卖家认证审核已通过，现在可以发布和管理商品。";
+        }
+        String normalizedReason = StringUtils.hasText(reason) ? reason.trim() : "未填写具体原因";
+        return truncate("你的卖家认证审核未通过，原因：" + normalizedReason, 500);
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength - 3) + "...";
     }
 }

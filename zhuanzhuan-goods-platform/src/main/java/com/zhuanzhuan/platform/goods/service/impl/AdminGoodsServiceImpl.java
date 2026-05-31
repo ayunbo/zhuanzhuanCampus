@@ -17,6 +17,7 @@ import com.zhuanzhuan.platform.goods.mapper.GoodsMapper;
 import com.zhuanzhuan.platform.goods.service.AdminGoodsService;
 import com.zhuanzhuan.result.PageResult;
 import com.zhuanzhuan.service.RiskControlService;
+import com.zhuanzhuan.service.notify.NoticePublishService;
 import com.zhuanzhuan.vo.AdminGoodsDetailVO;
 import com.zhuanzhuan.vo.AdminGoodsPageVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
 
     @Autowired
     private RiskControlService riskControlService;
+
+    @Autowired
+    private NoticePublishService noticePublishService;
 
     /**
      * 分页查询商品。
@@ -149,6 +153,12 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
             if (rows <= 0) {
                 throw new BaseException(MessageConstant.GOODS_AUDIT_FAILED);
             }
+            noticePublishService.publishGoodsAuditResult(
+                    currentGoods.getSellerId(),
+                    goodsId,
+                    "商品审核结果",
+                    buildGoodsAuditNoticeContent(auditDTO.getStatus(), auditDTO.getReason())
+            );
             success = true;
         } finally {
             if (!success) {
@@ -225,6 +235,12 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         if (rows <= 0) {
             throw new BaseException(MessageConstant.GOODS_OFF_SHELF_FAILED);
         }
+        noticePublishService.publishGoodsAuditResult(
+                currentGoods.getSellerId(),
+                goodsId,
+                "商品已下架",
+                "你的商品《" + safeTitle(currentGoods.getTitle()) + "》已被平台下架，如有疑问请联系管理员。"
+        );
     }
 
     /**
@@ -262,5 +278,33 @@ public class AdminGoodsServiceImpl implements AdminGoodsService {
         if (rows <= 0) {
             throw new BaseException(MessageConstant.GOODS_DELETE_FAILED);
         }
+        noticePublishService.publishGoodsAuditResult(
+                currentGoods.getSellerId(),
+                goodsId,
+                "商品已删除",
+                "你的商品《" + safeTitle(currentGoods.getTitle()) + "》已被管理员删除，如有疑问请联系管理员。"
+        );
+    }
+
+    private String buildGoodsAuditNoticeContent(Integer status, String reason) {
+        if (GoodsConstant.STATUS_ON_SALE.equals(status)) {
+            return "你的商品已审核通过并上架，买家现在可以看到这件商品。";
+        }
+        String normalizedReason = reason == null || reason.trim().isEmpty() ? "未填写具体原因" : reason.trim();
+        return truncate("你的商品审核未通过，原因：" + normalizedReason, 500);
+    }
+
+    private String safeTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            return "未命名商品";
+        }
+        return truncate(title.trim(), 60);
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength - 3) + "...";
     }
 }
