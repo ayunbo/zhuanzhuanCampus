@@ -14,6 +14,7 @@ public class CategoryTreeVO {
     private Integer level;
     private Integer sort;
     private Integer status;
+    private Long goodsCount;
     private List<CategoryTreeVO> children = new ArrayList<>();
 }
 

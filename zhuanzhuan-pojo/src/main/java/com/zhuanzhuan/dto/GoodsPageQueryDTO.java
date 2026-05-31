@@ -26,6 +26,11 @@ public class GoodsPageQueryDTO {
     private String keyword;
 
     /**
+     * 兼容前端传入的 title 参数。
+     */
+    private String title;
+
+    /**
      * 分类 ID。
      */
     private Long categoryId;
@@ -51,6 +56,21 @@ public class GoodsPageQueryDTO {
     private BigDecimal maxPrice;
 
     /**
+     * 成色。
+     */
+    private Integer quality;
+
+    /**
+     * 位置 / 校区。
+     */
+    private String location;
+
+    /**
+     * 排序方式：time、price_asc、price_desc、hot。
+     */
+    private String sortBy;
+
+    /**
      * 获取页码。
      *
      * @return 页码
@@ -66,5 +86,22 @@ public class GoodsPageQueryDTO {
      */
     public Integer getPageSize() {
         return pageSize == null || pageSize < 1 ? 10 : pageSize;
+    }
+
+    public String getEffectiveKeyword() {
+        if (keyword != null && !keyword.isBlank()) {
+            return keyword.trim();
+        }
+        if (title != null && !title.isBlank()) {
+            return title.trim();
+        }
+        return null;
+    }
+
+    public String getEffectiveSortBy() {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "time";
+        }
+        return sortBy.trim().toLowerCase();
     }
 }

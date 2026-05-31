@@ -26,27 +26,41 @@ public class RedisRiskControlServiceImpl implements RiskControlService {
 
     @Override
     public boolean isLoginLocked(String identity, String account) {
-        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(loginLockKey(identity, account)));
+        try {
+            return Boolean.TRUE.equals(stringRedisTemplate.hasKey(loginLockKey(identity, account)));
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过登录锁定检查, identity={}, account={}", identity, account, ex);
+            return false;
+        }
     }
 
     @Override
     public int recordLoginFailure(String identity, String account) {
-        String failKey = loginFailKey(identity, account);
-        Long count = stringRedisTemplate.opsForValue().increment(failKey);
-        if (count != null && count == 1L) {
-            stringRedisTemplate.expire(failKey, LOGIN_LOCK_TTL);
+        try {
+            String failKey = loginFailKey(identity, account);
+            Long count = stringRedisTemplate.opsForValue().increment(failKey);
+            if (count != null && count == 1L) {
+                stringRedisTemplate.expire(failKey, LOGIN_LOCK_TTL);
+            }
+            int failCount = count == null ? 1 : count.intValue();
+            if (failCount >= LOGIN_FAIL_LIMIT) {
+                stringRedisTemplate.opsForValue().set(loginLockKey(identity, account), "1", LOGIN_LOCK_TTL);
+            }
+            return failCount;
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过登录失败计数, identity={}, account={}", identity, account, ex);
+            return 0;
         }
-        int failCount = count == null ? 1 : count.intValue();
-        if (failCount >= LOGIN_FAIL_LIMIT) {
-            stringRedisTemplate.opsForValue().set(loginLockKey(identity, account), "1", LOGIN_LOCK_TTL);
-        }
-        return failCount;
     }
 
     @Override
     public void clearLoginFailures(String identity, String account) {
-        stringRedisTemplate.delete(loginFailKey(identity, account));
-        stringRedisTemplate.delete(loginLockKey(identity, account));
+        try {
+            stringRedisTemplate.delete(loginFailKey(identity, account));
+            stringRedisTemplate.delete(loginLockKey(identity, account));
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过登录失败记录清理, identity={}, account={}", identity, account, ex);
+        }
     }
 
     @Override
@@ -54,11 +68,16 @@ public class RedisRiskControlServiceImpl implements RiskControlService {
         if (!StringUtils.hasText(key) || limit <= 0) {
             return true;
         }
-        Long count = stringRedisTemplate.opsForValue().increment(key);
-        if (count != null && count == 1L) {
-            stringRedisTemplate.expire(key, window);
+        try {
+            Long count = stringRedisTemplate.opsForValue().increment(key);
+            if (count != null && count == 1L) {
+                stringRedisTemplate.expire(key, window);
+            }
+            return count == null || count <= limit;
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过限流检查, key={}", key, ex);
+            return true;
         }
-        return count == null || count <= limit;
     }
 
     @Override
@@ -66,26 +85,38 @@ public class RedisRiskControlServiceImpl implements RiskControlService {
         if (!StringUtils.hasText(key)) {
             return true;
         }
-        return Boolean.TRUE.equals(stringRedisTemplate.opsForValue().setIfAbsent(key, "1", ttl));
+        try {
+            return Boolean.TRUE.equals(stringRedisTemplate.opsForValue().setIfAbsent(key, "1", ttl));
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过去重锁获取, key={}", key, ex);
+            return true;
+        }
     }
 
     @Override
     public void releaseDedupLock(String key) {
         if (StringUtils.hasText(key)) {
-            stringRedisTemplate.delete(key);
+            try {
+                stringRedisTemplate.delete(key);
+            } catch (Exception ex) {
+                log.warn("Redis 不可用，跳过去重锁释放, key={}", key, ex);
+            }
         }
     }
 
     @Override
     public Integer getAuthStatus(String identity, Long id) {
-        String value = stringRedisTemplate.opsForValue().get(authStatusKey(identity, id));
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
         try {
+            String value = stringRedisTemplate.opsForValue().get(authStatusKey(identity, id));
+            if (!StringUtils.hasText(value)) {
+                return null;
+            }
             return Integer.valueOf(value);
         } catch (NumberFormatException ex) {
-            log.warn("账号状态缓存值非法, key={}, value={}", authStatusKey(identity, id), value);
+            log.warn("账号状态缓存值非法, key={}", authStatusKey(identity, id), ex);
+            return null;
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过账号状态读取, identity={}, id={}", identity, id, ex);
             return null;
         }
     }
@@ -95,14 +126,22 @@ public class RedisRiskControlServiceImpl implements RiskControlService {
         if (id == null || status == null) {
             return;
         }
-        Duration ttl = AUTH_STATUS_TTL.plusSeconds(ThreadLocalRandom.current().nextInt(30));
-        stringRedisTemplate.opsForValue().set(authStatusKey(identity, id), status.toString(), ttl);
+        try {
+            Duration ttl = AUTH_STATUS_TTL.plusSeconds(ThreadLocalRandom.current().nextInt(30));
+            stringRedisTemplate.opsForValue().set(authStatusKey(identity, id), status.toString(), ttl);
+        } catch (Exception ex) {
+            log.warn("Redis 不可用，跳过账号状态缓存, identity={}, id={}", identity, id, ex);
+        }
     }
 
     @Override
     public void evictAuthStatus(String identity, Long id) {
         if (id != null) {
-            stringRedisTemplate.delete(authStatusKey(identity, id));
+            try {
+                stringRedisTemplate.delete(authStatusKey(identity, id));
+            } catch (Exception ex) {
+                log.warn("Redis 不可用，跳过账号状态清理, identity={}, id={}", identity, id, ex);
+            }
         }
     }
 

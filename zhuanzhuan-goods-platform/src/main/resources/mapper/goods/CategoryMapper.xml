@@ -11,6 +11,7 @@
         <result property="level" column="level"/>
         <result property="sort" column="sort"/>
         <result property="status" column="status"/>
+        <result property="goodsCount" column="goods_count"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
         <result property="createUser" column="create_user"/>
@@ -18,14 +19,29 @@
     </resultMap>
 
     <sql id="BaseColumns">
-        id, parent_id, name, level, sort, status, create_time, update_time, create_user, update_user
+        c.id,
+        c.parent_id,
+        c.name,
+        c.level,
+        c.sort,
+        c.status,
+        coalesce(g.goods_count, 0) as goods_count,
+        c.create_time,
+        c.update_time,
+        c.create_user,
+        c.update_user
     </sql>
 
     <select id="getById" resultMap="BaseResultMap">
         select
         <include refid="BaseColumns"/>
-        from category
-        where id = #{id}
+        from category c
+        left join (
+            select category_id, count(1) as goods_count
+            from goods
+            group by category_id
+        ) g on c.id = g.category_id
+        where c.id = #{id}
         limit 1
     </select>
 
@@ -98,47 +114,63 @@
 
     <select id="pageQuery" resultType="com.zhuanzhuan.vo.CategoryVO">
         select
-            id,
-            parent_id,
-            name,
-            level,
-            sort,
-            status,
-            create_time,
-            update_time
-        from category
+            c.id,
+            c.parent_id,
+            c.name,
+            c.level,
+            c.sort,
+            c.status,
+            coalesce(g.goods_count, 0) as goods_count,
+            c.create_time,
+            c.update_time
+        from category c
+        left join (
+            select category_id, count(1) as goods_count
+            from goods
+            group by category_id
+        ) g on c.id = g.category_id
         <where>
             <if test="name != null and name != ''">
-                and name like concat('%', #{name}, '%')
+                and c.name like concat('%', #{name}, '%')
             </if>
             <if test="parentId != null">
-                and parent_id = #{parentId}
+                and c.parent_id = #{parentId}
             </if>
             <if test="status != null">
-                and status = #{status}
+                and c.status = #{status}
             </if>
         </where>
-        order by level asc, sort asc, id asc
+        order by c.level asc, c.sort asc, c.id asc
     </select>
 
     <select id="listByStatus" resultMap="BaseResultMap">
         select
         <include refid="BaseColumns"/>
-        from category
+        from category c
+        left join (
+            select category_id, count(1) as goods_count
+            from goods
+            group by category_id
+        ) g on c.id = g.category_id
         <where>
             <if test="status != null">
-                and status = #{status}
+                and c.status = #{status}
             </if>
         </where>
-        order by level asc, sort asc, id asc
+        order by c.level asc, c.sort asc, c.id asc
     </select>
 
     <select id="listByParentId" resultMap="BaseResultMap">
         select
         <include refid="BaseColumns"/>
-        from category
-        where parent_id = #{parentId}
-        order by sort asc, id asc
+        from category c
+        left join (
+            select category_id, count(1) as goods_count
+            from goods
+            group by category_id
+        ) g on c.id = g.category_id
+        where c.parent_id = #{parentId}
+        order by c.sort asc, c.id asc
     </select>
 
     <select id="countChildrenByParentId" resultType="java.lang.Integer">

@@ -109,16 +109,35 @@
             <if test="maxPrice != null">
                 and g.price &lt;= #{maxPrice}
             </if>
+            <if test="quality != null">
+                and g.quality = #{quality}
+            </if>
+            <if test="location != null and location != ''">
+                and g.location like concat('%', #{location}, '%')
+            </if>
             <!-- 动态搜索条件 -->
-            <if test="keyword != null and keyword != ''">
+            <if test="effectiveKeyword != null and effectiveKeyword != ''">
                 and (
-                    g.title like concat('%', #{keyword}, '%')
-                    or g.detail like concat('%', #{keyword}, '%')
-                    or c.name like concat('%', #{keyword}, '%')
+                    g.title like concat('%', #{effectiveKeyword}, '%')
+                    or g.detail like concat('%', #{effectiveKeyword}, '%')
+                    or c.name like concat('%', #{effectiveKeyword}, '%')
                 )
             </if>
         </where>
-        order by g.publish_time desc, g.id desc
+        <choose>
+            <when test="effectiveSortBy == 'price_asc'">
+                order by g.price asc, g.publish_time desc, g.id desc
+            </when>
+            <when test="effectiveSortBy == 'price_desc'">
+                order by g.price desc, g.publish_time desc, g.id desc
+            </when>
+            <when test="effectiveSortBy == 'hot'">
+                order by (g.view_count + g.favorite_count * 3) desc, g.publish_time desc, g.id desc
+            </when>
+            <otherwise>
+                order by g.publish_time desc, g.id desc
+            </otherwise>
+        </choose>
     </select>
 
     <!-- 卖家端商品分页查询 -->
